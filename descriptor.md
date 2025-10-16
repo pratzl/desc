@@ -47,9 +47,12 @@ desc/
 
 ### 2. Vertex Descriptor
 - MUST represent a handle to a vertex in the graph
-- SHOULD contain minimal data (typically an index or ID)
+- MUST be a template with a single parameter for the underlying container's iterator type
+- MUST have a single member variable that:
+  - MUST be `size_t index` when the iterator is a random access iterator
+  - MUST be the iterator type itself when the iterator is a bidirectional iterator (non-random access)
 - MUST be efficiently passable by value
-- SHOULD support conversion to/from underlying index type
+- SHOULD support conversion to/from underlying index type (for random access case)
 - MUST integrate with std::hash for unordered containers
 
 ### 3. Edge Descriptor
@@ -72,8 +75,11 @@ desc/
 1. Create CMake build configuration with C++20 support
 2. Set up Catch2 integration for testing
 3. Define descriptor concept using C++20 concepts
-4. Implement basic vertex descriptor
-5. Write comprehensive unit tests for vertex descriptor
+4. Implement basic vertex descriptor template with:
+   - Template parameter for container iterator type
+   - Conditional member type based on iterator category (size_t for random access, iterator for bidirectional)
+   - Proper std::random_access_iterator and std::bidirectional_iterator concept constraints
+5. Write comprehensive unit tests for vertex descriptor with both random access and bidirectional iterators
 
 ### Phase 2: Edge Descriptors
 1. Implement edge descriptor with source/target vertices
