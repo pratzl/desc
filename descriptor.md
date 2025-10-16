@@ -44,9 +44,9 @@ Vertices in the graph can be stored in different container types, which affects 
 
 **Random Access Containers (e.g., `std::vector`):**
 - Vertices MAY be stored as direct values in a contiguous container
-- Each vertex is identified by its index position
+- Each vertex is identified by its index position which is the Vertex ID
 - The vertex itself can be any type (simple types, structs, classes)
-- Example: `std::vector<VertexData>` where vertices are accessed by index
+- Examples: `std::vector<VertexData>` and `std::deque<VertexData>` where vertices are accessed by index
 
 **Associative Containers (e.g., `std::map`, `std::unordered_map`):**
 - Vertices MUST be stored as key-value pairs
@@ -61,20 +61,31 @@ Edges in the graph can be stored in various ways depending on graph structure:
 **Random Access Containers (e.g., `std::vector`):**
 - Edges MAY be stored in a contiguous container
 - Each edge is identified by its index position
-- Edges SHOULD contain connectivity information (source/target vertices)
-- Example: `std::vector<Edge>` where each `Edge` stores vertex descriptors
+- Edges SHOULD contain connectivity information (target vertex id). The source vertex is not included.
+- Examples: 
+  - `std::vector<Edge>` where each `Edge` stores target vertex id and other optional properties
+  - `std::vector<int>` where `int` stores the target vertex id
+  - `std::vector<std::pair<int,double>>` where `int` stores the target vertex id and `double` stores an optional property.
+  - `std::vector<std::tuple<int32_t,double>>` where `int32_t` stores the target vertex id and `double` stores an optional property
+  - Note: Tuples MUST have 1 or more elements, where the first element MUST be the target vertex id
 
-**Forward/Bidirectional Containers (e.g., `std::list`, adjacency lists):**
-- Edges MAY be stored in linked structures or per-vertex adjacency lists
+**Forward/Bidirectional Containers (e.g., `std::list`, `std::set`, `std::map`, adjacency lists):**
 - Each edge is identified by an iterator to its position
-- Example: Per-vertex edge lists where edges are iterated sequentially
+- Edges MAY be stored in linked structures or per-vertex adjacency lists
+- The same container value types as random access containers apply (simple types, pairs, tuples, or structs)
+- Examples:
+  - `std::list<int>` where `int` stores the target vertex id
+  - `std::list<std::pair<int,double>>` where first element is target vertex id, second is edge property
+  - `std::set<int>` where `int` stores the target vertex id (for unweighted graphs)
+  - `std::map<int,EdgeData>` where key is target vertex id and value contains edge properties
 
-**Edge Data Structure:**
-- An edge representation SHOULD contain:
-  - Source vertex identifier (vertex descriptor or ID)
-  - Target vertex identifier (vertex descriptor or ID)
-  - Optional edge weight or properties
-- Example: `struct Edge { vertex_descriptor source; vertex_descriptor target; EdgeData data; }`
+**Edge Data Structure Requirements:**
+- An edge representation SHOULD contain at minimum:
+  - Target vertex identifier (as the first element if tuple-like, or as a simple value)
+  - Optional edge weight or properties (if tuple-like or struct)
+- A source vertex identifier MUST NOT be included in the edge data (it's implied by container location)
+- Example: `struct Edge { vertex_id target; EdgeData data; }`
+- Note: The edge_descriptor will maintain both the edge location and the source vertex_descriptor
 
 ### 2. Descriptor Base Concept/Interface
 - Descriptors MUST be lightweight, copyable handles
@@ -87,16 +98,20 @@ Edges in the graph can be stored in various ways depending on graph structure:
 ### 3. Vertex Descriptor
 - MUST represent a handle to a vertex in the graph
 - MUST be a template with a single parameter for the underlying container's iterator type
-- When the iterator is bidirectional (non-random access): the iterator's `value_type` MUST satisfy a pair-like concept where:
-  - The type MUST have at least 2 members (accessible via tuple protocol or pair interface)
-  - The first element serves as the vertex ID (key)
-  - This can be checked using `std::tuple_size<value_type>::value >= 2` or by requiring `.first` and `.second` members
+- Iterator category constraints:
+  - **Random Access Iterator** (e.g., vector, deque): Used for index-based vertex storage
+  - **Bidirectional Iterator** (e.g., map, unordered_map): Used for key-value based vertex storage
+    - When bidirectional: the iterator's `value_type` MUST satisfy a pair-like concept where:
+      - The type MUST have at least 2 members (accessible via tuple protocol or pair interface)
+      - The first element serves as the vertex ID (key)
+      - This can be checked using `std::tuple_size<value_type>::value >= 2` or by requiring `.first` and `.second` members
 - MUST have a single member variable that:
   - MUST be `size_t index` when the iterator is a random access iterator
   - MUST be the iterator type itself when the iterator is a bidirectional iterator (non-random access)
-- MUST provide a `vertex_id()` member function that:
-  - When the vertex iterator is random access: MUST return the `size_t` member value
-  - When the vertex iterator is bidirectional (non-random access): MUST return the key (first element) from the pair-like `value_type`
+- MUST provide a `vertex_id()` member function that returns the vertex's unique identifier:
+  - When the vertex iterator is random access: MUST return the `size_t` member value (the index)
+  - When the vertex iterator is bidirectional: MUST return the key (first element) from the pair-like `value_type`
+  - Return type SHOULD be deduced appropriately based on iterator category
 - MUST be efficiently passable by value
 - SHOULD support conversion to/from underlying index type (for random access case)
 - MUST integrate with std::hash for unordered containers
@@ -107,8 +122,10 @@ Edges in the graph can be stored in various ways depending on graph structure:
   - First parameter: the underlying edge container's iterator type
   - Second parameter: the vertex iterator type
 - MUST have two member variables:
-  - First member: MUST be `size_t index` (for edge index) when the edge iterator is a random access iterator, or the edge iterator type itself   - Second member: MUST be a `vertex_descriptor` (using the vertex iterator type from the second template parameter)
-- MUST support directed and undirected edge semantics
+  - First member: MUST be `size_t index` (for edge index) when the edge iterator is a random access iterator, or the edge iterator type itself when the edge iterator is a forward/bidirectional iterator (non-random access)
+  - Second member: MUST be a `vertex_descriptor` (instantiated with the vertex iterator type from the second template parameter) representing the source vertex
+- The edge descriptor identifies both WHERE the edge is stored (via first member) and WHICH vertex it originates from (via second member)
+- Directed/undirected semantics are determined by the graph structure, not by the descriptor itself
 - MUST be efficiently passable by value
 - MUST integrate with std::hash for unordered containers
 
@@ -137,11 +154,11 @@ Edges in the graph can be stored in various ways depending on graph structure:
 ### Phase 2: Edge Descriptors
 1. Implement edge descriptor template with:
    - Two template parameters (edge container iterator and vertex iterator)
-   - First member variable: conditional based on edge iterator category (size_t for random access, iterator for forward)
-   - Second member variable: vertex_descriptor instantiated with the vertex iterator type
+   - First member variable: conditional based on edge iterator category (size_t for random access, iterator for forward/bidirectional)
+   - Second member variable: vertex_descriptor instantiated with the vertex iterator type (represents source vertex)
    - Proper std::random_access_iterator and std::forward_iterator concept constraints
-2. Add support for both directed and undirected semantics
-3. Write comprehensive unit tests for edge descriptor with both random access and forward iterators
+2. Write comprehensive unit tests for edge descriptor with both random access and forward iterators
+3. Test with various edge data types (simple integers, pairs, tuples, structs)
 4. Ensure proper comparison and hashing
 
 ### Phase 3: Advanced Features
