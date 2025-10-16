@@ -48,12 +48,16 @@ desc/
 ### 2. Vertex Descriptor
 - MUST represent a handle to a vertex in the graph
 - MUST be a template with a single parameter for the underlying container's iterator type
+- When the iterator is bidirectional (non-random access): the iterator's `value_type` MUST satisfy a pair-like concept where:
+  - The type MUST have at least 2 members (accessible via tuple protocol or pair interface)
+  - The first element serves as the vertex ID (key)
+  - This can be checked using `std::tuple_size<value_type>::value >= 2` or by requiring `.first` and `.second` members
 - MUST have a single member variable that:
   - MUST be `size_t index` when the iterator is a random access iterator
   - MUST be the iterator type itself when the iterator is a bidirectional iterator (non-random access)
 - MUST provide a `vertex_id()` member function that:
   - When the vertex iterator is random access: MUST return the `size_t` member value
-  - When the vertex iterator is bidirectional (non-random access): the iterator MUST be pointing to a map-like `value_type` and MUST return the key from that pair
+  - When the vertex iterator is bidirectional (non-random access): MUST return the key (first element) from the pair-like `value_type`
 - MUST be efficiently passable by value
 - SHOULD support conversion to/from underlying index type (for random access case)
 - MUST integrate with std::hash for unordered containers
@@ -80,12 +84,14 @@ desc/
 ### Phase 1: Foundation
 1. Create CMake build configuration with C++20 support
 2. Set up Catch2 integration for testing
-3. Define descriptor concept using C++20 concepts
+3. Define descriptor concept using C++20 concepts, including:
+   - Pair-like concept for bidirectional iterator value_type (using `std::tuple_size >= 2` or `.first`/`.second` members)
+   - Random access and bidirectional iterator concepts
 4. Implement basic vertex descriptor template with:
    - Template parameter for container iterator type
+   - Concept constraints: random access OR (bidirectional AND pair-like value_type)
    - Conditional member type based on iterator category (size_t for random access, iterator for bidirectional)
    - `vertex_id()` member function with conditional implementation based on iterator category
-   - Proper std::random_access_iterator and std::bidirectional_iterator concept constraints
 5. Write comprehensive unit tests for vertex descriptor with both random access and bidirectional iterators (including map-based containers)
 
 ### Phase 2: Edge Descriptors
