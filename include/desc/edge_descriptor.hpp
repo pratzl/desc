@@ -60,6 +60,51 @@ public:
         return source_;
     }
     
+    /**
+     * @brief Get the target vertex ID from the edge data
+     * @param edges The edge container to access edge data
+     * @return The target vertex identifier extracted from the edge
+     * 
+     * For random access iterators, uses the stored index to access the container.
+     * For forward/bidirectional iterators, dereferences the stored iterator.
+     * 
+     * Edge data extraction:
+     * - Simple integral types: returns the value directly as target ID
+     * - Pair-like types: returns .first as target ID
+     * - Tuple-like types: returns std::get<0> as target ID
+     */
+    template<typename EdgeContainer>
+    [[nodiscard]] constexpr auto target_id(const EdgeContainer& edges) const noexcept {
+        using edge_value_type = typename std::iterator_traits<EdgeIter>::value_type;
+        
+        // Get the edge value from container (for random access) or iterator (for forward)
+        const auto& edge_value = [&]() -> decltype(auto) {
+            if constexpr (std::random_access_iterator<EdgeIter>) {
+                return edges[edge_storage_];
+            } else {
+                return *edge_storage_;
+            }
+        }();
+        
+        // Extract target ID from edge value based on its type
+        if constexpr (std::integral<edge_value_type>) {
+            // Simple type: the value itself is the target ID
+            return edge_value;
+        }
+        else if constexpr (requires { edge_value.first; }) {
+            // Pair-like: .first is the target ID
+            return edge_value.first;
+        }
+        else if constexpr (requires { std::get<0>(edge_value); }) {
+            // Tuple-like: first element is the target ID
+            return std::get<0>(edge_value);
+        }
+        else {
+            // Fallback: assume the value itself is the target
+            return edge_value;
+        }
+    }
+    
     // Pre-increment: advances edge position, keeps source unchanged
     constexpr edge_descriptor& operator++() noexcept {
         ++edge_storage_;

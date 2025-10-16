@@ -447,3 +447,74 @@ TEST_CASE("Multiple edge views for different source vertices", "[edge_descriptor
         }
     }
 }
+
+// =============================================================================
+// Target ID Extraction Tests
+// =============================================================================
+
+TEST_CASE("edge_descriptor::target_id() with simple int edges", "[edge_descriptor][target_id]") {
+    std::vector<int> edges = {1, 2, 3, 4, 5};
+    std::vector<int> vertices = {10, 20, 30, 40, 50};
+    
+    using EdgeIter = std::vector<int>::iterator;
+    using VertexIter = std::vector<int>::iterator;
+    using VD = vertex_descriptor<VertexIter>;
+    using ED = edge_descriptor<EdgeIter, VertexIter>;
+    
+    VD source{0};
+    ED ed{2, source};  // Points to edge at index 2 (value 3)
+    
+    REQUIRE(ed.target_id(edges) == 3);
+}
+
+TEST_CASE("edge_descriptor::target_id() with pair edges", "[edge_descriptor][target_id]") {
+    std::vector<std::pair<int, double>> edges = {
+        {1, 1.5}, {2, 2.5}, {3, 3.5}, {4, 4.5}
+    };
+    std::vector<int> vertices = {10, 20, 30, 40, 50};
+    
+    using EdgeIter = std::vector<std::pair<int, double>>::iterator;
+    using VertexIter = std::vector<int>::iterator;
+    using VD = vertex_descriptor<VertexIter>;
+    using ED = edge_descriptor<EdgeIter, VertexIter>;
+    
+    VD source{0};
+    ED ed{1, source};  // Points to edge at index 1: (2, 2.5)
+    
+    REQUIRE(ed.target_id(edges) == 2);  // First element of pair
+}
+
+TEST_CASE("edge_descriptor::target_id() with tuple edges", "[edge_descriptor][target_id]") {
+    std::vector<std::tuple<size_t, size_t, double>> edges = {
+        {1, 0, 1.0}, {2, 0, 2.0}, {3, 1, 3.0}
+    };
+    std::vector<int> vertices = {10, 20, 30, 40};
+    
+    using EdgeIter = std::vector<std::tuple<size_t, size_t, double>>::iterator;
+    using VertexIter = std::vector<int>::iterator;
+    using VD = vertex_descriptor<VertexIter>;
+    using ED = edge_descriptor<EdgeIter, VertexIter>;
+    
+    VD source{0};
+    ED ed{2, source};  // Points to edge at index 2: (3, 1, 3.0)
+    
+    REQUIRE(ed.target_id(edges) == 3);  // First element of tuple
+}
+
+TEST_CASE("edge_descriptor::target_id() with forward iterator - list", "[edge_descriptor][target_id]") {
+    std::list<int> edges = {5, 10, 15, 20};
+    std::vector<int> vertices = {100, 200, 300};  // Use vector for vertices (random access)
+    
+    using EdgeIter = std::list<int>::iterator;
+    using VertexIter = std::vector<int>::iterator;
+    using VD = vertex_descriptor<VertexIter>;
+    using ED = edge_descriptor<EdgeIter, VertexIter>;
+    
+    auto edge_it = edges.begin();
+    std::advance(edge_it, 2);  // Point to 15
+    
+    VD source{0};  // Random access vertex descriptor uses index
+    ED ed{edge_it, source};
+    
+    REQUIRE(ed.target_id(edges) == 15);  // Dereferences iterator
+}
