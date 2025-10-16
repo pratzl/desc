@@ -114,6 +114,111 @@ TEST_CASE("vertex_descriptor with random access iterator - vector<int>", "[verte
 }
 
 // =============================================================================
+// Underlying Value Access Tests
+// =============================================================================
+
+TEST_CASE("vertex_descriptor::underlying_value() with vector", "[vertex_descriptor][underlying_value]") {
+    std::vector<int> vertices = {100, 200, 300, 400, 500};
+    using VectorIter = std::vector<int>::iterator;
+    using VD = vertex_descriptor<VectorIter>;
+    
+    SECTION("Access underlying value through descriptor") {
+        VD vd{2};
+        REQUIRE(vd.underlying_value(vertices) == 300);
+    }
+    
+    SECTION("Modify underlying value through descriptor") {
+        VD vd{3};
+        vd.underlying_value(vertices) = 999;
+        REQUIRE(vertices[3] == 999);
+        REQUIRE(vd.underlying_value(vertices) == 999);
+    }
+    
+    SECTION("Const access to underlying value") {
+        const std::vector<int> const_vertices = {10, 20, 30};
+        VD vd{1};
+        REQUIRE(vd.underlying_value(const_vertices) == 20);
+    }
+}
+
+TEST_CASE("vertex_descriptor::underlying_value() with map", "[vertex_descriptor][underlying_value]") {
+    using MapType = std::map<int, std::string>;
+    using MapIter = MapType::iterator;
+    using VD = vertex_descriptor<MapIter>;
+    
+    MapType vertex_map = {
+        {10, "data_10"},
+        {20, "data_20"},
+        {30, "data_30"}
+    };
+    
+    SECTION("Access underlying pair from map") {
+        auto it = vertex_map.find(20);
+        VD vd{it};
+        
+        const auto& pair = vd.underlying_value(vertex_map);
+        REQUIRE(pair.first == 20);
+        REQUIRE(pair.second == "data_20");
+    }
+    
+    SECTION("Modify value through underlying_value") {
+        auto it = vertex_map.find(10);
+        VD vd{it};
+        
+        vd.underlying_value(vertex_map).second = "modified";
+        REQUIRE(vertex_map[10] == "modified");
+    }
+    
+    SECTION("Const access to map") {
+        // For const access, we still use the non-const VD but with const container reference
+        MapType test_map = {{1, "one"}, {2, "two"}};
+        auto it = test_map.find(2);
+        VD vd{it};
+        
+        // Access through const reference to container
+        const MapType& const_ref = test_map;
+        const auto& pair = vd.underlying_value(const_ref);
+        REQUIRE(pair.first == 2);
+        REQUIRE(pair.second == "two");
+    }
+}
+
+TEST_CASE("vertex_descriptor::underlying_value() with custom struct", "[vertex_descriptor][underlying_value]") {
+    struct Vertex {
+        int id;
+        std::string name;
+        double weight;
+    };
+    
+    std::vector<Vertex> vertices = {
+        {1, "A", 1.5},
+        {2, "B", 2.5},
+        {3, "C", 3.5}
+    };
+    
+    using VectorIter = std::vector<Vertex>::iterator;
+    using VD = vertex_descriptor<VectorIter>;
+    
+    SECTION("Access struct members through underlying_value") {
+        VD vd{1};
+        const auto& vertex = vd.underlying_value(vertices);
+        
+        REQUIRE(vertex.id == 2);
+        REQUIRE(vertex.name == "B");
+        REQUIRE(vertex.weight == 2.5);
+    }
+    
+    SECTION("Modify struct through underlying_value") {
+        VD vd{0};
+        vd.underlying_value(vertices).name = "Modified";
+        vd.underlying_value(vertices).weight = 9.9;
+        
+        REQUIRE(vertices[0].name == "Modified");
+        REQUIRE(vertices[0].weight == 9.9);
+    }
+}
+
+// =============================================================================
 // Bidirectional Iterator Tests (std::map)
 // =============================================================================
 

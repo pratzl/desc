@@ -105,6 +105,37 @@ public:
         }
     }
     
+    /**
+     * @brief Get the underlying container value (the actual edge data)
+     * @param edges The edge container to access edge data
+     * @return Reference to the edge data from the container
+     * 
+     * For random access iterators, accesses edges[index].
+     * For forward/bidirectional iterators, dereferences the stored iterator.
+     */
+    template<typename EdgeContainer>
+    [[nodiscard]] constexpr decltype(auto) underlying_value(EdgeContainer& edges) const noexcept {
+        if constexpr (std::random_access_iterator<EdgeIter>) {
+            return edges[edge_storage_];
+        } else {
+            return *edge_storage_;
+        }
+    }
+    
+    /**
+     * @brief Get the underlying container value (const version)
+     * @param edges The edge container to access edge data
+     * @return Const reference to the edge data from the container
+     */
+    template<typename EdgeContainer>
+    [[nodiscard]] constexpr decltype(auto) underlying_value(const EdgeContainer& edges) const noexcept {
+        if constexpr (std::random_access_iterator<EdgeIter>) {
+            return edges[edge_storage_];
+        } else {
+            return *edge_storage_;
+        }
+    }
+    
     // Pre-increment: advances edge position, keeps source unchanged
     constexpr edge_descriptor& operator++() noexcept {
         ++edge_storage_;

@@ -63,6 +63,37 @@ public:
         }
     }
     
+    /**
+     * @brief Get the underlying container value (the actual vertex data)
+     * @param container The underlying vertex container
+     * @return Reference to the vertex data from the container
+     * 
+     * For random access iterators, accesses container[index].
+     * For bidirectional iterators, dereferences the stored iterator.
+     */
+    template<typename Container>
+    [[nodiscard]] constexpr decltype(auto) underlying_value(Container& container) const noexcept {
+        if constexpr (std::random_access_iterator<VertexIter>) {
+            return container[storage_];
+        } else {
+            return *storage_;
+        }
+    }
+    
+    /**
+     * @brief Get the underlying container value (const version)
+     * @param container The underlying vertex container
+     * @return Const reference to the vertex data from the container
+     */
+    template<typename Container>
+    [[nodiscard]] constexpr decltype(auto) underlying_value(const Container& container) const noexcept {
+        if constexpr (std::random_access_iterator<VertexIter>) {
+            return container[storage_];
+        } else {
+            return *storage_;
+        }
+    }
+    
     // Pre-increment
     constexpr vertex_descriptor& operator++() noexcept {
         ++storage_;

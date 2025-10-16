@@ -518,3 +518,188 @@ TEST_CASE("edge_descriptor::target_id() with forward iterator - list", "[edge_de
     
     REQUIRE(ed.target_id(edges) == 15);  // Dereferences iterator
 }
+
+// =============================================================================
+// Underlying Value Access Tests
+// =============================================================================
+
+TEST_CASE("edge_descriptor::underlying_value() with simple int edges", "[edge_descriptor][underlying_value]") {
+    std::vector<int> edges = {10, 20, 30, 40, 50};
+    std::vector<int> vertices = {100, 200, 300};
+    
+    using EdgeIter = std::vector<int>::iterator;
+    using VertexIter = std::vector<int>::iterator;
+    using VD = vertex_descriptor<VertexIter>;
+    using ED = edge_descriptor<EdgeIter, VertexIter>;
+    
+    SECTION("Access underlying edge value") {
+        VD source{0};
+        ED ed{2, source};
+        
+        REQUIRE(ed.underlying_value(edges) == 30);
+    }
+    
+    SECTION("Modify underlying edge value") {
+        VD source{1};
+        ED ed{3, source};
+        
+        ed.underlying_value(edges) = 999;
+        REQUIRE(edges[3] == 999);
+        REQUIRE(ed.underlying_value(edges) == 999);
+    }
+    
+    SECTION("Const access") {
+        const std::vector<int> const_edges = {1, 2, 3};
+        VD source{0};
+        ED ed{1, source};
+        
+        REQUIRE(ed.underlying_value(const_edges) == 2);
+    }
+}
+
+TEST_CASE("edge_descriptor::underlying_value() with pair edges", "[edge_descriptor][underlying_value]") {
+    std::vector<std::pair<int, double>> edges = {
+        {10, 1.5},
+        {20, 2.5},
+        {30, 3.5},
+        {40, 4.5}
+    };
+    std::vector<int> vertices = {100, 200, 300};
+    
+    using EdgeIter = std::vector<std::pair<int, double>>::iterator;
+    using VertexIter = std::vector<int>::iterator;
+    using VD = vertex_descriptor<VertexIter>;
+    using ED = edge_descriptor<EdgeIter, VertexIter>;
+    
+    SECTION("Access pair through underlying_value") {
+        VD source{0};
+        ED ed{1, source};
+        
+        const auto& edge_pair = ed.underlying_value(edges);
+        REQUIRE(edge_pair.first == 20);
+        REQUIRE(edge_pair.second == 2.5);
+    }
+    
+    SECTION("Modify pair members") {
+        VD source{1};
+        ED ed{2, source};
+        
+        ed.underlying_value(edges).first = 99;
+        ed.underlying_value(edges).second = 9.9;
+        
+        REQUIRE(edges[2].first == 99);
+        REQUIRE(edges[2].second == 9.9);
+    }
+}
+
+TEST_CASE("edge_descriptor::underlying_value() with tuple edges", "[edge_descriptor][underlying_value]") {
+    std::vector<std::tuple<int, int, double>> edges = {
+        {1, 10, 1.0},
+        {2, 20, 2.0},
+        {3, 30, 3.0}
+    };
+    std::vector<int> vertices = {100, 200, 300};
+    
+    using EdgeIter = std::vector<std::tuple<int, int, double>>::iterator;
+    using VertexIter = std::vector<int>::iterator;
+    using VD = vertex_descriptor<VertexIter>;
+    using ED = edge_descriptor<EdgeIter, VertexIter>;
+    
+    SECTION("Access tuple through underlying_value") {
+        VD source{0};
+        ED ed{1, source};
+        
+        const auto& edge_tuple = ed.underlying_value(edges);
+        REQUIRE(std::get<0>(edge_tuple) == 2);
+        REQUIRE(std::get<1>(edge_tuple) == 20);
+        REQUIRE(std::get<2>(edge_tuple) == 2.0);
+    }
+    
+    SECTION("Modify tuple members") {
+        VD source{1};
+        ED ed{0, source};
+        
+        std::get<0>(ed.underlying_value(edges)) = 99;
+        std::get<2>(ed.underlying_value(edges)) = 9.9;
+        
+        REQUIRE(std::get<0>(edges[0]) == 99);
+        REQUIRE(std::get<2>(edges[0]) == 9.9);
+    }
+}
+
+TEST_CASE("edge_descriptor::underlying_value() with custom struct", "[edge_descriptor][underlying_value]") {
+    struct Edge {
+        int target;
+        std::string label;
+        double weight;
+    };
+    
+    std::vector<Edge> edges = {
+        {10, "A", 1.5},
+        {20, "B", 2.5},
+        {30, "C", 3.5}
+    };
+    std::vector<int> vertices = {100, 200, 300};
+    
+    using EdgeIter = std::vector<Edge>::iterator;
+    using VertexIter = std::vector<int>::iterator;
+    using VD = vertex_descriptor<VertexIter>;
+    using ED = edge_descriptor<EdgeIter, VertexIter>;
+    
+    SECTION("Access struct members through underlying_value") {
+        VD source{0};
+        ED ed{1, source};
+        
+        const auto& edge = ed.underlying_value(edges);
+        REQUIRE(edge.target == 20);
+        REQUIRE(edge.label == "B");
+        REQUIRE(edge.weight == 2.5);
+    }
+    
+    SECTION("Modify struct through underlying_value") {
+        VD source{1};
+        ED ed{2, source};
+        
+        ed.underlying_value(edges).label = "Modified";
+        ed.underlying_value(edges).weight = 9.9;
+        
+        REQUIRE(edges[2].label == "Modified");
+        REQUIRE(edges[2].weight == 9.9);
+    }
+}
+
+TEST_CASE("edge_descriptor::underlying_value() with forward iterator", "[edge_descriptor][underlying_value]") {
+    std::list<std::pair<int, double>> edges = {
+        {10, 1.0},
+        {20, 2.0},
+        {30, 3.0}
+    };
+    std::vector<int> vertices = {100, 200, 300};
+    
+    using EdgeIter = std::list<std::pair<int, double>>::iterator;
+    using VertexIter = std::vector<int>::iterator;
+    using VD = vertex_descriptor<VertexIter>;
+    using ED = edge_descriptor<EdgeIter, VertexIter>;
+    
+    SECTION("Access through iterator-based descriptor") {
+        auto edge_it = edges.begin();
+        std::advance(edge_it, 1);
+        
+        VD source{0};
+        ED ed{edge_it, source};
+        
+        const auto& edge_pair = ed.underlying_value(edges);
+        REQUIRE(edge_pair.first == 20);
+        REQUIRE(edge_pair.second == 2.0);
+    }
+    
+    SECTION("Modify through iterator-based descriptor") {
+        auto edge_it = edges.begin();
+        
+        VD source{1};
+        ED ed{edge_it, source};
+        
+        ed.underlying_value(edges).second = 99.9;
+        REQUIRE(edges.begin()->second == 99.9);
+    }
+}
