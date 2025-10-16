@@ -145,7 +145,32 @@ Edges in the graph can be stored in various ways depending on graph structure:
 - MUST be efficiently passable by value
 - MUST integrate with std::hash for unordered containers
 
-### 5. Design Principles
+### 5. Descriptor Views
+
+#### Vertex Descriptor View
+- MUST provide a view over the underlying vertex storage that yields `vertex_descriptor` values
+- MUST model `std::ranges::view` (lightweight, copyable, reference semantics)
+- View iterator requirements:
+  - Iterator value_type MUST be `vertex_descriptor`
+  - Iterator category MUST mirror the underlying storage (random access for index-based containers, bidirectional for map-based containers)
+  - Increment operations MUST advance the underlying index/iterator consistent with the corresponding descriptor semantics
+- MUST expose `begin()`/`end()` (const and non-const) returning iterators that satisfy the above requirements
+- MUST NOT copy vertex storage; underlying containers MUST be referenced via pointer/reference semantics
+- MAY provide `size()`/`empty()` helpers when the underlying container supports them
+
+#### Edge Descriptor View
+- MUST provide a view over the underlying edge storage that yields `edge_descriptor` values
+- MUST model `std::ranges::view`
+- View iterator requirements:
+  - Iterator value_type MUST be `edge_descriptor`
+  - Iterator category MUST mirror the underlying edge storage (random access for index-based, forward/bidirectional otherwise)
+  - Increment operations MUST advance the underlying edge index/iterator and preserve the source `vertex_descriptor`
+- MUST support both per-vertex adjacency storage and global edge storage configurations
+- MUST expose `begin()`/`end()` (const and non-const) returning iterators that satisfy the above requirements
+- MUST NOT copy edge storage; underlying containers MUST be referenced via pointer/reference semantics
+- MAY provide helpers (e.g., `size()`, `empty()`) when supported by the underlying storage
+
+### 6. Design Principles
 - **Zero-cost abstraction**: Implementation MUST NOT introduce runtime overhead compared to raw indices
 - **Type safety**: Implementation MUST prevent mixing vertex and edge descriptors
 - **STL compatibility**: Descriptors MUST work seamlessly with standard containers
@@ -166,7 +191,8 @@ Edges in the graph can be stored in various ways depending on graph structure:
    - Conditional member type based on iterator category (size_t for random access, iterator for bidirectional)
    - `vertex_id()` member function with conditional implementation based on iterator category
   - Pre/post increment operators that forward to index/iterator increments
-5. Write comprehensive unit tests for vertex descriptor with both random access and bidirectional iterators (including map-based containers), covering `vertex_id()` and increment semantics
+5. Implement `vertex_descriptor_view` that wraps the underlying vertex storage and yields descriptors while modelling `std::ranges::view`
+6. Write comprehensive unit tests for vertex descriptor and vertex descriptor view with both random access and bidirectional iterators (including map-based containers), covering `vertex_id()`, increment semantics, and iterator categories
 
 ### Phase 2: Edge Descriptors
 1. Implement edge descriptor template with:
@@ -175,9 +201,10 @@ Edges in the graph can be stored in various ways depending on graph structure:
    - Second member variable: vertex_descriptor instantiated with the vertex iterator type (represents source vertex)
    - Proper std::random_access_iterator and std::forward_iterator concept constraints
   - Pre/post increment operators consistent with underlying storage semantics
-2. Write comprehensive unit tests for edge descriptor with both random access and forward iterators
-3. Test increment behavior and various edge data types (simple integers, pairs, tuples, structs)
-4. Ensure proper comparison and hashing
+2. Implement `edge_descriptor_view` that adapts both per-vertex adjacency storage and global edge storage while yielding descriptors
+3. Write comprehensive unit tests for edge descriptor and edge descriptor view with both random access and forward iterators
+4. Test increment behavior, iterator categories, and various edge data types (simple integers, pairs, tuples, structs)
+5. Ensure proper comparison and hashing
 
 ### Phase 3: Advanced Features
 1. Add descriptor traits and type utilities
@@ -197,6 +224,7 @@ Each component MUST have comprehensive tests covering:
 - Hash function consistency
 - Edge cases (null/invalid descriptors)
 - Container usage (vector, set, unordered_map)
+- Descriptor views (vertex and edge): iterator categories, value_type requirements, range behaviors
 - Type safety (compilation failures for invalid operations)
 
 ### Test Organization
