@@ -99,6 +99,7 @@ Edges in the graph can be stored in various ways depending on graph structure:
 ### 2. Descriptor Base Concept/Interface
 - Descriptors MUST be lightweight, copyable handles
 - Descriptors MUST support comparison operations (==, !=, <, <=, >, >=)
+- Descriptors MUST satisfy the C++20 `std::incrementable` concept (support pre/post increment semantics)
 - Descriptors MUST be hashable for use in STL containers
 - Descriptors MUST be default constructible and trivially copyable
 - Descriptors SHOULD provide a null/invalid state representation
@@ -121,6 +122,9 @@ Edges in the graph can be stored in various ways depending on graph structure:
   - When the vertex iterator is random access: MUST return the `size_t` member value (the index)
   - When the vertex iterator is bidirectional: MUST return the key (first element) from the pair-like `value_type`
   - Return type SHOULD be deduced appropriately based on iterator category
+- MUST provide pre-increment and post-increment operators (`operator++` / `operator++(int)`) whose behavior mirrors the underlying storage:
+  - For random access iterators: increment operations MUST advance the `size_t` index by one
+  - For bidirectional iterators: increment operations MUST advance the stored iterator
 - MUST be efficiently passable by value
 - SHOULD support conversion to/from underlying index type (for random access case)
 - MUST integrate with std::hash for unordered containers
@@ -134,6 +138,9 @@ Edges in the graph can be stored in various ways depending on graph structure:
   - First member: MUST be `size_t index` (for edge index) when the edge iterator is a random access iterator, or the edge iterator type itself when the edge iterator is a forward/bidirectional iterator (non-random access)
   - Second member: MUST be a `vertex_descriptor` (instantiated with the vertex iterator type from the second template parameter) representing the source vertex
 - The edge descriptor identifies both WHERE the edge is stored (via first member) and WHICH vertex it originates from (via second member)
+- MUST provide pre-increment and post-increment operators whose behavior mirrors the underlying edge storage:
+  - For random access iterators: increment operations MUST advance the `size_t` index by one while leaving the source `vertex_descriptor` unchanged
+  - For forward/bidirectional iterators: increment operations MUST advance the stored edge iterator while leaving the source `vertex_descriptor` unchanged
 - Directed/undirected semantics are determined by the graph structure, not by the descriptor itself
 - MUST be efficiently passable by value
 - MUST integrate with std::hash for unordered containers
@@ -158,7 +165,8 @@ Edges in the graph can be stored in various ways depending on graph structure:
    - Concept constraints: random access OR (bidirectional AND pair-like value_type)
    - Conditional member type based on iterator category (size_t for random access, iterator for bidirectional)
    - `vertex_id()` member function with conditional implementation based on iterator category
-5. Write comprehensive unit tests for vertex descriptor with both random access and bidirectional iterators (including map-based containers)
+  - Pre/post increment operators that forward to index/iterator increments
+5. Write comprehensive unit tests for vertex descriptor with both random access and bidirectional iterators (including map-based containers), covering `vertex_id()` and increment semantics
 
 ### Phase 2: Edge Descriptors
 1. Implement edge descriptor template with:
@@ -166,8 +174,9 @@ Edges in the graph can be stored in various ways depending on graph structure:
    - First member variable: conditional based on edge iterator category (size_t for random access, iterator for forward/bidirectional)
    - Second member variable: vertex_descriptor instantiated with the vertex iterator type (represents source vertex)
    - Proper std::random_access_iterator and std::forward_iterator concept constraints
+  - Pre/post increment operators consistent with underlying storage semantics
 2. Write comprehensive unit tests for edge descriptor with both random access and forward iterators
-3. Test with various edge data types (simple integers, pairs, tuples, structs)
+3. Test increment behavior and various edge data types (simple integers, pairs, tuples, structs)
 4. Ensure proper comparison and hashing
 
 ### Phase 3: Advanced Features
@@ -184,6 +193,7 @@ Each component MUST have comprehensive tests covering:
 - Default construction and initialization
 - Copy and move semantics
 - Comparison operations (all six comparison operators)
+- Increment operations (pre/post increment semantics)
 - Hash function consistency
 - Edge cases (null/invalid descriptors)
 - Container usage (vector, set, unordered_map)
