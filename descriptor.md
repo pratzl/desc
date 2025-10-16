@@ -122,6 +122,10 @@ Edges in the graph can be stored in various ways depending on graph structure:
   - When the vertex iterator is random access: MUST return the `size_t` member value (the index)
   - When the vertex iterator is bidirectional: MUST return the key (first element) from the pair-like `value_type`
   - Return type SHOULD be deduced appropriately based on iterator category
+- MUST provide a public `value()` member function that returns the underlying storage handle:
+  - When the vertex iterator is random access: `value()` MUST return the stored `size_t` index
+  - When the vertex iterator is bidirectional: `value()` MUST return the stored iterator
+  - Return type SHOULD be the exact type of the underlying member (copy by value)
 - MUST provide pre-increment and post-increment operators (`operator++` / `operator++(int)`) whose behavior mirrors the underlying storage:
   - For random access iterators: increment operations MUST advance the `size_t` index by one
   - For bidirectional iterators: increment operations MUST advance the stored iterator
@@ -138,6 +142,10 @@ Edges in the graph can be stored in various ways depending on graph structure:
   - First member: MUST be `size_t index` (for edge index) when the edge iterator is a random access iterator, or the edge iterator type itself when the edge iterator is a forward/bidirectional iterator (non-random access)
   - Second member: MUST be a `vertex_descriptor` (instantiated with the vertex iterator type from the second template parameter) representing the source vertex
 - The edge descriptor identifies both WHERE the edge is stored (via first member) and WHICH vertex it originates from (via second member)
+- MUST provide a public `value()` member function that returns the underlying edge storage handle:
+  - When the edge iterator is random access: `value()` MUST return the stored `size_t` index
+  - When the edge iterator is forward/bidirectional: `value()` MUST return the stored edge iterator
+  - Return type SHOULD be the exact type of the underlying first member (copy by value)
 - MUST provide pre-increment and post-increment operators whose behavior mirrors the underlying edge storage:
   - For random access iterators: increment operations MUST advance the `size_t` index by one while leaving the source `vertex_descriptor` unchanged
   - For forward/bidirectional iterators: increment operations MUST advance the stored edge iterator while leaving the source `vertex_descriptor` unchanged
@@ -196,9 +204,10 @@ Edges in the graph can be stored in various ways depending on graph structure:
    - Concept constraints: random access OR (bidirectional AND pair-like value_type)
    - Conditional member type based on iterator category (size_t for random access, iterator for bidirectional)
    - `vertex_id()` member function with conditional implementation based on iterator category
+  - `value()` member function returning the underlying index or iterator
   - Pre/post increment operators that forward to index/iterator increments
 5. Implement `vertex_descriptor_view` that wraps the underlying vertex storage, yields descriptors, models `std::ranges::view`, exposes forward-only iterators, and (SHOULD) derives from `std::ranges::view_interface`
-6. Write comprehensive unit tests for vertex descriptor and vertex descriptor view with both random access and bidirectional iterators (including map-based containers), covering `vertex_id()`, increment semantics, and verifying the view satisfies `std::forward_range`
+6. Write comprehensive unit tests for vertex descriptor and vertex descriptor view with both random access and bidirectional iterators (including map-based containers), covering `vertex_id()`, `value()`, increment semantics, and verifying the view satisfies `std::forward_range`
 
 ### Phase 2: Edge Descriptors
 1. Implement edge descriptor template with:
@@ -207,9 +216,10 @@ Edges in the graph can be stored in various ways depending on graph structure:
    - Second member variable: vertex_descriptor instantiated with the vertex iterator type (represents source vertex)
    - Proper std::random_access_iterator and std::forward_iterator concept constraints
   - Pre/post increment operators consistent with underlying storage semantics
+  - `value()` member function returning the underlying edge index or iterator
 2. Implement `edge_descriptor_view` that adapts both per-vertex adjacency storage and global edge storage while yielding descriptors, modelling a forward-only view, and (SHOULD) deriving from `std::ranges::view_interface`
 3. Write comprehensive unit tests for edge descriptor and edge descriptor view with both random access and forward iterators
-4. Test increment behavior, confirm the view satisfies `std::forward_range`, and cover various edge data types (simple integers, pairs, tuples, structs)
+4. Test `value()`/increment behavior, confirm the view satisfies `std::forward_range`, and cover various edge data types (simple integers, pairs, tuples, structs)
 5. Ensure proper comparison and hashing
 
 ### Phase 3: Advanced Features
@@ -227,6 +237,7 @@ Each component MUST have comprehensive tests covering:
 - Copy and move semantics
 - Comparison operations (all six comparison operators)
 - Increment operations (pre/post increment semantics)
+- `value()` accessors returning the correct underlying handle types
 - Hash function consistency
 - Edge cases (null/invalid descriptors)
 - Container usage (vector, set, unordered_map)
