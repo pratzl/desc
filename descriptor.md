@@ -51,6 +51,9 @@ desc/
 - MUST have a single member variable that:
   - MUST be `size_t index` when the iterator is a random access iterator
   - MUST be the iterator type itself when the iterator is a bidirectional iterator (non-random access)
+- MUST provide a `vertex_id()` member function that:
+  - When the vertex iterator is random access: MUST return the `size_t` member value
+  - When the vertex iterator is bidirectional (non-random access): the iterator MUST be pointing to a map-like `value_type` and MUST return the key from that pair
 - MUST be efficiently passable by value
 - SHOULD support conversion to/from underlying index type (for random access case)
 - MUST integrate with std::hash for unordered containers
@@ -61,9 +64,7 @@ desc/
   - First parameter: the underlying edge container's iterator type
   - Second parameter: the vertex iterator type
 - MUST have two member variables:
-  - First member: MUST be `size_t index` (for edge index) when the edge iterator is a random access iterator, or the edge iterator type itself when the edge iterator is a forward iterator (non-random access)
-  - Second member: MUST be a `vertex_descriptor` (using the vertex iterator type from the second template parameter)
-- MUST support directed and undirected edge semantics
+  - First member: MUST be `size_t index` (for edge index) when the edge iterator is a random access iterator, or the edge iterator type itself   - Second member: MUST be a `vertex_descriptor` (using the vertex iterator type from the second template parameter)
 - MUST be efficiently passable by value
 - MUST integrate with std::hash for unordered containers
 
@@ -83,8 +84,9 @@ desc/
 4. Implement basic vertex descriptor template with:
    - Template parameter for container iterator type
    - Conditional member type based on iterator category (size_t for random access, iterator for bidirectional)
+   - `vertex_id()` member function with conditional implementation based on iterator category
    - Proper std::random_access_iterator and std::bidirectional_iterator concept constraints
-5. Write comprehensive unit tests for vertex descriptor with both random access and bidirectional iterators
+5. Write comprehensive unit tests for vertex descriptor with both random access and bidirectional iterators (including map-based containers)
 
 ### Phase 2: Edge Descriptors
 1. Implement edge descriptor template with:
