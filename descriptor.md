@@ -147,6 +147,8 @@ Edges in the graph can be stored in various ways depending on graph structure:
 
 ### 5. Descriptor Views
 
+***IMPORTANT LIMITATION***: Descriptor views are restricted to forward iteration only. This is because the descriptor is synthesized by the iterator during traversal (the descriptor contains the iterator itself), making it incompatible with random access operations. Specifically, operator[] would need to return a reference to a descriptor, but since the descriptor is created on-the-fly by the iterator, there is no stable object to reference. This design enables the interface to work uniformly across different storage strategies (vectors, maps, custom containers) while maintaining descriptor-based abstraction.
+
 #### Vertex Descriptor View
 - MUST provide a view over the underlying vertex storage that yields `vertex_descriptor` values
 - MUST model `std::ranges::view` (lightweight, copyable, reference semantics)
@@ -157,6 +159,7 @@ Edges in the graph can be stored in various ways depending on graph structure:
 - MUST expose `begin()`/`end()` (const and non-const) returning forward iterators that satisfy the above requirements
 - MUST NOT copy vertex storage; underlying containers MUST be referenced via pointer/reference semantics
 - MAY provide `size()`/`empty()` helpers when the underlying container supports them
+- Implementations SHOULD derive from `std::ranges::view_interface` unless a compelling reason prevents it
 - Rationale: constraining the iterator to forward traversal ensures the view works uniformly across storage strategies (vectors, maps, custom containers) while maintaining descriptor-based abstraction and avoiding invalid references
 
 #### Edge Descriptor View
@@ -170,6 +173,7 @@ Edges in the graph can be stored in various ways depending on graph structure:
 - MUST expose `begin()`/`end()` (const and non-const) returning forward iterators that satisfy the above requirements
 - MUST NOT copy edge storage; underlying containers MUST be referenced via pointer/reference semantics
 - MAY provide helpers (e.g., `size()`, `empty()`) when supported by the underlying storage
+- Implementations SHOULD derive from `std::ranges::view_interface` unless a compelling reason prevents it
 - Rationale: restricting to forward iteration guarantees compatibility with all supported storage layouts while keeping descriptors ephemeral and preventing invalid references
 
 ### 6. Design Principles
@@ -193,7 +197,7 @@ Edges in the graph can be stored in various ways depending on graph structure:
    - Conditional member type based on iterator category (size_t for random access, iterator for bidirectional)
    - `vertex_id()` member function with conditional implementation based on iterator category
   - Pre/post increment operators that forward to index/iterator increments
-5. Implement `vertex_descriptor_view` that wraps the underlying vertex storage, yields descriptors, models `std::ranges::view`, and exposes forward-only iterators
+5. Implement `vertex_descriptor_view` that wraps the underlying vertex storage, yields descriptors, models `std::ranges::view`, exposes forward-only iterators, and (SHOULD) derives from `std::ranges::view_interface`
 6. Write comprehensive unit tests for vertex descriptor and vertex descriptor view with both random access and bidirectional iterators (including map-based containers), covering `vertex_id()`, increment semantics, and verifying the view satisfies `std::forward_range`
 
 ### Phase 2: Edge Descriptors
@@ -203,7 +207,7 @@ Edges in the graph can be stored in various ways depending on graph structure:
    - Second member variable: vertex_descriptor instantiated with the vertex iterator type (represents source vertex)
    - Proper std::random_access_iterator and std::forward_iterator concept constraints
   - Pre/post increment operators consistent with underlying storage semantics
-2. Implement `edge_descriptor_view` that adapts both per-vertex adjacency storage and global edge storage while yielding descriptors and modelling a forward-only view
+2. Implement `edge_descriptor_view` that adapts both per-vertex adjacency storage and global edge storage while yielding descriptors, modelling a forward-only view, and (SHOULD) deriving from `std::ranges::view_interface`
 3. Write comprehensive unit tests for edge descriptor and edge descriptor view with both random access and forward iterators
 4. Test increment behavior, confirm the view satisfies `std::forward_range`, and cover various edge data types (simple integers, pairs, tuples, structs)
 5. Ensure proper comparison and hashing
@@ -226,7 +230,7 @@ Each component MUST have comprehensive tests covering:
 - Hash function consistency
 - Edge cases (null/invalid descriptors)
 - Container usage (vector, set, unordered_map)
-- Descriptor views (vertex and edge): forward-range compliance, iterator value_type requirements, absence of random-access operations
+- Descriptor views (vertex and edge): forward-range compliance, iterator value_type requirements, absence of random-access operations, and behavior of `view_interface` helpers when used
 - Type safety (compilation failures for invalid operations)
 
 ### Test Organization
