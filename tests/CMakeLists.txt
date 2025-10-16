@@ -14,6 +14,7 @@ FetchContent_MakeAvailable(Catch2)
 add_executable(descriptor_tests
     test_main.cpp
     test_vertex_descriptor.cpp
+    test_edge_descriptor.cpp
 )
 
 target_link_libraries(descriptor_tests
