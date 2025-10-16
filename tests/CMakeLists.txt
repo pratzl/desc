@@ -15,6 +15,7 @@ add_executable(descriptor_tests
     test_main.cpp
     test_vertex_descriptor.cpp
     test_edge_descriptor.cpp
+    test_descriptor_traits.cpp
 )
 
 target_link_libraries(descriptor_tests
