@@ -37,7 +37,46 @@ desc/
 
 ## Core Requirements
 
-### 1. Descriptor Base Concept/Interface
+### 1. Underlying Data Representation
+
+#### Vertex Representation
+Vertices in the graph can be stored in different container types, which affects how descriptors reference them:
+
+**Random Access Containers (e.g., `std::vector`):**
+- Vertices MAY be stored as direct values in a contiguous container
+- Each vertex is identified by its index position
+- The vertex itself can be any type (simple types, structs, classes)
+- Example: `std::vector<VertexData>` where vertices are accessed by index
+
+**Associative Containers (e.g., `std::map`, `std::unordered_map`):**
+- Vertices MUST be stored as key-value pairs
+- The key serves as the vertex ID (MUST be comparable and/or hashable)
+- The value contains the vertex data/properties
+- Example: `std::map<VertexId, VertexData>` where vertices are accessed by key
+- The iterator's `value_type` is `std::pair<const Key, Value>`
+
+#### Edge Representation
+Edges in the graph can be stored in various ways depending on graph structure:
+
+**Random Access Containers (e.g., `std::vector`):**
+- Edges MAY be stored in a contiguous container
+- Each edge is identified by its index position
+- Edges SHOULD contain connectivity information (source/target vertices)
+- Example: `std::vector<Edge>` where each `Edge` stores vertex descriptors
+
+**Forward/Bidirectional Containers (e.g., `std::list`, adjacency lists):**
+- Edges MAY be stored in linked structures or per-vertex adjacency lists
+- Each edge is identified by an iterator to its position
+- Example: Per-vertex edge lists where edges are iterated sequentially
+
+**Edge Data Structure:**
+- An edge representation SHOULD contain:
+  - Source vertex identifier (vertex descriptor or ID)
+  - Target vertex identifier (vertex descriptor or ID)
+  - Optional edge weight or properties
+- Example: `struct Edge { vertex_descriptor source; vertex_descriptor target; EdgeData data; }`
+
+### 2. Descriptor Base Concept/Interface
 - Descriptors MUST be lightweight, copyable handles
 - Descriptors MUST support comparison operations (==, !=, <, <=, >, >=)
 - Descriptors MUST be hashable for use in STL containers
@@ -45,7 +84,7 @@ desc/
 - Descriptors SHOULD provide a null/invalid state representation
 - Descriptors MUST be type-safe: vertex and edge descriptors SHALL be distinct types
 
-### 2. Vertex Descriptor
+### 3. Vertex Descriptor
 - MUST represent a handle to a vertex in the graph
 - MUST be a template with a single parameter for the underlying container's iterator type
 - When the iterator is bidirectional (non-random access): the iterator's `value_type` MUST satisfy a pair-like concept where:
@@ -62,17 +101,18 @@ desc/
 - SHOULD support conversion to/from underlying index type (for random access case)
 - MUST integrate with std::hash for unordered containers
 
-### 3. Edge Descriptor
+### 4. Edge Descriptor
 - MUST represent a handle to an edge in the graph
 - MUST be a template with two parameters:
   - First parameter: the underlying edge container's iterator type
   - Second parameter: the vertex iterator type
 - MUST have two member variables:
   - First member: MUST be `size_t index` (for edge index) when the edge iterator is a random access iterator, or the edge iterator type itself   - Second member: MUST be a `vertex_descriptor` (using the vertex iterator type from the second template parameter)
+- MUST support directed and undirected edge semantics
 - MUST be efficiently passable by value
 - MUST integrate with std::hash for unordered containers
 
-### 4. Design Principles
+### 5. Design Principles
 - **Zero-cost abstraction**: Implementation MUST NOT introduce runtime overhead compared to raw indices
 - **Type safety**: Implementation MUST prevent mixing vertex and edge descriptors
 - **STL compatibility**: Descriptors MUST work seamlessly with standard containers
