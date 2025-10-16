@@ -59,33 +59,42 @@ Vertices in the graph can be stored in different container types, which affects 
 Edges in the graph can be stored in various ways depending on graph structure:
 
 **Random Access Containers (e.g., `std::vector`):**
-- Edges MAY be stored in a contiguous container
+- Edges MAY be stored in contiguous containers
 - Each edge is identified by its index position
-- Edges SHOULD contain connectivity information (target vertex id). The source vertex is not included.
-- Examples: 
-  - `std::vector<Edge>` where each `Edge` stores target vertex id and other optional properties
-  - `std::vector<int>` where `int` stores the target vertex id
-  - `std::vector<std::pair<int,double>>` where `int` stores the target vertex id and `double` stores an optional property.
+- Two primary layouts are supported:
+  - **Per-vertex adjacency storage** (RECOMMENDED): each vertex owns a random-access container of outgoing edges. The source vertex is implied by the owning container and MUST NOT be duplicated in the edge payload.
+  - **Global edge storage**: all edges share a single random-access container. In this scenario the edge payload MUST include the source vertex identifier because the container position does not encode it.
+- In both layouts the edge payload MUST include the target vertex identifier and MAY include additional properties.
+- Examples:
+  - `std::vector<std::vector<int>>` where each inner vector stores target vertex ids for a specific source vertex
+  - `std::vector<Edge>` where `Edge` includes source and target vertex identifiers (for global storage)
+  - `std::vector<std::pair<int,double>>` where the first element stores the target vertex id and the second stores an optional property
   - `std::vector<std::tuple<int32_t,double>>` where `int32_t` stores the target vertex id and `double` stores an optional property
-  - Note: Tuples MUST have 1 or more elements, where the first element MUST be the target vertex id
+  - Note: Tuple-like edge payloads MUST have 1 or more elements, and the first element MUST be the target vertex id
 
 **Forward/Bidirectional Containers (e.g., `std::list`, `std::set`, `std::map`, adjacency lists):**
 - Each edge is identified by an iterator to its position
 - Edges MAY be stored in linked structures or per-vertex adjacency lists
 - The same container value types as random access containers apply (simple types, pairs, tuples, or structs)
+- The choice between per-vertex adjacency storage and a global container follows the same rules as above: omit the source vertex in per-vertex containers, include it when using a shared/global container.
 - Examples:
   - `std::list<int>` where `int` stores the target vertex id
   - `std::list<std::pair<int,double>>` where first element is target vertex id, second is edge property
   - `std::set<int>` where `int` stores the target vertex id (for unweighted graphs)
   - `std::map<int,EdgeData>` where key is target vertex id and value contains edge properties
+  - `std::list<Edge>` where `Edge` follows the same source-inclusion rules described above
 
 **Edge Data Structure Requirements:**
 - An edge representation SHOULD contain at minimum:
   - Target vertex identifier (as the first element if tuple-like, or as a simple value)
   - Optional edge weight or properties (if tuple-like or struct)
-- A source vertex identifier MUST NOT be included in the edge data (it's implied by container location)
-- Example: `struct Edge { vertex_id target; EdgeData data; }`
-- Note: The edge_descriptor will maintain both the edge location and the source vertex_descriptor
+- Whether the edge payload stores the source vertex identifier depends on storage layout:
+  - For per-vertex adjacency storage, the source vertex identifier MUST NOT be duplicated in the edge payload.
+  - For global edge storage, the edge payload MUST include the source vertex identifier because container location does not encode it.
+- Examples:
+  - Per-vertex adjacency: `struct Edge { vertex_id target; EdgeData data; }`
+  - Global storage: `struct Edge { vertex_id source; vertex_id target; EdgeData data; }`
+- Note: The edge_descriptor will maintain both the edge location and the source vertex_descriptor, regardless of storage layout
 
 ### 2. Descriptor Base Concept/Interface
 - Descriptors MUST be lightweight, copyable handles
