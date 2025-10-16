@@ -287,7 +287,7 @@ endif()
 ## Code Style Guidelines
 
 - Implementation MUST use snake_case for functions and variables
-- Implementation MUST use PascalCase for types and classes
+- Implementation MUST use snake_case for types and classes
 - Implementation SHOULD prefer `constexpr` where possible
 - Implementation SHOULD use `[[nodiscard]]` for functions that return important values
 - Public APIs MUST be documented with Doxygen-style comments
