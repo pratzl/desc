@@ -57,7 +57,13 @@ desc/
 
 ### 3. Edge Descriptor
 - MUST represent a handle to an edge in the graph
-- SHOULD contain source vertex, target vertex, and edge identifier
+- MUST be a template with two parameters:
+  - First parameter: the underlying edge container's iterator type
+  - Second parameter: the vertex iterator type
+- MUST have two member variables that:
+  - MUST be `size_t index` (for edge index) when the edge iterator is a random access iterator
+  - MUST be the edge iterator type itself when the edge iterator is a forward iterator (non-random access)
+  - The vertex information is stored using the same conditional strategy based on the edge iterator category
 - MUST support directed and undirected edge semantics
 - MUST be efficiently passable by value
 - MUST integrate with std::hash for unordered containers
@@ -82,9 +88,12 @@ desc/
 5. Write comprehensive unit tests for vertex descriptor with both random access and bidirectional iterators
 
 ### Phase 2: Edge Descriptors
-1. Implement edge descriptor with source/target vertices
+1. Implement edge descriptor template with:
+   - Two template parameters (edge container iterator and vertex iterator)
+   - Two conditional member variables based on edge iterator category (size_t for random access, iterator for forward)
+   - Proper std::random_access_iterator and std::forward_iterator concept constraints
 2. Add support for both directed and undirected semantics
-3. Write comprehensive unit tests for edge descriptor
+3. Write comprehensive unit tests for edge descriptor with both random access and forward iterators
 4. Ensure proper comparison and hashing
 
 ### Phase 3: Advanced Features
