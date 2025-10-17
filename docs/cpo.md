@@ -26,18 +26,18 @@ The MSVC Standard Library uses a specific pattern for CPOs that balances clarity
 namespace graph {
 namespace _cpo {  // Internal namespace for implementation details
 
+// Common choice struct used by all CPOs
+template<typename _Ty>
+struct _Choice_t {
+    _Ty _Strategy = _Ty{};
+    bool _No_throw = false;
+};
+
 namespace _my_operation {
     // 1. Strategy enum
     enum class _St { _none, _member, _adl, _default };
     
-    // 2. Choice struct (strategy + noexcept)
-    template<typename _Ty>
-    struct _Choice_t {
-        _Ty _Strategy = _Ty{};
-        bool _No_throw = false;
-    };
-    
-    // 3. Concepts for each customization path
+    // 2. Concepts for each customization path
     template<typename T>
     concept _has_member = requires(T&& t) {
         { std::forward<T>(t).my_operation() } -> /* constraint */;
@@ -48,9 +48,9 @@ namespace _my_operation {
         { my_operation(std::forward<T>(t)) } -> /* constraint */;
     };
 
-    // 4. Single compile-time choice evaluation
+    // 3. Single compile-time choice evaluation
     template<typename T>
-    [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
+    [[nodiscard]] consteval _cpo::_Choice_t<_St> _Choose() noexcept {
         if constexpr (_has_member<T>) {
             return {_St::_member, noexcept(std::declval<T>().my_operation())};
         } else if constexpr (_has_adl<T>) {
@@ -60,11 +60,11 @@ namespace _my_operation {
         }
     }
 
-    // 5. CPO class with single operator()
+    // 4. CPO class with single operator()
     class _fn {
     private:
         template<typename T>
-        static constexpr _Choice_t<_St> _Choice = _Choose<T>();
+        static constexpr _cpo::_Choice_t<_St> _Choice = _Choose<T>();
         
     public:
         template<typename T>
@@ -96,8 +96,8 @@ inline namespace _cpos {
 
 ### Key Elements of This Pattern
 
-1. **`_St` enum**: Defines all possible execution paths
-2. **`_Choice_t<_Ty>` struct**: Holds both strategy and noexcept flag
+1. **`_St` enum**: Defines all possible execution paths (defined per CPO)
+2. **`_Choice_t<_Ty>` struct**: Holds both strategy and noexcept flag (shared in `graph::_cpo`)
 3. **`_Choose<T>()` consteval function**: Evaluates path and noexcept once
 4. **`_Choice<T>` static variable**: Caches the choice result
 5. **Single `operator()`**: Uses `if constexpr` chain (no overloads)
@@ -128,13 +128,6 @@ namespace _my_operation {
     // Enum for compile-time path detection
     enum class _St { _none, _member, _adl, _default };
     
-    // Struct to hold both strategy and noexcept info
-    template<typename _Ty>
-    struct _Choice_t {
-        _Ty _Strategy = _Ty{};
-        bool _No_throw = false;
-    };
-    
     // Concepts for each path
     template<typename T>
     concept _has_member = requires(T&& t) {
@@ -148,7 +141,7 @@ namespace _my_operation {
     
     // Single compile-time evaluation for both path and noexcept
     template<typename T>
-    [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
+    [[nodiscard]] consteval _cpo::_Choice_t<_St> _Choose() noexcept {
         if constexpr (_has_member<T>) {
             return {_St::_member, noexcept(std::declval<T>().operation())};
         } else if constexpr (_has_adl<T>) {
@@ -162,7 +155,7 @@ namespace _my_operation {
     private:
         // Cache the choice at compile time for each type T
         template<typename T>
-        static constexpr _Choice_t<_St> _Choice = _Choose<T>();
+        static constexpr _cpo::_Choice_t<_St> _Choice = _Choose<T>();
         
     public:
         // Single operator() with if constexpr chain
@@ -203,13 +196,6 @@ namespace _vertex_id {
     // Path selection enum
     enum class _St { _none, _member, _adl, _integral };
     
-    // Struct to hold both strategy and noexcept info
-    template<typename _Ty>
-    struct _Choice_t {
-        _Ty _Strategy = _Ty{};
-        bool _No_throw = false;
-    };
-    
     // Concept checks
     template<typename VD>
     concept _has_member = requires(const VD& vd) {
@@ -226,7 +212,7 @@ namespace _vertex_id {
     
     // Single compile-time evaluation for both path and noexcept
     template<typename VD>
-    [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
+    [[nodiscard]] consteval _cpo::_Choice_t<_St> _Choose() noexcept {
         if constexpr (_has_member<VD>) {
             return {_St::_member, noexcept(std::declval<const VD&>().vertex_id())};
         } else if constexpr (_has_adl<VD>) {
@@ -242,7 +228,7 @@ namespace _vertex_id {
     private:
         // Cache the choice at compile time for each type
         template<typename VD>
-        static constexpr _Choice_t<_St> _Choice = _Choose<VD>();
+        static constexpr _cpo::_Choice_t<_St> _Choice = _Choose<VD>();
         
     public:
         // Single operator() with if constexpr chain
@@ -369,7 +355,7 @@ CPOs must support multiple overload paths gracefully. The key is using **mutuall
 class _fn {
 private:
     template<typename T>
-    static constexpr _Choice_t<_St> _Choice = _Choose<T>();
+    static constexpr _cpo::_Choice_t<_St> _Choice = _Choose<T>();
     
 public:
     template<typename T>
@@ -418,14 +404,7 @@ namespace _operation {
     // 1. Strategy enum
     enum class _St { _none, _path1, _path2, _path3 /* ... more paths */ };
     
-    // 2. Choice struct
-    template<typename _Ty>
-    struct _Choice_t {
-        _Ty _Strategy = _Ty{};
-        bool _No_throw = false;
-    };
-    
-    // 3. Define concepts for each customization point
+    // 2. Define concepts for each customization point
     template<typename T>
     concept _has_path1 = /* highest priority check */;
     
@@ -437,9 +416,9 @@ namespace _operation {
     
     // ... more paths as needed
     
-    // 4. Single compile-time choice evaluation
+    // 3. Single compile-time choice evaluation
     template<typename T>
-    [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
+    [[nodiscard]] consteval graph::_cpo::_Choice_t<_St> _Choose() noexcept {
         if constexpr (_has_path1<T>) {
             return {_St::_path1, noexcept(/* path1 expression */)};
         } else if constexpr (_has_path2<T>) {
@@ -451,11 +430,11 @@ namespace _operation {
         }
     }
     
-    // 5. CPO class with single operator()
+    // 4. CPO class with single operator()
     class _fn {
     private:
         template<typename T>
-        static constexpr _Choice_t<_St> _Choice = _Choose<T>();
+        static constexpr graph::_cpo::_Choice_t<_St> _Choice = _Choose<T>();
         
     public:
         template<typename T>
@@ -495,13 +474,6 @@ namespace _edge_weight {
     // Path selection enum
     enum class _St { _none, _member_fn, _member_var, _adl, _tuple };
     
-    // Choice struct
-    template<typename _Ty>
-    struct _Choice_t {
-        _Ty _Strategy = _Ty{};
-        bool _No_throw = false;
-    };
-    
     // Path 1: Member function .weight()
     template<typename E>
     concept _has_weight_member = requires(const E& e) {
@@ -529,7 +501,7 @@ namespace _edge_weight {
     
     // Single compile-time evaluation
     template<typename E>
-    [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
+    [[nodiscard]] consteval _cpo::_Choice_t<_St> _Choose() noexcept {
         if constexpr (_has_weight_member<E>) {
             return {_St::_member_fn, noexcept(std::declval<const E&>().weight())};
         } else if constexpr (_has_weight_variable<E>) {
@@ -546,7 +518,7 @@ namespace _edge_weight {
     class _fn {
     private:
         template<typename E>
-        static constexpr _Choice_t<_St> _Choice = _Choose<E>();
+        static constexpr _cpo::_Choice_t<_St> _Choice = _Choose<E>();
         
     public:
         // Single operator() with if constexpr chain
@@ -887,7 +859,7 @@ To ensure CPOs work correctly on MSVC, GCC, and Clang, follow these guidelines:
 class _fn {
 private:
     template<typename T>
-    static constexpr _Choice_t<_St> _Choice = _Choose<T>();
+    static constexpr graph::_cpo::_Choice_t<_St> _Choice = _Choose<T>();
     
 public:
     template<typename T>
@@ -1504,20 +1476,13 @@ namespace _my_cpo {
     // Strategy enum
     enum class _St { _none, _path1, _path2, _default };
     
-    // Choice struct holds strategy + noexcept
-    template<typename _Ty>
-    struct _Choice_t {
-        _Ty _Strategy = _Ty{};
-        bool _No_throw = false;
-    };
-    
     // Concepts in priority order
     template<typename T> concept _has_path1 = /* ... */;
     template<typename T> concept _has_path2 = /* ... */;
     
     // Single compile-time evaluation
     template<typename T>
-    [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
+    [[nodiscard]] consteval _cpo::_Choice_t<_St> _Choose() noexcept {
         if constexpr (_has_path1<T>) {
             return {_St::_path1, noexcept(/* path1 expression */)};
         } else if constexpr (_has_path2<T>) {
@@ -1531,7 +1496,7 @@ namespace _my_cpo {
     private:
         // Cache choice for each type
         template<typename T>
-        static constexpr _Choice_t<_St> _Choice = _Choose<T>();
+        static constexpr _cpo::_Choice_t<_St> _Choice = _Choose<T>();
         
     public:
         // Single operator() with if constexpr chain
