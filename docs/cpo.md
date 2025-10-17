@@ -50,7 +50,7 @@ namespace _my_operation {
 
     // 3. Single compile-time choice evaluation
     template<typename T>
-    [[nodiscard]] consteval _cpo::_Choice_t<_St> _Choose() noexcept {
+    [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
         if constexpr (_has_member<T>) {
             return {_St::_member, noexcept(std::declval<T>().my_operation())};
         } else if constexpr (_has_adl<T>) {
@@ -64,7 +64,7 @@ namespace _my_operation {
     class _fn {
     private:
         template<typename T>
-        static constexpr _cpo::_Choice_t<_St> _Choice = _Choose<T>();
+        static constexpr _Choice_t<_St> _Choice = _Choose<T>();
         
     public:
         template<typename T>
@@ -141,7 +141,7 @@ namespace _my_operation {
     
     // Single compile-time evaluation for both path and noexcept
     template<typename T>
-    [[nodiscard]] consteval _cpo::_Choice_t<_St> _Choose() noexcept {
+    [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
         if constexpr (_has_member<T>) {
             return {_St::_member, noexcept(std::declval<T>().operation())};
         } else if constexpr (_has_adl<T>) {
@@ -155,7 +155,7 @@ namespace _my_operation {
     private:
         // Cache the choice at compile time for each type T
         template<typename T>
-        static constexpr _cpo::_Choice_t<_St> _Choice = _Choose<T>();
+        static constexpr _Choice_t<_St> _Choice = _Choose<T>();
         
     public:
         // Single operator() with if constexpr chain
@@ -212,7 +212,7 @@ namespace _vertex_id {
     
     // Single compile-time evaluation for both path and noexcept
     template<typename VD>
-    [[nodiscard]] consteval _cpo::_Choice_t<_St> _Choose() noexcept {
+    [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
         if constexpr (_has_member<VD>) {
             return {_St::_member, noexcept(std::declval<const VD&>().vertex_id())};
         } else if constexpr (_has_adl<VD>) {
@@ -228,7 +228,7 @@ namespace _vertex_id {
     private:
         // Cache the choice at compile time for each type
         template<typename VD>
-        static constexpr _cpo::_Choice_t<_St> _Choice = _Choose<VD>();
+        static constexpr _Choice_t<_St> _Choice = _Choose<VD>();
         
     public:
         // Single operator() with if constexpr chain
@@ -501,7 +501,7 @@ namespace _edge_weight {
     
     // Single compile-time evaluation
     template<typename E>
-    [[nodiscard]] consteval _cpo::_Choice_t<_St> _Choose() noexcept {
+    [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
         if constexpr (_has_weight_member<E>) {
             return {_St::_member_fn, noexcept(std::declval<const E&>().weight())};
         } else if constexpr (_has_weight_variable<E>) {
@@ -518,7 +518,7 @@ namespace _edge_weight {
     class _fn {
     private:
         template<typename E>
-        static constexpr _cpo::_Choice_t<_St> _Choice = _Choose<E>();
+        static constexpr _Choice_t<_St> _Choice = _Choose<E>();
         
     public:
         // Single operator() with if constexpr chain
@@ -1482,7 +1482,7 @@ namespace _my_cpo {
     
     // Single compile-time evaluation
     template<typename T>
-    [[nodiscard]] consteval _cpo::_Choice_t<_St> _Choose() noexcept {
+    [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
         if constexpr (_has_path1<T>) {
             return {_St::_path1, noexcept(/* path1 expression */)};
         } else if constexpr (_has_path2<T>) {
@@ -1496,7 +1496,7 @@ namespace _my_cpo {
     private:
         // Cache choice for each type
         template<typename T>
-        static constexpr _cpo::_Choice_t<_St> _Choice = _Choose<T>();
+        static constexpr _Choice_t<_St> _Choice = _Choose<T>();
         
     public:
         // Single operator() with if constexpr chain
