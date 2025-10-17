@@ -90,6 +90,264 @@ CPOs should check for customizations in this order:
 2. **ADL free function**: `operation(t)` found via ADL
 3. **Default implementation**: Built-in behavior
 
+## Path Detection and Noexcept Specification (MSVC Style)
+
+Following MSVC's implementation style, CPOs should provide:
+1. **Static enum** indicating which customization path is selected
+2. **Proper noexcept specification** that correctly reflects the selected path
+
+### Pattern: Static Path Detection
+
+```cpp
+namespace graph::_cpo {
+namespace _my_operation {
+    // Enum for compile-time path detection
+    enum class _choice { _none, _member, _adl, _default };
+    
+    // Concepts for each path
+    template<typename T>
+    concept _has_member = requires(T&& t) {
+        { std::forward<T>(t).operation() } -> std::convertible_to<int>;
+    };
+    
+    template<typename T>
+    concept _has_adl = requires(T&& t) {
+        { operation(std::forward<T>(t)) } -> std::convertible_to<int>;
+    };
+    
+    // Compile-time function to detect which path will be used
+    template<typename T>
+    [[nodiscard]] consteval _choice _choose() noexcept {
+        if constexpr (_has_member<T>) {
+            return _choice::_member;
+        } else if constexpr (_has_adl<T>) {
+            return _choice::_adl;
+        } else {
+            return _choice::_default;
+        }
+    }
+    
+    // Helper to compute noexcept for each path
+    template<typename T>
+    [[nodiscard]] consteval bool _is_noexcept() noexcept {
+        constexpr _choice _strategy = _choose<T>();
+        
+        if constexpr (_strategy == _choice::_member) {
+            return noexcept(std::declval<T>().operation());
+        } else if constexpr (_strategy == _choice::_adl) {
+            return noexcept(operation(std::declval<T>()));
+        } else {
+            return true;  // Default implementation is noexcept
+        }
+    }
+    
+    class _fn {
+    public:
+        // Member function path
+        template<typename T>
+            requires (_choose<T>() == _choice::_member)
+        [[nodiscard]] constexpr auto operator()(T&& t) const
+            noexcept(_is_noexcept<T>())
+            -> decltype(std::forward<T>(t).operation())
+        {
+            return std::forward<T>(t).operation();
+        }
+        
+        // ADL path
+        template<typename T>
+            requires (_choose<T>() == _choice::_adl)
+        [[nodiscard]] constexpr auto operator()(T&& t) const
+            noexcept(_is_noexcept<T>())
+            -> decltype(operation(std::forward<T>(t)))
+        {
+            return operation(std::forward<T>(t));
+        }
+        
+        // Default path
+        template<typename T>
+            requires (_choose<T>() == _choice::_default)
+        [[nodiscard]] constexpr int operator()(T&&) const noexcept
+        {
+            return 0;  // Default implementation
+        }
+    };
+} // namespace _my_operation
+} // namespace graph::_cpo
+```
+
+### Complete Example with Path Detection
+
+Here's a complete `vertex_id` CPO with MSVC-style path detection:
+
+```cpp
+namespace graph::_cpo {
+namespace _vertex_id {
+    // Path selection enum
+    enum class _choice { _none, _member, _adl, _integral };
+    
+    // Concept checks
+    template<typename VD>
+    concept _has_member = requires(const VD& vd) {
+        { vd.vertex_id() } -> std::convertible_to<std::size_t>;
+    };
+    
+    template<typename VD>
+    concept _has_adl = requires(const VD& vd) {
+        { vertex_id(vd) } -> std::convertible_to<std::size_t>;
+    };
+    
+    template<typename VD>
+    concept _is_integral = std::integral<std::remove_cvref_t<VD>>;
+    
+    // Compile-time path selection
+    template<typename VD>
+    [[nodiscard]] consteval _choice _choose() noexcept {
+        if constexpr (_has_member<VD>) {
+            return _choice::_member;
+        } else if constexpr (_has_adl<VD>) {
+            return _choice::_adl;
+        } else if constexpr (_is_integral<VD>) {
+            return _choice::_integral;
+        } else {
+            return _choice::_none;
+        }
+    }
+    
+    // Compile-time noexcept determination
+    template<typename VD>
+    [[nodiscard]] consteval bool _is_noexcept() noexcept {
+        constexpr _choice _strategy = _choose<VD>();
+        
+        if constexpr (_strategy == _choice::_member) {
+            return noexcept(std::declval<const VD&>().vertex_id());
+        } else if constexpr (_strategy == _choice::_adl) {
+            return noexcept(vertex_id(std::declval<const VD&>()));
+        } else if constexpr (_strategy == _choice::_integral) {
+            return true;
+        } else {
+            return false;  // Will not compile
+        }
+    }
+    
+    class _fn {
+    private:
+        // Helper to ensure we can detect the path at compile time
+        template<typename VD>
+        static constexpr _choice _path = _choose<VD>();
+        
+    public:
+        // Member function path
+        template<typename VD>
+            requires (_path<VD> == _choice::_member)
+        [[nodiscard]] constexpr auto operator()(const VD& vd) const
+            noexcept(_is_noexcept<VD>())
+            -> decltype(vd.vertex_id())
+        {
+            return vd.vertex_id();
+        }
+        
+        // ADL path
+        template<typename VD>
+            requires (_path<VD> == _choice::_adl)
+        [[nodiscard]] constexpr auto operator()(const VD& vd) const
+            noexcept(_is_noexcept<VD>())
+            -> decltype(vertex_id(vd))
+        {
+            return vertex_id(vd);
+        }
+        
+        // Integral pass-through path
+        template<typename VD>
+            requires (_path<VD> == _choice::_integral)
+        [[nodiscard]] constexpr VD operator()(VD vd) const noexcept
+        {
+            return vd;
+        }
+    };
+} // namespace _vertex_id
+
+inline namespace _cpos {
+    inline constexpr _cpo::_vertex_id::_fn vertex_id{};
+}
+} // namespace graph::_cpo
+
+// Testing path detection
+namespace test {
+    struct WithMember {
+        std::size_t vertex_id() const noexcept { return 42; }
+    };
+    
+    struct WithADL {
+        int key = 99;
+    };
+    std::size_t vertex_id(const WithADL& w) { return w.key; }
+    
+    // Verify path selection at compile time
+    static_assert(graph::_cpo::_vertex_id::_choose<WithMember>() 
+                  == graph::_cpo::_vertex_id::_choice::_member);
+    static_assert(graph::_cpo::_vertex_id::_choose<WithADL>() 
+                  == graph::_cpo::_vertex_id::_choice::_adl);
+    static_assert(graph::_cpo::_vertex_id::_choose<std::size_t>() 
+                  == graph::_cpo::_vertex_id::_choice::_integral);
+    
+    // Verify noexcept propagation
+    static_assert(graph::_cpo::_vertex_id::_is_noexcept<WithMember>());
+    static_assert(!graph::_cpo::_vertex_id::_is_noexcept<WithADL>());
+    static_assert(graph::_cpo::_vertex_id::_is_noexcept<std::size_t>());
+    
+    // Verify actual CPO behavior
+    static_assert(noexcept(graph::vertex_id(WithMember{})));
+    static_assert(!noexcept(graph::vertex_id(WithADL{})));
+    static_assert(noexcept(graph::vertex_id(std::size_t{})));
+}
+```
+
+### Benefits of This Pattern
+
+1. **Compile-time introspection**: Query which path will be used
+2. **Accurate noexcept**: Automatically propagates exception specifications
+3. **Better diagnostics**: Clear which customization is selected
+4. **MSVC compatibility**: Matches standard library implementation style
+5. **Single source of truth**: Path logic defined once, reused everywhere
+
+### Alternative: Inline Path Detection
+
+For simpler CPOs, you can use direct noexcept expressions:
+
+```cpp
+class _fn {
+public:
+    template<typename T>
+        requires _has_member<T>
+    constexpr auto operator()(T&& t) const
+        noexcept(noexcept(std::forward<T>(t).operation()))
+        -> decltype(std::forward<T>(t).operation())
+    {
+        return std::forward<T>(t).operation();
+    }
+    
+    template<typename T>
+        requires (!_has_member<T> && _has_adl<T>)
+    constexpr auto operator()(T&& t) const
+        noexcept(noexcept(operation(std::forward<T>(t))))
+        -> decltype(operation(std::forward<T>(t)))
+    {
+        return operation(std::forward<T>(t));
+    }
+};
+```
+
+**Use the enum pattern when:**
+- You need compile-time path introspection
+- You want to match MSVC style exactly
+- Your CPO has complex noexcept logic
+- You need to query the customization strategy
+
+**Use inline noexcept when:**
+- Your CPO is simple with 2-3 paths
+- You don't need path introspection
+- Noexcept specification is straightforward
+
 ## Handling Multiple Optional Overloads
 
 CPOs must support multiple overload paths gracefully. The key is using **mutually exclusive concepts** with proper negation chains.
@@ -115,7 +373,7 @@ namespace _operation {
     template<typename T>
     concept _has_path3 = /* third priority check */;
     
-    // ... more paths as needed
+    // ... more paths as neededA
     
     class _fn {
     public:
