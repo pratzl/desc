@@ -20,54 +20,66 @@ A Customization Point Object (CPO) is a function object that provides a uniform 
 
 The MSVC Standard Library uses a specific pattern for CPOs that balances clarity, maintainability, and optimization. This style is recommended for consistency with the standard library and guaranteed cross-compiler compatibility.
 
-### Basic Structure
+### Basic Structure (Recommended)
 
 ```cpp
 namespace graph {
 namespace _cpo {  // Internal namespace for implementation details
 
-// Implementation details namespace
 namespace _my_operation {
-    // 1. Concept to check if type has member function
+    // 1. Strategy enum
+    enum class _St { _none, _member, _adl, _default };
+    
+    // 2. Choice struct (strategy + noexcept)
+    template<typename _Ty>
+    struct _Choice_t {
+        _Ty _Strategy = _Ty{};
+        bool _No_throw = false;
+    };
+    
+    // 3. Concepts for each customization path
     template<typename T>
     concept _has_member = requires(T&& t) {
         { std::forward<T>(t).my_operation() } -> /* constraint */;
     };
 
-    // 2. Concept to check if ADL customization exists
     template<typename T>
     concept _has_adl = requires(T&& t) {
         { my_operation(std::forward<T>(t)) } -> /* constraint */;
     };
 
-    // 3. CPO class implementation
+    // 4. Single compile-time choice evaluation
+    template<typename T>
+    [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
+        if constexpr (_has_member<T>) {
+            return {_St::_member, noexcept(std::declval<T>().my_operation())};
+        } else if constexpr (_has_adl<T>) {
+            return {_St::_adl, noexcept(my_operation(std::declval<T>()))};
+        } else {
+            return {_St::_default, true};
+        }
+    }
+
+    // 5. CPO class with single operator()
     class _fn {
+    private:
+        template<typename T>
+        static constexpr _Choice_t<_St> _Choice = _Choose<T>();
+        
     public:
-        // Member function customization (highest priority)
         template<typename T>
-            requires _has_member<T>
-        constexpr decltype(auto) operator()(T&& t) const
-            noexcept(noexcept(std::forward<T>(t).my_operation()))
+        [[nodiscard]] constexpr auto operator()(T&& t) const
+            noexcept(_Choice<T>._No_throw)
+            -> decltype(auto)
         {
-            return std::forward<T>(t).my_operation();
-        }
-
-        // ADL customization (medium priority)
-        template<typename T>
-            requires (!_has_member<T> && _has_adl<T>)
-        constexpr decltype(auto) operator()(T&& t) const
-            noexcept(noexcept(my_operation(std::forward<T>(t))))
-        {
-            return my_operation(std::forward<T>(t));
-        }
-
-        // Default implementation (lowest priority)
-        template<typename T>
-            requires (!_has_member<T> && !_has_adl<T> && /* additional constraints */)
-        constexpr decltype(auto) operator()(T&& t) const
-            noexcept(/* noexcept specification */)
-        {
-            // Default implementation
+            if constexpr (_Choice<T>._Strategy == _St::_member) {
+                return std::forward<T>(t).my_operation();
+            } else if constexpr (_Choice<T>._Strategy == _St::_adl) {
+                return my_operation(std::forward<T>(t));
+            } else {
+                // Default implementation
+                return /* default value */;
+            }
         }
     };
 } // namespace _my_operation
@@ -82,6 +94,15 @@ inline namespace _cpos {
 } // namespace graph
 ```
 
+### Key Elements of This Pattern
+
+1. **`_St` enum**: Defines all possible execution paths
+2. **`_Choice_t<_Ty>` struct**: Holds both strategy and noexcept flag
+3. **`_Choose<T>()` consteval function**: Evaluates path and noexcept once
+4. **`_Choice<T>` static variable**: Caches the choice result
+5. **Single `operator()`**: Uses `if constexpr` chain (no overloads)
+6. **Simple noexcept**: References `_Choice<T>._No_throw`
+
 ## Customization Priority Order
 
 CPOs should check for customizations in this order:
@@ -90,19 +111,29 @@ CPOs should check for customizations in this order:
 2. **ADL free function**: `operation(t)` found via ADL
 3. **Default implementation**: Built-in behavior
 
-## Path Detection and Noexcept Specification (MSVC Style)
+## MSVC-Style CPO Implementation (Recommended)
 
-Following MSVC's implementation style, CPOs should provide:
-1. **Static enum** indicating which customization path is selected
-2. **Proper noexcept specification** that correctly reflects the selected path
+The MSVC Standard Library uses an elegant pattern with:
+1. **Single `operator()` function** with `if constexpr` chain (no overloads)
+2. **Combined strategy + noexcept detection** in one compile-time evaluation
+3. **`_Choice_t` struct** to cache both the path and exception specification
 
-### Pattern: Static Path Detection
+This approach is cleaner, more maintainable, and less error-prone than multiple overloads.
+
+### Pattern: Single Function with Choice Detection
 
 ```cpp
 namespace graph::_cpo {
 namespace _my_operation {
     // Enum for compile-time path detection
-    enum class _choice { _none, _member, _adl, _default };
+    enum class _St { _none, _member, _adl, _default };
+    
+    // Struct to hold both strategy and noexcept info
+    template<typename _Ty>
+    struct _Choice_t {
+        _Ty _Strategy = _Ty{};
+        bool _No_throw = false;
+    };
     
     // Concepts for each path
     template<typename T>
@@ -115,75 +146,69 @@ namespace _my_operation {
         { operation(std::forward<T>(t)) } -> std::convertible_to<int>;
     };
     
-    // Compile-time function to detect which path will be used
+    // Single compile-time evaluation for both path and noexcept
     template<typename T>
-    [[nodiscard]] consteval _choice _choose() noexcept {
+    [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
         if constexpr (_has_member<T>) {
-            return _choice::_member;
+            return {_St::_member, noexcept(std::declval<T>().operation())};
         } else if constexpr (_has_adl<T>) {
-            return _choice::_adl;
+            return {_St::_adl, noexcept(operation(std::declval<T>()))};
         } else {
-            return _choice::_default;
-        }
-    }
-    
-    // Helper to compute noexcept for each path
-    template<typename T>
-    [[nodiscard]] consteval bool _is_noexcept() noexcept {
-        constexpr _choice _strategy = _choose<T>();
-        
-        if constexpr (_strategy == _choice::_member) {
-            return noexcept(std::declval<T>().operation());
-        } else if constexpr (_strategy == _choice::_adl) {
-            return noexcept(operation(std::declval<T>()));
-        } else {
-            return true;  // Default implementation is noexcept
+            return {_St::_default, true};
         }
     }
     
     class _fn {
+    private:
+        // Cache the choice at compile time for each type T
+        template<typename T>
+        static constexpr _Choice_t<_St> _Choice = _Choose<T>();
+        
     public:
-        // Member function path
+        // Single operator() with if constexpr chain
         template<typename T>
-            requires (_choose<T>() == _choice::_member)
         [[nodiscard]] constexpr auto operator()(T&& t) const
-            noexcept(_is_noexcept<T>())
-            -> decltype(std::forward<T>(t).operation())
+            noexcept(_Choice<T>._No_throw)
+            -> decltype(auto)
         {
-            return std::forward<T>(t).operation();
-        }
-        
-        // ADL path
-        template<typename T>
-            requires (_choose<T>() == _choice::_adl)
-        [[nodiscard]] constexpr auto operator()(T&& t) const
-            noexcept(_is_noexcept<T>())
-            -> decltype(operation(std::forward<T>(t)))
-        {
-            return operation(std::forward<T>(t));
-        }
-        
-        // Default path
-        template<typename T>
-            requires (_choose<T>() == _choice::_default)
-        [[nodiscard]] constexpr int operator()(T&&) const noexcept
-        {
-            return 0;  // Default implementation
+            if constexpr (_Choice<T>._Strategy == _St::_member) {
+                return std::forward<T>(t).operation();
+            } else if constexpr (_Choice<T>._Strategy == _St::_adl) {
+                return operation(std::forward<T>(t));
+            } else {
+                return 0;  // Default implementation
+            }
         }
     };
 } // namespace _my_operation
 } // namespace graph::_cpo
 ```
 
-### Complete Example with Path Detection
+### Why This Pattern is Superior
 
-Here's a complete `vertex_id` CPO with MSVC-style path detection:
+1. **Single evaluation**: `_Choose<T>()` is called once and cached in `_Choice<T>`
+2. **Self-contained**: All logic in one `operator()` function
+3. **No negation chains**: Priority is implicit in `if constexpr` order
+4. **Simple noexcept**: Just reference `_Choice<T>._No_throw`
+5. **Easy to maintain**: Add/remove paths without touching other code
+6. **MSVC-compatible**: Matches standard library implementation
+
+### Complete Example: `vertex_id` CPO (MSVC Style)
+
+Here's a complete `vertex_id` CPO using the MSVC `_Choice_t` pattern:
 
 ```cpp
 namespace graph::_cpo {
 namespace _vertex_id {
     // Path selection enum
-    enum class _choice { _none, _member, _adl, _integral };
+    enum class _St { _none, _member, _adl, _integral };
+    
+    // Struct to hold both strategy and noexcept info
+    template<typename _Ty>
+    struct _Choice_t {
+        _Ty _Strategy = _Ty{};
+        bool _No_throw = false;
+    };
     
     // Concept checks
     template<typename VD>
@@ -199,69 +224,43 @@ namespace _vertex_id {
     template<typename VD>
     concept _is_integral = std::integral<std::remove_cvref_t<VD>>;
     
-    // Compile-time path selection
+    // Single compile-time evaluation for both path and noexcept
     template<typename VD>
-    [[nodiscard]] consteval _choice _choose() noexcept {
+    [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
         if constexpr (_has_member<VD>) {
-            return _choice::_member;
+            return {_St::_member, noexcept(std::declval<const VD&>().vertex_id())};
         } else if constexpr (_has_adl<VD>) {
-            return _choice::_adl;
+            return {_St::_adl, noexcept(vertex_id(std::declval<const VD&>()))};
         } else if constexpr (_is_integral<VD>) {
-            return _choice::_integral;
+            return {_St::_integral, true};
         } else {
-            return _choice::_none;
-        }
-    }
-    
-    // Compile-time noexcept determination
-    template<typename VD>
-    [[nodiscard]] consteval bool _is_noexcept() noexcept {
-        constexpr _choice _strategy = _choose<VD>();
-        
-        if constexpr (_strategy == _choice::_member) {
-            return noexcept(std::declval<const VD&>().vertex_id());
-        } else if constexpr (_strategy == _choice::_adl) {
-            return noexcept(vertex_id(std::declval<const VD&>()));
-        } else if constexpr (_strategy == _choice::_integral) {
-            return true;
-        } else {
-            return false;  // Will not compile
+            return {_St::_none, false};
         }
     }
     
     class _fn {
     private:
-        // Helper to ensure we can detect the path at compile time
+        // Cache the choice at compile time for each type
         template<typename VD>
-        static constexpr _choice _path = _choose<VD>();
+        static constexpr _Choice_t<_St> _Choice = _Choose<VD>();
         
     public:
-        // Member function path
+        // Single operator() with if constexpr chain
         template<typename VD>
-            requires (_path<VD> == _choice::_member)
         [[nodiscard]] constexpr auto operator()(const VD& vd) const
-            noexcept(_is_noexcept<VD>())
-            -> decltype(vd.vertex_id())
+            noexcept(_Choice<VD>._No_throw)
+            -> decltype(auto)
         {
-            return vd.vertex_id();
-        }
-        
-        // ADL path
-        template<typename VD>
-            requires (_path<VD> == _choice::_adl)
-        [[nodiscard]] constexpr auto operator()(const VD& vd) const
-            noexcept(_is_noexcept<VD>())
-            -> decltype(vertex_id(vd))
-        {
-            return vertex_id(vd);
-        }
-        
-        // Integral pass-through path
-        template<typename VD>
-            requires (_path<VD> == _choice::_integral)
-        [[nodiscard]] constexpr VD operator()(VD vd) const noexcept
-        {
-            return vd;
+            if constexpr (_Choice<VD>._Strategy == _St::_member) {
+                return vd.vertex_id();
+            } else if constexpr (_Choice<VD>._Strategy == _St::_adl) {
+                return vertex_id(vd);
+            } else if constexpr (_Choice<VD>._Strategy == _St::_integral) {
+                return vd;
+            } else {
+                static_assert(_Choice<VD>._Strategy != _St::_none,
+                    "vertex_id requires .vertex_id() member, ADL vertex_id(), or integral type");
+            }
         }
     };
 } // namespace _vertex_id
@@ -271,7 +270,7 @@ inline namespace _cpos {
 }
 } // namespace graph::_cpo
 
-// Testing path detection
+// Testing the implementation
 namespace test {
     struct WithMember {
         std::size_t vertex_id() const noexcept { return 42; }
@@ -283,17 +282,17 @@ namespace test {
     std::size_t vertex_id(const WithADL& w) { return w.key; }
     
     // Verify path selection at compile time
-    static_assert(graph::_cpo::_vertex_id::_choose<WithMember>() 
-                  == graph::_cpo::_vertex_id::_choice::_member);
-    static_assert(graph::_cpo::_vertex_id::_choose<WithADL>() 
-                  == graph::_cpo::_vertex_id::_choice::_adl);
-    static_assert(graph::_cpo::_vertex_id::_choose<std::size_t>() 
-                  == graph::_cpo::_vertex_id::_choice::_integral);
+    static_assert(graph::_cpo::_vertex_id::_Choose<WithMember>()._Strategy 
+                  == graph::_cpo::_vertex_id::_St::_member);
+    static_assert(graph::_cpo::_vertex_id::_Choose<WithADL>()._Strategy 
+                  == graph::_cpo::_vertex_id::_St::_adl);
+    static_assert(graph::_cpo::_vertex_id::_Choose<std::size_t>()._Strategy 
+                  == graph::_cpo::_vertex_id::_St::_integral);
     
     // Verify noexcept propagation
-    static_assert(graph::_cpo::_vertex_id::_is_noexcept<WithMember>());
-    static_assert(!graph::_cpo::_vertex_id::_is_noexcept<WithADL>());
-    static_assert(graph::_cpo::_vertex_id::_is_noexcept<std::size_t>());
+    static_assert(graph::_cpo::_vertex_id::_Choose<WithMember>()._No_throw);
+    static_assert(!graph::_cpo::_vertex_id::_Choose<WithADL>()._No_throw);
+    static_assert(graph::_cpo::_vertex_id::_Choose<std::size_t>()._No_throw);
     
     // Verify actual CPO behavior
     static_assert(noexcept(graph::vertex_id(WithMember{})));
@@ -302,21 +301,25 @@ namespace test {
 }
 ```
 
-### Benefits of This Pattern
+### Benefits of the `_Choice_t` Pattern
 
-1. **Compile-time introspection**: Query which path will be used
-2. **Accurate noexcept**: Automatically propagates exception specifications
-3. **Better diagnostics**: Clear which customization is selected
-4. **MSVC compatibility**: Matches standard library implementation style
-5. **Single source of truth**: Path logic defined once, reused everywhere
+1. **Single evaluation**: `_Choose<T>()` computes both strategy and noexcept once
+2. **Cached result**: `_Choice<T>` stores the result as a static constexpr variable
+3. **Simple noexcept**: Just use `_Choice<T>._No_throw` - no complex expressions
+4. **Self-contained function**: All logic in one `operator()` with `if constexpr`
+5. **No negation chains**: Priority is implicit in `if constexpr` order
+6. **MSVC-compatible**: Matches standard library implementation exactly
+7. **Better diagnostics**: Single function signature = clearer error messages
+8. **Easy to maintain**: Add/remove paths without updating constraints
 
-### Alternative: Inline Path Detection
+### Alternative: Multiple Overloads (Not Recommended)
 
-For simpler CPOs, you can use direct noexcept expressions:
+For comparison, here's the older multi-overload pattern. This approach is more verbose and error-prone:
 
 ```cpp
 class _fn {
 public:
+    // Member function path
     template<typename T>
         requires _has_member<T>
     constexpr auto operator()(T&& t) const
@@ -326,6 +329,7 @@ public:
         return std::forward<T>(t).operation();
     }
     
+    // ADL path - requires explicit negation
     template<typename T>
         requires (!_has_member<T> && _has_adl<T>)
     constexpr auto operator()(T&& t) const
@@ -337,16 +341,14 @@ public:
 };
 ```
 
-**Use the enum pattern when:**
-- You need compile-time path introspection
-- You want to match MSVC style exactly
-- Your CPO has complex noexcept logic
-- You need to query the customization strategy
+**Problems with multiple overloads:**
+- ❌ Requires explicit negation chains that are error-prone
+- ❌ Must repeat noexcept expressions in multiple places
+- ❌ Adding a new path requires updating all lower-priority overloads
+- ❌ Risk of ambiguous overload resolution
+- ❌ More verbose and harder to maintain
 
-**Use inline noexcept when:**
-- Your CPO is simple with 2-3 paths
-- You don't need path introspection
-- Noexcept specification is straightforward
+**Use the `_Choice_t` pattern instead** - it's the modern, MSVC-style approach.
 
 ## Handling Multiple Optional Overloads
 
@@ -354,16 +356,76 @@ CPOs must support multiple overload paths gracefully. The key is using **mutuall
 
 ### Critical Rules for Cross-Compiler Compatibility
 
-1. **Explicit Negation**: Each overload must explicitly exclude all higher-priority paths
-2. **Concept Ordering**: Define concepts in priority order (highest to lowest)
-3. **Complete Chain**: Each `requires` clause must form a complete exclusion chain
-4. **Avoid Ambiguity**: Never allow two overloads to match simultaneously
+1. **Use `if constexpr` over multiple overloads**: Single function with `if constexpr` chain is more reliable than multiple overloads with negation constraints
+2. **Use `_Choice_t` pattern**: Evaluate strategy and noexcept once in `_Choose()`, cache in `_Choice<T>`
+3. **Concept ordering**: Define concepts clearly, let `if constexpr` order determine priority
+4. **Return type handling**: Use `-> decltype(auto)` or explicit return type, test with all compilers
+5. **Noexcept propagation**: Use `_Choice<T>._No_throw` from the cached choice
 
-### Pattern for N Optional Overloads
+### Why `if constexpr` is Better
+
+**MSVC `if constexpr` pattern (Recommended):**
+```cpp
+class _fn {
+private:
+    template<typename T>
+    static constexpr _Choice_t<_St> _Choice = _Choose<T>();
+    
+public:
+    template<typename T>
+    constexpr auto operator()(T&& t) const
+        noexcept(_Choice<T>._No_throw)
+        -> decltype(auto)
+    {
+        if constexpr (_Choice<T>._Strategy == _St::_path1) {
+            return /* path1 */;
+        } else if constexpr (_Choice<T>._Strategy == _St::_path2) {
+            return /* path2 */;
+        }
+    }
+};
+```
+
+✅ Priority determined by `if constexpr` order  
+✅ No negation chains needed  
+✅ Single noexcept specification  
+✅ Easy to maintain  
+✅ Works reliably on MSVC, GCC, Clang  
+
+**Multi-overload pattern (Not Recommended):**
+```cpp
+class _fn {
+public:
+    template<typename T>
+        requires _has_path1<T>
+    constexpr auto operator()(T&& t) const { /* ... */ }
+    
+    template<typename T>
+        requires (!_has_path1<T> && _has_path2<T>)
+    constexpr auto operator()(T&& t) const { /* ... */ }
+};
+```
+
+❌ Requires error-prone negation chains  
+❌ Risk of ambiguous overload resolution  
+❌ Harder to maintain as paths grow  
+❌ Compiler-specific constraint evaluation differences
+
+### Pattern for N Optional Overloads (MSVC Style)
 
 ```cpp
 namespace _operation {
-    // Define concepts for each customization point
+    // 1. Strategy enum
+    enum class _St { _none, _path1, _path2, _path3 /* ... more paths */ };
+    
+    // 2. Choice struct
+    template<typename _Ty>
+    struct _Choice_t {
+        _Ty _Strategy = _Ty{};
+        bool _No_throw = false;
+    };
+    
+    // 3. Define concepts for each customization point
     template<typename T>
     concept _has_path1 = /* highest priority check */;
     
@@ -373,41 +435,73 @@ namespace _operation {
     template<typename T>
     concept _has_path3 = /* third priority check */;
     
-    // ... more paths as neededA
+    // ... more paths as needed
     
+    // 4. Single compile-time choice evaluation
+    template<typename T>
+    [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
+        if constexpr (_has_path1<T>) {
+            return {_St::_path1, noexcept(/* path1 expression */)};
+        } else if constexpr (_has_path2<T>) {
+            return {_St::_path2, noexcept(/* path2 expression */)};
+        } else if constexpr (_has_path3<T>) {
+            return {_St::_path3, noexcept(/* path3 expression */)};
+        } else {
+            return {_St::_none, true};  // or _St::_default
+        }
+    }
+    
+    // 5. CPO class with single operator()
     class _fn {
+    private:
+        template<typename T>
+        static constexpr _Choice_t<_St> _Choice = _Choose<T>();
+        
     public:
-        // Path 1: Highest priority
         template<typename T>
-            requires _has_path1<T>
-        constexpr auto operator()(T&& t) const { /* ... */ }
-        
-        // Path 2: Second priority (explicitly excludes path 1)
-        template<typename T>
-            requires (!_has_path1<T> && _has_path2<T>)
-        constexpr auto operator()(T&& t) const { /* ... */ }
-        
-        // Path 3: Third priority (explicitly excludes paths 1 and 2)
-        template<typename T>
-            requires (!_has_path1<T> && !_has_path2<T> && _has_path3<T>)
-        constexpr auto operator()(T&& t) const { /* ... */ }
-        
-        // Default: Lowest priority (explicitly excludes all other paths)
-        template<typename T>
-            requires (!_has_path1<T> && !_has_path2<T> && !_has_path3<T> 
-                      && /* additional constraints */)
-        constexpr auto operator()(T&& t) const { /* ... */ }
+        [[nodiscard]] constexpr auto operator()(T&& t) const
+            noexcept(_Choice<T>._No_throw)
+            -> decltype(auto)
+        {
+            if constexpr (_Choice<T>._Strategy == _St::_path1) {
+                return /* path1 implementation */;
+            } else if constexpr (_Choice<T>._Strategy == _St::_path2) {
+                return /* path2 implementation */;
+            } else if constexpr (_Choice<T>._Strategy == _St::_path3) {
+                return /* path3 implementation */;
+            } else {
+                // Default implementation or static_assert
+                return /* default */;
+            }
+        }
     };
 }
 ```
 
-### Example: CPO with 4 Overload Paths
+**Key advantages:**
+1. **No negation chains**: `if constexpr` order determines priority naturally
+2. **Single evaluation**: `_Choose<T>()` evaluates once, cached in `_Choice<T>`
+3. **Simple noexcept**: Just use `_Choice<T>._No_throw`
+4. **Easy maintenance**: Add/remove paths without touching other code
+5. **Self-documenting**: Read top-to-bottom to see priority order
+
+### Example: CPO with 4 Overload Paths (MSVC Style)
 
 ```cpp
 namespace graph {
 namespace _cpo {
 
 namespace _edge_weight {
+    // Path selection enum
+    enum class _St { _none, _member_fn, _member_var, _adl, _tuple };
+    
+    // Choice struct
+    template<typename _Ty>
+    struct _Choice_t {
+        _Ty _Strategy = _Ty{};
+        bool _No_throw = false;
+    };
+    
     // Path 1: Member function .weight()
     template<typename E>
     concept _has_weight_member = requires(const E& e) {
@@ -433,57 +527,45 @@ namespace _edge_weight {
         { std::get<1>(e) } -> std::convertible_to<double>;
     };
     
+    // Single compile-time evaluation
+    template<typename E>
+    [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
+        if constexpr (_has_weight_member<E>) {
+            return {_St::_member_fn, noexcept(std::declval<const E&>().weight())};
+        } else if constexpr (_has_weight_variable<E>) {
+            return {_St::_member_var, noexcept(std::declval<const E&>().weight)};
+        } else if constexpr (_has_weight_adl<E>) {
+            return {_St::_adl, noexcept(weight(std::declval<const E&>()))};
+        } else if constexpr (_has_tuple_weight<E>) {
+            return {_St::_tuple, noexcept(std::get<1>(std::declval<const E&>()))};
+        } else {
+            return {_St::_none, true};  // Default is noexcept
+        }
+    }
+    
     class _fn {
+    private:
+        template<typename E>
+        static constexpr _Choice_t<_St> _Choice = _Choose<E>();
+        
     public:
-        // Path 1: Member function (highest priority)
+        // Single operator() with if constexpr chain
         template<typename E>
-            requires _has_weight_member<E>
         [[nodiscard]] constexpr auto operator()(const E& e) const
-            noexcept(noexcept(e.weight()))
-            -> decltype(e.weight())
+            noexcept(_Choice<E>._No_throw)
+            -> double  // All paths return double
         {
-            return e.weight();
-        }
-        
-        // Path 2: Member variable (second priority)
-        template<typename E>
-            requires (!_has_weight_member<E> && _has_weight_variable<E>)
-        [[nodiscard]] constexpr auto operator()(const E& e) const
-            noexcept(noexcept(e.weight))
-            -> decltype(e.weight)
-        {
-            return e.weight;
-        }
-        
-        // Path 3: ADL free function (third priority)
-        template<typename E>
-            requires (!_has_weight_member<E> && !_has_weight_variable<E> 
-                      && _has_weight_adl<E>)
-        [[nodiscard]] constexpr auto operator()(const E& e) const
-            noexcept(noexcept(weight(e)))
-            -> decltype(weight(e))
-        {
-            return weight(e);
-        }
-        
-        // Path 4: Tuple-like access (fourth priority)
-        template<typename E>
-            requires (!_has_weight_member<E> && !_has_weight_variable<E> 
-                      && !_has_weight_adl<E> && _has_tuple_weight<E>)
-        [[nodiscard]] constexpr auto operator()(const E& e) const
-            noexcept(noexcept(std::get<1>(e)))
-            -> decltype(std::get<1>(e))
-        {
-            return std::get<1>(e);
-        }
-        
-        // Default: Unit weight (lowest priority)
-        template<typename E>
-            requires (!_has_weight_member<E> && !_has_weight_variable<E> 
-                      && !_has_weight_adl<E> && !_has_tuple_weight<E>)
-        [[nodiscard]] constexpr double operator()(const E&) const noexcept
-        {
-            return 1.0;  // Default unit weight
+            if constexpr (_Choice<E>._Strategy == _St::_member_fn) {
+                return e.weight();
+            } else if constexpr (_Choice<E>._Strategy == _St::_member_var) {
+                return e.weight;
+            } else if constexpr (_Choice<E>._Strategy == _St::_adl) {
+                return weight(e);
+            } else if constexpr (_Choice<E>._Strategy == _St::_tuple) {
+                return std::get<1>(e);
+            } else {
+                return 1.0;  // Default unit weight
+            }
         }
     };
 } // namespace _edge_weight
@@ -524,6 +606,22 @@ void example() {
     auto w5 = graph::edge_weight(user::SimpleEdge{});            // 1.0
 }
 ```
+
+### Advantages Over Multiple Overloads
+
+**MSVC `if constexpr` pattern:**
+- ✅ No explicit negation chains required
+- ✅ Priority order is clear from reading top-to-bottom
+- ✅ Single noexcept specification using `_Choice<E>._No_throw`
+- ✅ Easy to add/remove/reorder paths
+- ✅ Single function signature = better error messages
+- ✅ All path logic in one place
+
+**Old multi-overload pattern:**
+- ❌ Each overload needs `(!_has_path1<E> && !_has_path2<E> && ...)`
+- ❌ Noexcept repeated in every overload
+- ❌ Adding a path requires updating all lower-priority overloads
+- ❌ Risk of constraint overlap causing ambiguity
 
 ### Compiler-Specific Considerations
 
@@ -782,18 +880,39 @@ inline constexpr _fn operation{};
 
 To ensure CPOs work correctly on MSVC, GCC, and Clang, follow these guidelines:
 
-### 1. Always Use Complete Negation Chains
+### 1. Prefer `if constexpr` Over Multiple Overloads
 
 ```cpp
-// CORRECT - Works on all compilers
-template<typename T>
-    requires (!_has_path1<T> && !_has_path2<T> && _has_path3<T>)
-constexpr auto operator()(T&& t) const { /* ... */ }
+// CORRECT - MSVC style with if constexpr (Recommended)
+class _fn {
+private:
+    template<typename T>
+    static constexpr _Choice_t<_St> _Choice = _Choose<T>();
+    
+public:
+    template<typename T>
+    constexpr auto operator()(T&& t) const
+        noexcept(_Choice<T>._No_throw)
+    {
+        if constexpr (_Choice<T>._Strategy == _St::_path1) {
+            return /* path1 */;
+        } else if constexpr (_Choice<T>._Strategy == _St::_path2) {
+            return /* path2 */;
+        }
+    }
+};
 
-// WRONG - May cause ambiguity on some compilers
-template<typename T>
-    requires _has_path3<T>
-constexpr auto operator()(T&& t) const { /* ... */ }
+// AVOID - Multiple overloads (error-prone)
+class _fn {
+public:
+    template<typename T>
+        requires _has_path1<T>
+    constexpr auto operator()(T&& t) const { /* ... */ }
+    
+    template<typename T>
+        requires (!_has_path1<T> && _has_path2<T>)  // Easy to get wrong
+    constexpr auto operator()(T&& t) const { /* ... */ }
+};
 ```
 
 ### 2. Use `std::remove_cvref_t` in Concepts
@@ -1376,39 +1495,59 @@ When implementing a CPO in MSVC style that works across compilers:
 14. ✅ **Document constraints**: Clear error messages for unsatisfied requirements
 15. ✅ **Standard library alignment**: Use stdlib concepts when available
 
-### Example Minimal CPO Template
+### Example Minimal CPO Template (MSVC Style - Recommended)
 
 ```cpp
 namespace graph {
 namespace _cpo {
 namespace _my_cpo {
+    // Strategy enum
+    enum class _St { _none, _path1, _path2, _default };
+    
+    // Choice struct holds strategy + noexcept
+    template<typename _Ty>
+    struct _Choice_t {
+        _Ty _Strategy = _Ty{};
+        bool _No_throw = false;
+    };
+    
     // Concepts in priority order
     template<typename T> concept _has_path1 = /* ... */;
     template<typename T> concept _has_path2 = /* ... */;
     
+    // Single compile-time evaluation
+    template<typename T>
+    [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
+        if constexpr (_has_path1<T>) {
+            return {_St::_path1, noexcept(/* path1 expression */)};
+        } else if constexpr (_has_path2<T>) {
+            return {_St::_path2, noexcept(/* path2 expression */)};
+        } else {
+            return {_St::_default, true};
+        }
+    }
+    
     class _fn {
+    private:
+        // Cache choice for each type
+        template<typename T>
+        static constexpr _Choice_t<_St> _Choice = _Choose<T>();
+        
     public:
-        // Path 1: Highest priority
+        // Single operator() with if constexpr chain
         template<typename T>
-            requires _has_path1<T>
-        constexpr auto operator()(T&& t) const
-            noexcept(noexcept(/* expression */))
-            -> decltype(/* expression */)
-        { return /* expression */; }
-        
-        // Path 2+: Lower priorities with negation chains
-        template<typename T>
-            requires (!_has_path1<T> && _has_path2<T>)
-        constexpr auto operator()(T&& t) const
-            noexcept(noexcept(/* expression */))
-            -> decltype(/* expression */)
-        { return /* expression */; }
-        
-        // Default: Fallback with all exclusions
-        template<typename T>
-            requires (!_has_path1<T> && !_has_path2<T>)
-        constexpr auto operator()(T&& t) const noexcept
-        { return /* default implementation */; }
+        [[nodiscard]] constexpr auto operator()(T&& t) const
+            noexcept(_Choice<T>._No_throw)
+            -> decltype(auto)
+        {
+            if constexpr (_Choice<T>._Strategy == _St::_path1) {
+                return /* path1 implementation */;
+            } else if constexpr (_Choice<T>._Strategy == _St::_path2) {
+                return /* path2 implementation */;
+            } else {
+                return /* default implementation */;
+            }
+        }
     };
 }
 } // namespace _cpo
