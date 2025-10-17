@@ -116,9 +116,9 @@ public:
     template<typename EdgeContainer>
     [[nodiscard]] constexpr decltype(auto) underlying_value(EdgeContainer& edges) const noexcept {
         if constexpr (std::random_access_iterator<EdgeIter>) {
-            return edges[edge_storage_];
+            return (edges[edge_storage_]);
         } else {
-            return *edge_storage_;
+            return (*edge_storage_);
         }
     }
     
@@ -130,9 +130,9 @@ public:
     template<typename EdgeContainer>
     [[nodiscard]] constexpr decltype(auto) underlying_value(const EdgeContainer& edges) const noexcept {
         if constexpr (std::random_access_iterator<EdgeIter>) {
-            return edges[edge_storage_];
+            return (edges[edge_storage_]);
         } else {
-            return *edge_storage_;
+            return (*edge_storage_);
         }
     }
     
@@ -314,8 +314,9 @@ namespace std {
                 if constexpr (std::random_access_iterator<EdgeIter>) {
                     return std::hash<std::size_t>{}(ed.value());
                 } else {
-                    // For forward iterators, hash the iterator somehow
-                    // Note: This is a simplification - in practice you might need custom hashing
+                    // NOTE: For iterator-based edges, this uses the address of the referenced element.
+                    // This assumes the iterator is dereferenceable (not end). Improving this
+                    // requires a stable edge identity beyond the iterator itself.
                     return std::hash<std::size_t>{}(
                         reinterpret_cast<std::size_t>(&(*ed.value()))
                     );

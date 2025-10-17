@@ -97,15 +97,15 @@ for (auto desc : map_view) {
   - Vertex descriptor view
   - Comprehensive unit tests
 
-- [ ] **Phase 2: Edge Descriptors** (TODO)
+- [x] **Phase 2: Edge Descriptors** (COMPLETE)
   - Edge descriptor template
   - Edge descriptor view
   - Unit tests
 
-- [ ] **Phase 3: Advanced Features** (TODO)
-  - Descriptor traits
-  - Property maps
-  - Performance benchmarks
+- [x] **Phase 3: Advanced Features** (PARTIAL)
+  - [x] Descriptor traits (COMPLETE)
+  - [ ] Property maps (TODO)
+  - [ ] Performance benchmarks (TODO)
 
 ## Design Principles
 
@@ -128,7 +128,7 @@ Descriptor views provide forward iteration only because descriptors are synthesi
 
 ## Documentation
 
-See [descriptor.md](descriptor.md) for the complete specification following RFC 2119 requirements.
+See `descriptor.md` for the complete specification following RFC 2119 requirements.
 
 ## License
 

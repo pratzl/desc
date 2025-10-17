@@ -74,9 +74,9 @@ public:
     template<typename Container>
     [[nodiscard]] constexpr decltype(auto) underlying_value(Container& container) const noexcept {
         if constexpr (std::random_access_iterator<VertexIter>) {
-            return container[storage_];
+            return (container[storage_]);
         } else {
-            return *storage_;
+            return (*storage_);
         }
     }
     
@@ -88,9 +88,9 @@ public:
     template<typename Container>
     [[nodiscard]] constexpr decltype(auto) underlying_value(const Container& container) const noexcept {
         if constexpr (std::random_access_iterator<VertexIter>) {
-            return container[storage_];
+            return (container[storage_]);
         } else {
-            return *storage_;
+            return (*storage_);
         }
     }
     
@@ -103,20 +103,20 @@ public:
      * For bidirectional containers (map), returns the .second part (the actual data, not the key).
      */
     template<typename Container>
-    [[nodiscard]] constexpr auto& inner_value(Container& container) const noexcept {
-        using value_type = typename std::iterator_traits<VertexIter>::value_type;
+    [[nodiscard]] constexpr decltype(auto) inner_value(Container& container) const noexcept {
+        using vt = typename std::iterator_traits<VertexIter>::value_type;
         
         if constexpr (std::random_access_iterator<VertexIter>) {
             // For random access (vector), the value is the data itself
             return (container[storage_]);
         } else {
-            // For bidirectional, check if it's a pair type
-            if constexpr (pair_like<value_type>) {
+            // For bidirectional, check if it's a pair-like type
+            if constexpr (pair_like_value<vt>) {
                 // For map, bind the pair first, then return .second
                 auto& element = *storage_;
                 return (element.second);
             } else {
-                // For list, return the whole value
+                // For non-pair-like, return the whole value
                 return (*storage_);
             }
         }
@@ -129,12 +129,12 @@ public:
      */
     template<typename Container>
     [[nodiscard]] constexpr decltype(auto) inner_value(const Container& container) const noexcept {
-        using value_type = typename std::iterator_traits<VertexIter>::value_type;
+        using vt = typename std::iterator_traits<VertexIter>::value_type;
         
         if constexpr (std::random_access_iterator<VertexIter>) {
             return (container[storage_]);
         } else {
-            if constexpr (pair_like<value_type>) {
+            if constexpr (pair_like_value<vt>) {
                 const auto& element = *storage_;
                 return (element.second);
             } else {
@@ -171,8 +171,6 @@ namespace std {
     template<desc::vertex_iterator VertexIter>
     struct hash<desc::vertex_descriptor<VertexIter>> {
         [[nodiscard]] size_t operator()(const desc::vertex_descriptor<VertexIter>& vd) const noexcept {
-            using storage_type = typename desc::vertex_descriptor<VertexIter>::storage_type;
-            
             if constexpr (std::random_access_iterator<VertexIter>) {
                 // Hash the size_t index
                 return std::hash<std::size_t>{}(vd.value());
