@@ -11,6 +11,7 @@ The Graph Container Interface provides:
 - **Customization**: All functions are customization point objects (CPOs) that can be overridden
 - **Generality**: Designed to support future graph data models beyond current requirements
 - **Default Implementations**: Reasonable defaults minimize work needed to adapt existing data structures
+- **Outgoing Edge Focus**: The interface focuses on outgoing edges from vertices. Incoming edges, if needed, are handled through separate views that present them using the same outgoing-edge interface
 
 ### Design Principles
 
@@ -120,6 +121,8 @@ Type aliases follow the `_t<G>` convention where `G` is the graph type.
 
 ### Functions
 
+**Note:** Complexity notation: `|V|` = number of vertices, `|E|` = number of edges
+
 #### Graph Functions
 
 | Function | Return Type | Complexity | Default Implementation |
@@ -156,7 +159,7 @@ Type aliases follow the `_t<G>` convention where `G` is the graph type.
 
 | Function | Return Type | Complexity | Default Implementation |
 |----------|-------------|------------|------------------------|
-| `target_id(g,uv)` | `vertex_id_t<G>` | constant | (see pattern matching below) |
+| `target_id(g,uv)` | `vertex_id_t<G>` | constant | Automatic for patterns: `random_access_range<forward_range<integral>>` or `random_access_range<forward_range<tuple<integral,...>>>` |
 | `target(g,uv)` | `vertex_t<G>` | constant | `*(begin(vertices(g)) + target_id(g,uv))` if random-access & integral |
 | `edge_value(g,uv)` | `edge_value_t<G>` | constant | `uv` if forward_range, n/a otherwise, optional |
 | `find_vertex_edge(g,u,vid)` | `vertex_edge_iterator_t<G>` | linear | `find(edges(g,u), [](uv) { return target_id(g,uv)==vid; })` |
@@ -258,9 +261,9 @@ An edgelist is a range of values with `source_id`, `target_id`, and optional `ed
 
 | Function | Return Type | Complexity | Default Implementation |
 |----------|-------------|------------|------------------------|
-| `target_id(e)` | `vertex_id_t<EL>` | constant | (see pattern matching below) |
-| `source_id(e)` | `vertex_id_t<EL>` | constant | (see pattern matching below) |
-| `edge_value(e)` | `edge_value_t<EL>` | constant | Optional, see pattern matching |
+| `target_id(e)` | `vertex_id_t<EL>` | constant | Automatic for tuple and edge_info patterns (see below) |
+| `source_id(e)` | `vertex_id_t<EL>` | constant | Automatic for tuple and edge_info patterns (see below) |
+| `edge_value(e)` | `edge_value_t<EL>` | constant | Automatic for tuple and edge_info patterns (see below), optional |
 | `contains_edge(el,uid,vid)` | bool | linear | `find_if(el, [](e) { return source_id(e)==uid && target_id(e)==vid; })` |
 | `num_edges(el)` | integral | constant | `size(el)` |
 | `has_edge(el)` | bool | constant | `num_edges(el) > 0` |

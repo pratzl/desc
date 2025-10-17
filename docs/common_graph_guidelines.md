@@ -14,17 +14,53 @@ These requirements apply to every graph-related instruction set, including imple
 
 ## Naming Conventions
 
-| Type Name | Variable Name       | Description |
-|-----------|---------------------|-------------|
-| `G`       | `g`                 | A graph object. |
-| `GV`      | `gval`              | Optional graph value. |
-| `V`       | `u`, `v`, `w`       | A vertex descriptor. `u` is the source (or only) vertex. `v` is the target vertex. `w` may be used when another vertex may be involved in a function or other context. |
-| `VId`     | `uid`, `vid`, `wid` | Vertex Id. `uid` is the source (or only) vertex id. `vid` is the target vertex id. `wid` may be used when another vertex may be involved in a function or other context. |
-| `VV`      | `uval`, `vval`      | Optional vertex value. |
-| `VVF`     | `vvf`               | A Vertex Value Function. It is a function object that returns a `VV` which MAY be a value type or a reference type. |
-| `E`       | `uv`, `vw`, `uw`    | An edge descriptor. Examples: `uv` represents an edge from vertex `u` to vertex `v`. |
-| `EV`      | `eval`              | Optional edge value. |
-| `EVF`     | `evf`               | An Edge Value Function. It is a function object that returns a `EV` which MAY be a value type or a reference type. |
+### Graph Types
+
+| Template Parameter | Type Alias | Variable Name | Description |
+|-------------------|------------|---------------|-------------|
+| `G` | | `g` | Graph type |
+| | `graph_reference_t<G>` | `g` | Graph reference |
+| `GV` | | `val` | Graph Value, value or reference |
+
+### Edgelist Types
+
+| Template Parameter | Type Alias | Variable Name | Description |
+|-------------------|------------|---------------|-------------|
+| `EL` | | `el` | Edge list |
+
+### Vertex Types
+
+| Template Parameter | Type Alias | Variable Name | Description |
+|-------------------|------------|---------------|-------------|
+| `V` | `vertex_t<G>` | | Vertex descriptor |
+| | `vertex_reference_t<G>` | `u`, `v` | Vertex descriptor reference. `u` is the source (or only) vertex. `v` is the target vertex. |
+| `VId` | `vertex_id_t<G>` | `uid`, `vid`, `source` | Vertex id. `uid` is the source (or only) vertex id. `vid` is the target vertex id. |
+| `VV` | `vertex_value_t<G>` | `val` | Vertex Value, value or reference. This can be either the user-defined value on a vertex, or a value returned by a function object (e.g. `VVF`) that is related to the vertex. |
+| `VR` | `vertex_range_t<G>` | `ur`, `vr` | Vertex Range |
+| `VI` | `vertex_iterator_t<G>` | `ui`, `vi` | Vertex Iterator. `ui` is the source (or only) vertex iterator. `vi` is the target vertex iterator. |
+| | | `first`, `last` | `first` and `last` are the begin and end iterators of a vertex range. |
+| `VVF` | | `vvf` | Vertex Value Function: `vvf(u)` → vertex value, or `vvf(uid)` → vertex value, depending on requirements of the consuming algorithm or view. |
+| `VProj` | | `vproj` | Vertex info projection function: `vproj(u)` → `vertex_info<VId,VV>`. |
+
+### Partition Types
+
+| Template Parameter | Type Alias | Variable Name | Description |
+|-------------------|------------|---------------|-------------|
+| | `partition_id_t<G>` | `pid` | Partition id |
+| | | `P` | Number of partitions |
+| `PVR` | `partition_vertex_range_t<G>` | `pur`, `pvr` | Partition vertex range |
+
+### Edge Types
+
+| Template Parameter | Type Alias | Variable Name | Description |
+|-------------------|------------|---------------|-------------|
+| `E` | `edge_t<G>` | | Edge descriptor |
+| | `edge_reference_t<G>` | `uv`, `vw` | Edge descriptor reference. `uv` is an edge from vertices `u` to `v`. `vw` is an edge from vertices `v` to `w`. |
+| `EV` | `edge_value_t<G>` | `val` | Edge Value, value or reference. This can be either the user-defined value on an edge, or a value returned by a function object (e.g. `EVF`) that is related to the edge. |
+| `ER` | `vertex_edge_range_t<G>` | | Edge Range for edges of a vertex |
+| `EI` | `vertex_edge_iterator_t<G>` | `uvi`, `vwi` | Edge Iterator for an edge of a vertex. `uvi` is an iterator for an edge from vertices `u` to `v`. `vwi` is an iterator for an edge from vertices `v` to `w`. |
+| `EVF` | | `evf` | Edge Value Function: `evf(uv)` → edge value. |
+| `EProj` | | `eproj` | Edge info projection function: `eproj(uv)` → `edge_info<VId,Sourced,EV>`. |
 
 ## Parameterized Type Aliases
 Types use the `_t<G>` suffix to indicate they are parameterized by graph type `G`:
@@ -69,8 +105,8 @@ graph-v3/
 │       ├── algorithm/        # Graph algorithms
 │       ├── container/        # Graph container implementations
 │       ├── detail/           # Implementation details (private)
-│    │  │   ├── graph_cpo.hpp # Graph CPOs
-│    │  │   └── graph_using.hpp # Using statements for common types and functions in the standard library
+│       │   ├── graph_cpo.hpp # Graph CPOs
+│       │   └── graph_using.hpp # Using statements for common types and functions in the standard library
 │       ├── views/            # Graph views
 │       ├── edgelist.hpp      # Edge list functionality
 │       ├── graph.hpp         # Main graph header with graph concepts and graph traits
