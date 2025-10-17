@@ -303,6 +303,74 @@ The GCI provides reasonable defaults to minimize adaptation work:
 
 **Recommendation:** See the Graph Library Containers paper for detailed examples of adapting external data structures.
 
+## Adjacency List Test Types
+
+The following table lists adjacency list types based on STL containers useful for comprehensive testing. These cover the spectrum of vertex and edge storage patterns, descriptor behaviors, and edge value representations.
+
+### Adjacency List Type Combinations
+
+| # | Adjacency List Type | Edge Value Type | Vertex Descriptor | Edge Descriptor | Description |
+|---|---------------------|-----------------|-------------------|-----------------|-------------|
+| 1 | `vector<vector<int>>` | `int` (target_id) | `size_t` index | `size_t` index | Basic unweighted adjacency list, random-access vertex and edge storage |
+| 2 | `vector<vector<pair<int,W>>>` | `pair<int,W>` | `size_t` index | `size_t` index | Weighted edges with pair pattern, target_id + weight |
+| 3 | `vector<vector<tuple<int,W>>>` | `tuple<int,W>` | `size_t` index | `size_t` index | Weighted edges with tuple pattern, target_id + weight |
+| 4 | `vector<vector<tuple<int,W,X>>>` | `tuple<int,W,X>` | `size_t` index | `size_t` index | Multi-property edges, target_id + multiple attributes |
+| 5 | `vector<vector<Edge>>` | `struct Edge` | `size_t` index | `size_t` index | Custom edge struct with target_id and properties |
+| 6 | `vector<list<int>>` | `int` (target_id) | `size_t` index | `list<int>::iterator` | Random-access vertices, linked-list edges |
+| 7 | `vector<list<pair<int,W>>>` | `pair<int,W>` | `size_t` index | `list<>::iterator` | Weighted edges in linked list |
+| 8 | `vector<set<int>>` | `int` (target_id) | `size_t` index | `set<int>::iterator` | Ordered unique edges (no multi-edges) |
+| 9 | `vector<map<int,W>>` | `pair<const int,W>` | `size_t` index | `map<>::iterator` | Edges as key-value map, target_id → weight |
+| 10 | `vector<unordered_set<int>>` | `int` (target_id) | `size_t` index | `unordered_set<>::iterator` | Unordered unique edges, O(1) lookup |
+| 11 | `vector<unordered_map<int,W>>` | `pair<const int,W>` | `size_t` index | `unordered_map<>::iterator` | Unordered weighted edges, O(1) lookup |
+| 12 | `deque<vector<int>>` | `int` (target_id) | `size_t` index | `size_t` index | Random-access vertices with deque (cheaper insertion) |
+| 13 | `deque<deque<int>>` | `int` (target_id) | `size_t` index | `size_t` index | Both vertices and edges in deques |
+| 14 | `map<VId,vector<int>>` | `int` (target_id) | `map<>::iterator` | `size_t` index | Sparse vertices (key-based), dense edges per vertex |
+| 15 | `map<VId,list<int>>` | `int` (target_id) | `map<>::iterator` | `list<>::iterator` | Sparse vertices, linked-list edges |
+| 16 | `map<VId,set<int>>` | `int` (target_id) | `map<>::iterator` | `set<>::iterator` | Sparse vertices, ordered unique edges |
+| 17 | `map<VId,map<int,W>>` | `pair<const int,W>` | `map<>::iterator` | `map<>::iterator` | Fully associative, sorted vertices and edges |
+| 18 | `unordered_map<VId,vector<int>>` | `int` (target_id) | `unordered_map<>::iterator` | `size_t` index | Hash-based sparse vertices, dense edges |
+| 19 | `unordered_map<VId,list<int>>` | `int` (target_id) | `unordered_map<>::iterator` | `list<>::iterator` | Hash-based vertices, linked-list edges |
+| 20 | `unordered_map<VId,unordered_set<int>>` | `int` (target_id) | `unordered_map<>::iterator` | `unordered_set<>::iterator` | Fully hash-based, unordered vertices and edges |
+| 21 | `unordered_map<VId,unordered_map<int,W>>` | `pair<const int,W>` | `unordered_map<>::iterator` | `unordered_map<>::iterator` | Fully hash-based with weighted edges |
+| 22 | `list<vector<int>>` | `int` (target_id) | `list<>::iterator` | `size_t` index | Linked-list vertices, random-access edges |
+| 23 | `list<list<int>>` | `int` (target_id) | `list<>::iterator` | `list<>::iterator` | Fully linked-list representation |
+
+### Descriptor Behavior Categories
+
+**Random Access Descriptors (index-based):**
+- **Vertex**: Types 1-13, 22-23 with non-associative vertex containers → `vertex_descriptor<Iter>` stores `size_t` index
+- **Edge**: Types 1-5, 12-14, 18, 22 → `edge_descriptor<EdgeIter, VertexIter>` stores `size_t` index for edge position
+
+**Bidirectional/Forward Descriptors (iterator-based):**
+- **Vertex**: Types 14-21 with associative vertex containers → `vertex_descriptor<Iter>` stores iterator, `vertex_id()` returns key from pair
+- **Edge**: Types 6-11, 15-17, 19-21, 23 → `edge_descriptor<EdgeIter, VertexIter>` stores edge iterator
+
+### Edge Value Pattern Recognition
+
+**Simple Target ID:**
+- Types 1, 6, 8, 10, 12-23: Edge value is integral type representing target vertex ID
+- Pattern: `target_id(g, uv)` returns the edge value directly
+
+**Pair Pattern:**
+- Types 2, 7, 9, 11, 17, 21: Edge value is `std::pair<int, Weight>`
+- Pattern: `target_id(g, uv)` returns `uv.first`, edge weight via `uv.second` or `edge_value(g, uv)`
+
+**Tuple Pattern:**
+- Types 3-4: Edge value is `std::tuple<int, Weight, ...>`
+- Pattern: `target_id(g, uv)` returns `std::get<0>(uv)`, properties via `std::get<1>(uv)`, etc.
+
+**Custom Struct:**
+- Type 5: Edge value is user-defined struct with target_id member
+- Pattern: Requires CPO customization or member access convention
+
+### Testing Strategy
+
+1. **Core Functionality**: Test types 1-5 cover fundamental patterns (unweighted, weighted, tuple, custom)
+2. **Iterator Categories**: Types 6-11 test forward/bidirectional edge iterators
+3. **Sparse Graphs**: Types 14-21 test associative vertex containers (map, unordered_map)
+4. **Performance**: Types 12-13 (deque), 10-11 (hash-based) test performance characteristics
+5. **Comprehensive Coverage**: All 23 types ensure compatibility across storage strategies
+
 ---
 
 **Document Status:** For exposition only (concepts marked as such pending consensus)
