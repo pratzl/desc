@@ -66,13 +66,15 @@ graph-v3/
 │   └── PageRank/
 ├── include/                # Public header files
 │   └── graph/
-│       ├── algorithm/      # Graph algorithms
-│       ├── container/      # Graph container implementations
-│       ├── detail/         # Implementation details (private)
-│       ├── views/          # Graph views
-│       ├── edgelist.hpp    # Edge list functionality
-│       ├── graph.hpp       # Main graph header
-│       ├── graph_info.hpp  # Graph information structures
+│       ├── algorithm/        # Graph algorithms
+│       ├── container/        # Graph container implementations
+│       ├── detail/           # Implementation details (private)
+│    │  │   ├── graph_cpo.hpp # Graph CPOs
+│    │  │   └── graph_using.hpp # Using statements for common types and functions in the standard library
+│       ├── views/            # Graph views
+│       ├── edgelist.hpp      # Edge list functionality
+│       ├── graph.hpp         # Main graph header with graph concepts and graph traits
+│       ├── graph_info.hpp    # Graph information structures
 │       └── graph_utility.hpp # Utility functions
 ├── scripts/                # Build and maintenance scripts
 │   └── format.sh

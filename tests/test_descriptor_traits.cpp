@@ -6,11 +6,11 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_template_test_macros.hpp>
 
-#include <desc/descriptor_traits.hpp>
-#include <desc/vertex_descriptor.hpp>
-#include <desc/edge_descriptor.hpp>
-#include <desc/vertex_descriptor_view.hpp>
-#include <desc/edge_descriptor_view.hpp>
+#include <graph/descriptor_traits.hpp>
+#include <graph/vertex_descriptor.hpp>
+#include <graph/edge_descriptor.hpp>
+#include <graph/vertex_descriptor_view.hpp>
+#include <graph/edge_descriptor_view.hpp>
 
 #include <vector>
 #include <list>

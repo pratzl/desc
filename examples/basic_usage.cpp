@@ -3,8 +3,8 @@
  * @brief Basic usage example for vertex descriptors
  */
 
-#include <desc/vertex_descriptor.hpp>
-#include <desc/vertex_descriptor_view.hpp>
+#include <graph/vertex_descriptor.hpp>
+#include <graph/vertex_descriptor_view.hpp>
 #include <iostream>
 #include <vector>
 #include <map>

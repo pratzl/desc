@@ -4,7 +4,7 @@
  */
 
 #include <catch2/catch_test_macros.hpp>
-#include <desc/descriptor.hpp>
+#include <graph/descriptor.hpp>
 #include <vector>
 #include <deque>
 #include <map>

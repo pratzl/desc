@@ -6,8 +6,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_template_test_macros.hpp>
 
-#include <desc/edge_descriptor.hpp>
-#include <desc/edge_descriptor_view.hpp>
+#include <graph/edge_descriptor.hpp>
+#include <graph/edge_descriptor_view.hpp>
 
 #include <vector>
 #include <list>
