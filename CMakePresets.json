@@ -1,0 +1,336 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 20,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "default",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_CXX_STANDARD": "20",
+        "CMAKE_CXX_STANDARD_REQUIRED": "ON",
+        "CMAKE_CXX_EXTENSIONS": "OFF",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "windows-base",
+      "hidden": true,
+      "inherits": "default",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "toolset": {
+        "value": "host=x64",
+        "strategy": "external"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "hostOS": ["Windows"]
+        }
+      }
+    },
+    {
+      "name": "linux-base",
+      "hidden": true,
+      "inherits": "default",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "hostOS": ["Linux"]
+        }
+      }
+    },
+    {
+      "name": "windows-msvc-debug",
+      "displayName": "Windows MSVC Debug",
+      "description": "Windows development build with MSVC (Debug)",
+      "inherits": "windows-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "BUILD_TESTS": "ON",
+        "BUILD_EXAMPLES": "ON"
+      }
+    },
+    {
+      "name": "windows-msvc-release",
+      "displayName": "Windows MSVC Release",
+      "description": "Windows development build with MSVC (Release)",
+      "inherits": "windows-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTS": "ON",
+        "BUILD_EXAMPLES": "ON"
+      }
+    },
+    {
+      "name": "windows-msvc-relwithdebinfo",
+      "displayName": "Windows MSVC RelWithDebInfo",
+      "description": "Windows optimized build with debug info",
+      "inherits": "windows-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "BUILD_TESTS": "ON",
+        "BUILD_EXAMPLES": "ON"
+      }
+    },
+    {
+      "name": "windows-clang-debug",
+      "displayName": "Windows Clang Debug",
+      "description": "Windows development build with Clang (Debug)",
+      "inherits": "windows-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "BUILD_TESTS": "ON",
+        "BUILD_EXAMPLES": "ON"
+      }
+    },
+    {
+      "name": "windows-clang-release",
+      "displayName": "Windows Clang Release",
+      "description": "Windows development build with Clang (Release)",
+      "inherits": "windows-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "BUILD_TESTS": "ON",
+        "BUILD_EXAMPLES": "ON"
+      }
+    },
+    {
+      "name": "linux-gcc-debug",
+      "displayName": "Linux GCC Debug",
+      "description": "Linux development build with GCC (Debug)",
+      "inherits": "linux-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++",
+        "BUILD_TESTS": "ON",
+        "BUILD_EXAMPLES": "ON"
+      }
+    },
+    {
+      "name": "linux-gcc-release",
+      "displayName": "Linux GCC Release",
+      "description": "Linux development build with GCC (Release)",
+      "inherits": "linux-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++",
+        "BUILD_TESTS": "ON",
+        "BUILD_EXAMPLES": "ON"
+      }
+    },
+    {
+      "name": "linux-clang-debug",
+      "displayName": "Linux Clang Debug",
+      "description": "Linux development build with Clang (Debug)",
+      "inherits": "linux-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "BUILD_TESTS": "ON",
+        "BUILD_EXAMPLES": "ON"
+      }
+    },
+    {
+      "name": "linux-clang-release",
+      "displayName": "Linux Clang Release",
+      "description": "Linux development build with Clang (Release)",
+      "inherits": "linux-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "BUILD_TESTS": "ON",
+        "BUILD_EXAMPLES": "ON"
+      }
+    },
+    {
+      "name": "ci-linux",
+      "displayName": "CI Linux Build",
+      "description": "Continuous integration build for Linux",
+      "inherits": "linux-gcc-release",
+      "cacheVariables": {
+        "BUILD_TESTS": "ON",
+        "BUILD_EXAMPLES": "OFF"
+      }
+    },
+    {
+      "name": "ci-windows",
+      "displayName": "CI Windows Build",
+      "description": "Continuous integration build for Windows",
+      "inherits": "windows-msvc-release",
+      "cacheVariables": {
+        "BUILD_TESTS": "ON",
+        "BUILD_EXAMPLES": "OFF"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "windows-msvc-debug",
+      "displayName": "Windows MSVC Debug Build",
+      "configurePreset": "windows-msvc-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-msvc-release",
+      "displayName": "Windows MSVC Release Build",
+      "configurePreset": "windows-msvc-release",
+      "configuration": "Release"
+    },
+    {
+      "name": "windows-msvc-relwithdebinfo",
+      "displayName": "Windows MSVC RelWithDebInfo Build",
+      "configurePreset": "windows-msvc-relwithdebinfo",
+      "configuration": "RelWithDebInfo"
+    },
+    {
+      "name": "windows-clang-debug",
+      "displayName": "Windows Clang Debug Build",
+      "configurePreset": "windows-clang-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-clang-release",
+      "displayName": "Windows Clang Release Build",
+      "configurePreset": "windows-clang-release",
+      "configuration": "Release"
+    },
+    {
+      "name": "linux-gcc-debug",
+      "displayName": "Linux GCC Debug Build",
+      "configurePreset": "linux-gcc-debug"
+    },
+    {
+      "name": "linux-gcc-release",
+      "displayName": "Linux GCC Release Build",
+      "configurePreset": "linux-gcc-release"
+    },
+    {
+      "name": "linux-clang-debug",
+      "displayName": "Linux Clang Debug Build",
+      "configurePreset": "linux-clang-debug"
+    },
+    {
+      "name": "linux-clang-release",
+      "displayName": "Linux Clang Release Build",
+      "configurePreset": "linux-clang-release"
+    },
+    {
+      "name": "ci-linux",
+      "displayName": "CI Linux Build",
+      "configurePreset": "ci-linux"
+    },
+    {
+      "name": "ci-windows",
+      "displayName": "CI Windows Build",
+      "configurePreset": "ci-windows"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "default",
+      "hidden": true,
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error",
+        "stopOnFailure": false
+      }
+    },
+    {
+      "name": "windows-msvc-debug",
+      "displayName": "Windows MSVC Debug Tests",
+      "description": "Run tests on Windows MSVC Debug build",
+      "configurePreset": "windows-msvc-debug",
+      "inherits": "default"
+    },
+    {
+      "name": "windows-msvc-release",
+      "displayName": "Windows MSVC Release Tests",
+      "description": "Run tests on Windows MSVC Release build",
+      "configurePreset": "windows-msvc-release",
+      "inherits": "default"
+    },
+    {
+      "name": "windows-clang-debug",
+      "displayName": "Windows Clang Debug Tests",
+      "description": "Run tests on Windows Clang Debug build",
+      "configurePreset": "windows-clang-debug",
+      "inherits": "default"
+    },
+    {
+      "name": "windows-clang-release",
+      "displayName": "Windows Clang Release Tests",
+      "description": "Run tests on Windows Clang Release build",
+      "configurePreset": "windows-clang-release",
+      "inherits": "default"
+    },
+    {
+      "name": "linux-gcc-debug",
+      "displayName": "Linux GCC Debug Tests",
+      "description": "Run tests on Linux GCC Debug build",
+      "configurePreset": "linux-gcc-debug",
+      "inherits": "default"
+    },
+    {
+      "name": "linux-gcc-release",
+      "displayName": "Linux GCC Release Tests",
+      "description": "Run tests on Linux GCC Release build",
+      "configurePreset": "linux-gcc-release",
+      "inherits": "default"
+    },
+    {
+      "name": "linux-clang-debug",
+      "displayName": "Linux Clang Debug Tests",
+      "description": "Run tests on Linux Clang Debug build",
+      "configurePreset": "linux-clang-debug",
+      "inherits": "default"
+    },
+    {
+      "name": "linux-clang-release",
+      "displayName": "Linux Clang Release Tests",
+      "description": "Run tests on Linux Clang Release build",
+      "configurePreset": "linux-clang-release",
+      "inherits": "default"
+    },
+    {
+      "name": "ci-linux",
+      "displayName": "CI Linux Tests",
+      "description": "Run tests in CI environment on Linux",
+      "configurePreset": "ci-linux",
+      "inherits": "default"
+    },
+    {
+      "name": "ci-windows",
+      "displayName": "CI Windows Tests",
+      "description": "Run tests in CI environment on Windows",
+      "configurePreset": "ci-windows",
+      "inherits": "default"
+    }
+  ]
+}

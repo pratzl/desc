@@ -24,3 +24,8 @@ CMakeFiles/
 cmake_install.cmake
 CTestTestfile.cmake
 _deps/
+CMakeUserPresets.json
+
+# Test outputs
+Testing/
+*.log
