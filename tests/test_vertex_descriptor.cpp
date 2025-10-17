@@ -219,6 +219,100 @@ TEST_CASE("vertex_descriptor::underlying_value() with custom struct", "[vertex_d
 }
 
 // =============================================================================
+// Inner Value Access Tests
+// =============================================================================
+
+TEST_CASE("vertex_descriptor::inner_value() with vector", "[vertex_descriptor][inner_value]") {
+    std::vector<int> vertices = {100, 200, 300, 400};
+    using VectorIter = std::vector<int>::iterator;
+    using VD = vertex_descriptor<VectorIter>;
+    
+    SECTION("For vectors, inner_value returns the whole value") {
+        VD vd{2};
+        REQUIRE(vd.inner_value(vertices) == 300);
+        
+        vd.inner_value(vertices) = 999;
+        REQUIRE(vertices[2] == 999);
+    }
+}
+
+TEST_CASE("vertex_descriptor::inner_value() with map", "[vertex_descriptor][inner_value]") {
+    using MapType = std::map<int, std::string>;
+    using MapIter = MapType::iterator;
+    using VD = vertex_descriptor<MapIter>;
+    
+    MapType vertex_map = {
+        {10, "data_10"},
+        {20, "data_20"},
+        {30, "data_30"}
+    };
+    
+    SECTION("For maps, inner_value returns .second (the value part)") {
+        auto it = vertex_map.find(20);
+        VD vd{it};
+        
+        // inner_value returns reference to the value part (not the key)
+        REQUIRE(vd.inner_value(vertex_map) == "data_20");
+    }
+    
+    SECTION("Modify through inner_value") {
+        auto it = vertex_map.find(10);
+        VD vd{it};
+        
+        vd.inner_value(vertex_map) = "modified";
+        REQUIRE(vertex_map[10] == "modified");
+        REQUIRE(vd.inner_value(vertex_map) == "modified");
+    }
+    
+    SECTION("Const access") {
+        MapType test_map = {{5, "five"}, {6, "six"}};
+        auto it = test_map.find(6);
+        VD vd{it};
+        
+        const MapType& const_ref = test_map;
+        const auto& value = vd.inner_value(const_ref);
+        REQUIRE(value == "six");
+    }
+}
+
+TEST_CASE("vertex_descriptor::inner_value() with custom struct in map", "[vertex_descriptor][inner_value]") {
+    struct VertexData {
+        std::string name;
+        double weight;
+    };
+    
+    using MapType = std::map<int, VertexData>;
+    using MapIter = MapType::iterator;
+    using VD = vertex_descriptor<MapIter>;
+    
+    MapType vertex_map = {
+        {1, {"A", 1.5}},
+        {2, {"B", 2.5}},
+        {3, {"C", 3.5}}
+    };
+    
+    SECTION("Access struct through inner_value (excludes key)") {
+        auto it = vertex_map.find(2);
+        VD vd{it};
+        
+        auto&& data = vd.inner_value(vertex_map);
+        REQUIRE(data.name == "B");
+        REQUIRE(data.weight == 2.5);
+    }
+    
+    SECTION("Modify struct members") {
+        auto it = vertex_map.find(1);
+        VD vd{it};
+        
+        vd.inner_value(vertex_map).name = "Modified";
+        vd.inner_value(vertex_map).weight = 9.9;
+        
+        REQUIRE(vertex_map[1].name == "Modified");
+        REQUIRE(vertex_map[1].weight == 9.9);
+    }
+}
+
+// =============================================================================
 // Bidirectional Iterator Tests (std::map)
 // =============================================================================
 

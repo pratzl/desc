@@ -703,3 +703,218 @@ TEST_CASE("edge_descriptor::underlying_value() with forward iterator", "[edge_de
         REQUIRE(edges.begin()->second == 99.9);
     }
 }
+
+// =============================================================================
+// Inner Value Access Tests
+// =============================================================================
+
+TEST_CASE("edge_descriptor::inner_value() with simple int edges", "[edge_descriptor][inner_value]") {
+    std::vector<int> edges = {10, 20, 30, 40};
+    std::vector<int> vertices = {100, 200, 300};
+    
+    using EdgeIter = std::vector<int>::iterator;
+    using VertexIter = std::vector<int>::iterator;
+    using VD = vertex_descriptor<VertexIter>;
+    using ED = edge_descriptor<EdgeIter, VertexIter>;
+    
+    SECTION("For simple int edges, inner_value returns the int itself") {
+        VD source{0};
+        ED ed{2, source};
+        
+        // Simple int edges: the value is just the target, so inner_value returns it
+        REQUIRE(ed.inner_value(edges) == 30);
+    }
+}
+
+TEST_CASE("edge_descriptor::inner_value() with pair edges", "[edge_descriptor][inner_value]") {
+    std::vector<std::pair<int, double>> edges = {
+        {10, 1.5},
+        {20, 2.5},
+        {30, 3.5}
+    };
+    std::vector<int> vertices = {100, 200, 300};
+    
+    using EdgeIter = std::vector<std::pair<int, double>>::iterator;
+    using VertexIter = std::vector<int>::iterator;
+    using VD = vertex_descriptor<VertexIter>;
+    using ED = edge_descriptor<EdgeIter, VertexIter>;
+    
+    SECTION("For pairs, inner_value returns .second (the weight/property)") {
+        VD source{0};
+        ED ed{1, source};
+        
+        // Pair: first is target, second is property
+        REQUIRE(ed.inner_value(edges) == 2.5);
+    }
+    
+    SECTION("Modify through inner_value") {
+        VD source{1};
+        ED ed{0, source};
+        
+        ed.inner_value(edges) = 9.9;
+        REQUIRE(edges[0].second == 9.9);
+        REQUIRE(ed.inner_value(edges) == 9.9);
+    }
+    
+    SECTION("Const access") {
+        const std::vector<std::pair<int, double>> const_edges = {{1, 1.1}, {2, 2.2}};
+        VD source{0};
+        ED ed{1, source};
+        
+        REQUIRE(ed.inner_value(const_edges) == 2.2);
+    }
+}
+
+TEST_CASE("edge_descriptor::inner_value() with 2-element tuple", "[edge_descriptor][inner_value]") {
+    std::vector<std::tuple<int, double>> edges = {
+        {10, 1.5},
+        {20, 2.5},
+        {30, 3.5}
+    };
+    std::vector<int> vertices = {100, 200, 300};
+    
+    using EdgeIter = std::vector<std::tuple<int, double>>::iterator;
+    using VertexIter = std::vector<int>::iterator;
+    using VD = vertex_descriptor<VertexIter>;
+    using ED = edge_descriptor<EdgeIter, VertexIter>;
+    
+    SECTION("For 2-element tuple, inner_value returns second element") {
+        VD source{0};
+        ED ed{1, source};
+        
+        REQUIRE(ed.inner_value(edges) == 2.5);
+    }
+    
+    SECTION("Modify through inner_value") {
+        VD source{1};
+        ED ed{2, source};
+        
+        ed.inner_value(edges) = 7.7;
+        REQUIRE(std::get<1>(edges[2]) == 7.7);
+    }
+}
+
+TEST_CASE("edge_descriptor::inner_value() with 3-element tuple", "[edge_descriptor][inner_value]") {
+    std::vector<std::tuple<int, double, std::string>> edges = {
+        {10, 1.5, "A"},
+        {20, 2.5, "B"},
+        {30, 3.5, "C"}
+    };
+    std::vector<int> vertices = {100, 200, 300};
+    
+    using EdgeIter = std::vector<std::tuple<int, double, std::string>>::iterator;
+    using VertexIter = std::vector<int>::iterator;
+    using VD = vertex_descriptor<VertexIter>;
+    using ED = edge_descriptor<EdgeIter, VertexIter>;
+    
+    SECTION("For 3+ element tuple, inner_value returns tuple of last N-1 elements") {
+        VD source{0};
+        ED ed{1, source};
+        
+        // Should return tuple of (double, string) - the property parts
+        auto props = ed.inner_value(edges);
+        REQUIRE(std::get<0>(props) == 2.5);
+        REQUIRE(std::get<1>(props) == "B");
+    }
+    
+    SECTION("Modify through inner_value tuple") {
+        VD source{1};
+        ED ed{0, source};
+        
+        auto props = ed.inner_value(edges);
+        std::get<0>(props) = 9.9;
+        std::get<1>(props) = "Modified";
+        
+        REQUIRE(std::get<1>(edges[0]) == 9.9);
+        REQUIRE(std::get<2>(edges[0]) == "Modified");
+    }
+}
+
+TEST_CASE("edge_descriptor::inner_value() with 4-element tuple", "[edge_descriptor][inner_value]") {
+    std::vector<std::tuple<int, int, double, std::string>> edges = {
+        {1, 10, 1.5, "label1"},
+        {2, 20, 2.5, "label2"}
+    };
+    std::vector<int> vertices = {100, 200, 300};
+    
+    using EdgeIter = std::vector<std::tuple<int, int, double, std::string>>::iterator;
+    using VertexIter = std::vector<int>::iterator;
+    using VD = vertex_descriptor<VertexIter>;
+    using ED = edge_descriptor<EdgeIter, VertexIter>;
+    
+    SECTION("For 4-element tuple, returns tuple of last 3 elements") {
+        VD source{0};
+        ED ed{0, source};
+        
+        auto props = ed.inner_value(edges);
+        REQUIRE(std::get<0>(props) == 10);      // 2nd element
+        REQUIRE(std::get<1>(props) == 1.5);     // 3rd element
+        REQUIRE(std::get<2>(props) == "label1"); // 4th element
+    }
+}
+
+TEST_CASE("edge_descriptor::inner_value() with custom struct", "[edge_descriptor][inner_value]") {
+    struct Edge {
+        int target;
+        double weight;
+        std::string label;
+    };
+    
+    std::vector<Edge> edges = {
+        {10, 1.5, "A"},
+        {20, 2.5, "B"},
+        {30, 3.5, "C"}
+    };
+    std::vector<int> vertices = {100, 200, 300};
+    
+    using EdgeIter = std::vector<Edge>::iterator;
+    using VertexIter = std::vector<int>::iterator;
+    using VD = vertex_descriptor<VertexIter>;
+    using ED = edge_descriptor<EdgeIter, VertexIter>;
+    
+    SECTION("For custom struct, inner_value returns the whole struct") {
+        VD source{0};
+        ED ed{1, source};
+        
+        // Custom structs: return whole value (user manages property semantics)
+        const auto& edge = ed.inner_value(edges);
+        REQUIRE(edge.target == 20);
+        REQUIRE(edge.weight == 2.5);
+        REQUIRE(edge.label == "B");
+    }
+    
+    SECTION("Modify through inner_value") {
+        VD source{1};
+        ED ed{2, source};
+        
+        ed.inner_value(edges).weight = 9.9;
+        ed.inner_value(edges).label = "Modified";
+        
+        REQUIRE(edges[2].weight == 9.9);
+        REQUIRE(edges[2].label == "Modified");
+    }
+}
+
+TEST_CASE("edge_descriptor::inner_value() with list iterator", "[edge_descriptor][inner_value]") {
+    std::list<std::pair<int, double>> edges = {
+        {10, 1.0},
+        {20, 2.0},
+        {30, 3.0}
+    };
+    std::vector<int> vertices = {100, 200, 300};
+    
+    using EdgeIter = std::list<std::pair<int, double>>::iterator;
+    using VertexIter = std::vector<int>::iterator;
+    using VD = vertex_descriptor<VertexIter>;
+    using ED = edge_descriptor<EdgeIter, VertexIter>;
+    
+    SECTION("inner_value works with forward iterators") {
+        auto edge_it = edges.begin();
+        std::advance(edge_it, 1);
+        
+        VD source{0};
+        ED ed{edge_it, source};
+        
+        REQUIRE(ed.inner_value(edges) == 2.0);
+    }
+}

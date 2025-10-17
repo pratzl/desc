@@ -94,6 +94,55 @@ public:
         }
     }
     
+    /**
+     * @brief Get the inner/data value (excluding the vertex ID/key)
+     * @param container The underlying vertex container
+     * @return Reference to the vertex data (for maps: the .second value; for vectors: the whole value)
+     * 
+     * For random access containers (vector), returns the entire value.
+     * For bidirectional containers (map), returns the .second part (the actual data, not the key).
+     */
+    template<typename Container>
+    [[nodiscard]] constexpr auto& inner_value(Container& container) const noexcept {
+        using value_type = typename std::iterator_traits<VertexIter>::value_type;
+        
+        if constexpr (std::random_access_iterator<VertexIter>) {
+            // For random access (vector), the value is the data itself
+            return (container[storage_]);
+        } else {
+            // For bidirectional, check if it's a pair type
+            if constexpr (pair_like<value_type>) {
+                // For map, bind the pair first, then return .second
+                auto& element = *storage_;
+                return (element.second);
+            } else {
+                // For list, return the whole value
+                return (*storage_);
+            }
+        }
+    }
+    
+    /**
+     * @brief Get the inner/data value (const version)
+     * @param container The underlying vertex container
+     * @return Const reference to the vertex data
+     */
+    template<typename Container>
+    [[nodiscard]] constexpr decltype(auto) inner_value(const Container& container) const noexcept {
+        using value_type = typename std::iterator_traits<VertexIter>::value_type;
+        
+        if constexpr (std::random_access_iterator<VertexIter>) {
+            return (container[storage_]);
+        } else {
+            if constexpr (pair_like<value_type>) {
+                const auto& element = *storage_;
+                return (element.second);
+            } else {
+                return (*storage_);
+            }
+        }
+    }
+    
     // Pre-increment
     constexpr vertex_descriptor& operator++() noexcept {
         ++storage_;

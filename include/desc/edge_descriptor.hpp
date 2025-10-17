@@ -136,6 +136,150 @@ public:
         }
     }
     
+    /**
+     * @brief Get the inner/property value (excluding the target ID)
+     * @param edges The edge container to access edge data
+     * @return Reference to the edge properties (excluding target vertex ID)
+     * 
+     * Behavior based on edge data type:
+     * - Simple integral type (int): Returns the value itself (since it's just the target ID)
+     * - Pair<target, property>: Returns .second (the property part)
+     * - Tuple<target, prop1, prop2, ...>: Returns reference to tuple of remaining elements (excluding first)
+     * - Struct/Custom type: Returns the whole value (user manages which fields are properties)
+     * 
+     * For tuples with 3+ elements, this creates a tuple of references to elements [1, N).
+     */
+    template<typename EdgeContainer>
+    [[nodiscard]] constexpr decltype(auto) inner_value(EdgeContainer& edges) noexcept {
+        using edge_value_type = typename std::iterator_traits<EdgeIter>::value_type;
+        
+        // Simple type: just the target ID, return it (no separate property)
+        if constexpr (std::integral<edge_value_type>) {
+            if constexpr (std::random_access_iterator<EdgeIter>) {
+                return (edges[edge_storage_]);
+            } else {
+                return (*edge_storage_);
+            }
+        }
+        // Pair-like: return .second (the property part)
+        else if constexpr (requires { std::declval<edge_value_type>().first; std::declval<edge_value_type>().second; }) {
+            if constexpr (std::random_access_iterator<EdgeIter>) {
+                return (edges[edge_storage_].second);
+            } else {
+                return ((*edge_storage_).second);
+            }
+        }
+        // Tuple-like: return tuple of references to elements [1, N)
+        else if constexpr (requires { std::tuple_size<edge_value_type>::value; }) {
+            constexpr size_t tuple_size = std::tuple_size<edge_value_type>::value;
+            
+            if constexpr (std::random_access_iterator<EdgeIter>) {
+                auto& edge_value = edges[edge_storage_];
+                if constexpr (tuple_size == 1) {
+                    return (std::get<0>(edge_value));
+                }
+                else if constexpr (tuple_size == 2) {
+                    return (std::get<1>(edge_value));
+                }
+                else {
+                    // 3+ elements: return a tuple of references to elements [1, N)
+                    return [&]<size_t... Is>(std::index_sequence<Is...>) -> decltype(auto) {
+                        return std::forward_as_tuple(std::get<Is + 1>(edge_value)...);
+                    }(std::make_index_sequence<tuple_size - 1>{});
+                }
+            } else {
+                auto& edge_value = *edge_storage_;
+                if constexpr (tuple_size == 1) {
+                    return (std::get<0>(edge_value));
+                }
+                else if constexpr (tuple_size == 2) {
+                    return (std::get<1>(edge_value));
+                }
+                else {
+                    // 3+ elements: return a tuple of references
+                    return [&]<size_t... Is>(std::index_sequence<Is...>) -> decltype(auto) {
+                        return std::forward_as_tuple(std::get<Is + 1>(edge_value)...);
+                    }(std::make_index_sequence<tuple_size - 1>{});
+                }
+            }
+        }
+        // Custom struct/type: return the whole value
+        else {
+            if constexpr (std::random_access_iterator<EdgeIter>) {
+                return (edges[edge_storage_]);
+            } else {
+                return (*edge_storage_);
+            }
+        }
+    }
+    
+    /**
+     * @brief Get the inner/property value (const version)
+     * @param edges The edge container to access edge data
+     * @return Const reference to the edge properties
+     */
+    template<typename EdgeContainer>
+    [[nodiscard]] constexpr decltype(auto) inner_value(const EdgeContainer& edges) const noexcept {
+        using edge_value_type = typename std::iterator_traits<EdgeIter>::value_type;
+        
+        // Simple type
+        if constexpr (std::integral<edge_value_type>) {
+            if constexpr (std::random_access_iterator<EdgeIter>) {
+                return (edges[edge_storage_]);
+            } else {
+                return (*edge_storage_);
+            }
+        }
+        // Pair-like
+        else if constexpr (requires { std::declval<edge_value_type>().first; std::declval<edge_value_type>().second; }) {
+            if constexpr (std::random_access_iterator<EdgeIter>) {
+                return (edges[edge_storage_].second);
+            } else {
+                return ((*edge_storage_).second);
+            }
+        }
+        // Tuple-like
+        else if constexpr (requires { std::tuple_size<edge_value_type>::value; }) {
+            constexpr size_t tuple_size = std::tuple_size<edge_value_type>::value;
+            
+            if constexpr (std::random_access_iterator<EdgeIter>) {
+                const auto& edge_value = edges[edge_storage_];
+                if constexpr (tuple_size == 1) {
+                    return (std::get<0>(edge_value));
+                }
+                else if constexpr (tuple_size == 2) {
+                    return (std::get<1>(edge_value));
+                }
+                else {
+                    return [&]<size_t... Is>(std::index_sequence<Is...>) -> decltype(auto) {
+                        return std::forward_as_tuple(std::get<Is + 1>(edge_value)...);
+                    }(std::make_index_sequence<tuple_size - 1>{});
+                }
+            } else {
+                const auto& edge_value = *edge_storage_;
+                if constexpr (tuple_size == 1) {
+                    return (std::get<0>(edge_value));
+                }
+                else if constexpr (tuple_size == 2) {
+                    return (std::get<1>(edge_value));
+                }
+                else {
+                    return [&]<size_t... Is>(std::index_sequence<Is...>) -> decltype(auto) {
+                        return std::forward_as_tuple(std::get<Is + 1>(edge_value)...);
+                    }(std::make_index_sequence<tuple_size - 1>{});
+                }
+            }
+        }
+        // Custom type
+        else {
+            if constexpr (std::random_access_iterator<EdgeIter>) {
+                return (edges[edge_storage_]);
+            } else {
+                return (*edge_storage_);
+            }
+        }
+    }
+    
     // Pre-increment: advances edge position, keeps source unchanged
     constexpr edge_descriptor& operator++() noexcept {
         ++edge_storage_;

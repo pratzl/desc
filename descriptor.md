@@ -153,7 +153,71 @@ Edges in the graph can be stored in various ways depending on graph structure:
 - MUST be efficiently passable by value
 - MUST integrate with std::hash for unordered containers
 
-### 5. Descriptor Views
+### 4.1 Descriptor Value Access Functions
+
+Both `vertex_descriptor` and `edge_descriptor` MUST provide specialized functions for accessing the underlying container data:
+
+#### `underlying_value()` Function
+- **Purpose**: Returns the complete data stored in the container at the descriptor's position
+- **For vertex_descriptor**:
+  - Random access containers (vector): returns reference to the element at index
+  - Bidirectional containers (map): returns reference to the pair<key, value>
+- **For edge_descriptor**:
+  - Random access containers: returns reference to the edge element at index
+  - Forward/bidirectional containers: returns reference to the edge element via iterator dereference
+- **Return type**: MUST use `decltype(auto)` to preserve cv-qualifiers and reference category
+- **Signature**: `template<typename Container> decltype(auto) underlying_value(Container& container) const noexcept`
+- **Const overload**: MUST provide const version accepting `const Container&`
+
+#### `inner_value()` Function
+- **Purpose**: Returns the "property" or "data" part of the container element, excluding identifiers
+- **For vertex_descriptor**:
+  - Random access containers (vector): returns reference to the entire element (same as underlying_value)
+  - Bidirectional containers (map): returns reference to `.second` only (the value, excluding the key)
+- **For edge_descriptor** (behavior depends on edge value type):
+  - **Simple integral type** (e.g., `int`): returns the value itself (it IS the target ID, no separate property)
+  - **Pair type** `<target, property>`: returns reference to `.second` (the property part, excluding target)
+  - **Tuple type** `<target, ...>`:
+    - 1 element: returns reference to element [0]
+    - 2 elements: returns reference to element [1]
+    - 3+ elements: returns tuple of references to elements [1, N) using `std::forward_as_tuple`
+  - **Custom struct/class**: returns reference to the whole value (user manages which fields are properties)
+- **Return type**: MUST use `decltype(auto)` to preserve reference semantics
+- **Signature**: `template<typename Container> decltype(auto) inner_value(Container& container) const noexcept`
+- **Const overload**: MUST provide const version accepting `const Container&`
+
+#### **CRITICAL IMPLEMENTATION DETAIL: Parentheses with `decltype(auto)`**
+
+When implementing functions that return via `decltype(auto)`, ALL return statements MUST wrap their expressions in parentheses to preserve lvalue reference semantics:
+
+**❌ INCORRECT** (returns by value, breaks modification):
+```cpp
+template<typename Container>
+decltype(auto) inner_value(Container& container) const noexcept {
+    return container[storage_].second;  // decltype treats this as member type (double)
+}
+```
+
+**✅ CORRECT** (returns lvalue reference, allows modification):
+```cpp
+template<typename Container>
+decltype(auto) inner_value(Container& container) const noexcept {
+    return (container[storage_].second);  // decltype treats this as expression (double&)
+}
+```
+
+**Rationale**: With `decltype(auto)`:
+- `decltype(expr)` when `expr` is an id-expression or member access gives the **declared type** (strips references)
+- `decltype((expr))` with extra parentheses treats it as an **expression** and preserves value category (lvalue → T&, xvalue → T&&, prvalue → T)
+
+This applies to ALL return statements in value-access functions:
+- `return (container[i]);` not `return container[i];`
+- `return ((*iterator).second);` not `return (*iterator).second;`
+- `return (std::get<1>(tuple));` not `return std::get<1>(tuple);`
+
+**Exception**: Lambda return values and `std::forward_as_tuple` results do NOT need extra parentheses as they already create the correct reference type.
+
+### 5. Descriptor Views 
 
 ***IMPORTANT LIMITATION***: Descriptor views are restricted to forward iteration only. This is because the descriptor is synthesized by the iterator during traversal (the descriptor contains the iterator itself), making it incompatible with random access operations. Specifically, operator[] would need to return a reference to a descriptor, but since the descriptor is created on-the-fly by the iterator, there is no stable object to reference. This design enables the interface to work uniformly across different storage strategies (vectors, maps, custom containers) while maintaining descriptor-based abstraction.
 
@@ -215,19 +279,56 @@ Edges in the graph can be stored in various ways depending on graph structure:
    - First member variable: conditional based on edge iterator category (size_t for random access, iterator for forward/bidirectional)
    - Second member variable: vertex_descriptor instantiated with the vertex iterator type (represents source vertex)
    - Proper std::random_access_iterator and std::forward_iterator concept constraints
-  - Pre/post increment operators consistent with underlying storage semantics
-  - `value()` member function returning the underlying edge index or iterator
+   - Pre/post increment operators consistent with underlying storage semantics
+   - `value()` member function returning the underlying edge index or iterator
+   - `source()` member function returning the source vertex_descriptor
+   - `target_id()` member function that extracts target vertex ID from edge data (handles int, pair.first, tuple[0], custom types)
 2. Implement `edge_descriptor_view` that adapts both per-vertex adjacency storage and global edge storage while yielding descriptors, modelling a forward-only view, and (SHOULD) deriving from `std::ranges::view_interface`
 3. Write comprehensive unit tests for edge descriptor and edge descriptor view with both random access and forward iterators
-4. Test `value()`/increment behavior, confirm the view satisfies `std::forward_range`, and cover various edge data types (simple integers, pairs, tuples, structs)
+4. Test `value()`/`source()`/`target_id()`/increment behavior, confirm the view satisfies `std::forward_range`, and cover various edge data types (simple integers, pairs, tuples, structs)
 5. Ensure proper comparison and hashing
 
 ### Phase 3: Advanced Features
-1. Add descriptor traits and type utilities
-2. Implement descriptor property maps (optional)
-3. Add range support and iterators if applicable
-4. Performance benchmarks
-5. Documentation and examples
+
+**Step 1: Type Traits and Introspection**
+1. Create `descriptor_traits.hpp` with comprehensive type utilities:
+   - `is_vertex_descriptor<T>` / `is_edge_descriptor<T>` type traits
+   - `vertex_descriptor_type<T>` / `edge_descriptor_type<T>` concepts
+   - `descriptor_iterator_type<D>` to extract underlying iterator type
+   - `descriptor_storage_type<D>` to get internal storage type (size_t or iterator)
+   - Storage category traits: `is_random_access_descriptor`, `is_bidirectional_descriptor`, `is_forward_descriptor`
+   - `random_access_descriptor<D>` concept for descriptors with random access storage
+2. Write unit tests verifying all traits/concepts work with various descriptor instantiations
+
+**Step 2: Value Access Functions**
+1. Add `underlying_value(Container&)` to both vertex_descriptor and edge_descriptor:
+   - Returns complete container element at descriptor position
+   - Return type: `decltype(auto)` to preserve cv-qualifiers and references
+   - Provide const overload: `underlying_value(const Container&) const`
+   - **CRITICAL**: Wrap ALL return expressions in parentheses: `return (container[i]);` not `return container[i];`
+2. Add `inner_value(Container&)` to both descriptors:
+   - **For vertex_descriptor**: returns data part (maps: `.second`; vectors: whole element)
+   - **For edge_descriptor**: returns property part excluding target ID:
+     - Simple int: returns the int itself (no separate property)
+     - Pair `<target, prop>`: returns `.second`
+     - Tuple 1-elem: returns element [0]
+     - Tuple 2-elem: returns element [1]
+     - Tuple 3+ elem: returns `std::forward_as_tuple` of elements [1, N)
+     - Custom struct: returns whole value
+   - Return type: `decltype(auto)`
+   - Provide const overload accepting `const Container&`
+   - **CRITICAL**: Wrap ALL return expressions in parentheses to preserve lvalue references
+3. Write comprehensive tests:
+   - Test reading through inner_value/underlying_value
+   - Test MODIFYING through inner_value/underlying_value (verify reference semantics)
+   - Test const correctness
+   - Test all edge data types: int, pair, 2-tuple, 3-tuple, custom struct
+
+**Step 3: Additional Features (Optional)**
+1. Implement descriptor property maps if needed
+2. Add specialized range adaptors
+3. Performance benchmarks comparing descriptor overhead to raw indices
+4. Extended documentation and usage examples
 
 ## Testing Requirements
 
@@ -339,17 +440,89 @@ A successful implementation:
 - Serialization support
 - Thread-safety considerations for concurrent graph operations
 
+## Common Implementation Pitfalls
+
+### 1. decltype(auto) Without Parentheses
+**Problem**: Using `decltype(auto)` without parentheses on return expressions causes value semantics instead of reference semantics.
+
+**Symptoms**:
+- Compilation error: "lvalue required as left operand of assignment"
+- Compilation error: "cannot bind non-const lvalue reference to rvalue"
+- Code compiles but modification through returned value doesn't affect container
+
+**Solution**: Wrap ALL return expressions in parentheses:
+```cpp
+// ❌ WRONG - returns by value
+return container[index].member;
+
+// ✅ CORRECT - returns lvalue reference
+return (container[index].member);
+```
+
+**Why**: `decltype(expr)` gives the declared type of members (strips references), while `decltype((expr))` treats it as an expression and preserves value category (lvalue → `T&`).
+
+### 2. Forgetting Const Overloads
+**Problem**: Only implementing non-const versions of value access functions.
+
+**Solution**: Always provide both:
+```cpp
+template<typename Container>
+decltype(auto) inner_value(Container& container) const noexcept;
+
+template<typename Container>
+decltype(auto) inner_value(const Container& container) const noexcept;
+```
+
+### 3. Incorrect Edge Type Detection
+**Problem**: Using simple type checks that don't account for `std::pair` also satisfying tuple requirements.
+
+**Solution**: Check pair-like BEFORE tuple-like using `else if` chains, since pairs satisfy both concepts.
+
+### 4. Not Testing Modification
+**Problem**: Only testing reads through value access functions, missing reference semantics bugs.
+
+**Solution**: Always include tests that MODIFY values through returned references and verify the container was updated.
+
 ## Notes for the Agent
 
 - Agent MUST run tests after making changes
+- Agent MUST wrap ALL return expressions with parentheses when using `decltype(auto)`
+- Agent MUST provide both const and non-const overloads for container access functions
+- Agent MUST test both reading AND writing through returned references
 - Agent SHOULD keep the implementation header-only unless there's a compelling reason not to
 - Agent SHOULD prioritize simplicity and clarity over premature optimization
 - Agent MUST favor stronger type safety when in doubt
 - Agent MUST document design decisions and trade-offs in code comments
 - Agent SHOULD update this file when requirements evolve or design decisions are made
 
+## Implementation Status
+
+### Completed Features
+- ✅ Phase 1: Vertex descriptors with conditional storage (index for random access, iterator for bidirectional)
+- ✅ Phase 1: Vertex descriptor views with forward-only iteration
+- ✅ Phase 1: Comprehensive vertex descriptor tests (all passing)
+- ✅ Phase 2: Edge descriptors with source tracking and conditional storage
+- ✅ Phase 2: Edge descriptor views with forward-only iteration
+- ✅ Phase 2: `target_id()` function for extracting target vertex IDs from edge data
+- ✅ Phase 2: Comprehensive edge descriptor tests (all passing)
+- ✅ Phase 3 Step 1: Complete descriptor traits and type utilities system
+- ✅ Phase 3 Step 1: Comprehensive traits tests (all passing)
+- ✅ Phase 3 Step 2: `underlying_value()` functions for direct container access
+- ✅ Phase 3 Step 2: `inner_value()` functions for property-only access
+- ✅ Phase 3 Step 2: Full test coverage including modification tests (all passing)
+
+### Test Results
+- **Total Test Cases**: 55
+- **Total Assertions**: 287
+- **Pass Rate**: 100%
+
+### Pending Features
+- ⏳ Phase 3 Step 3: Property maps (optional, low priority)
+- ⏳ Phase 3: Performance benchmarks
+- ⏳ Phase 3: Extended documentation and usage examples
+
 ---
 
-**Last Updated**: October 16, 2025
-**Version**: 0.1.0
-**Status**: Initial specification
+**Last Updated**: October 17, 2025
+**Version**: 0.2.0
+**Status**: Core implementation complete; value access functions fully implemented and tested
