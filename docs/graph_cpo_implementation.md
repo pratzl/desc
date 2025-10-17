@@ -136,11 +136,38 @@ struct _Choice_t {
 } // namespace graph
 ```
 
-## Priority 1: Core Graph Functions
+## CPO Implementation Order Reference
 
-These functions form the foundation of the GCI and should be implemented first.
+**IMPORTANT:** The CPO implementations below are organized for teaching/learning purposes and DO NOT match the canonical implementation order. 
 
-### 1. `vertices(g)` - Get Vertex Range
+**For the correct implementation order,** see [graph_cpo_order.md](graph_cpo_order.md) which specifies:
+- Canonical order: vertices → vertex_id → find_vertex → edges → num_edges → target_id → ...
+- Proper dependency resolution
+- Type alias placement
+
+### Teaching Order vs Implementation Order Mapping
+
+| Teaching Section | CPO Name | Canonical Order # | Notes |
+|-----------------|----------|-------------------|-------|
+| Section 1 | `vertices` | 1 | ✓ Matches |
+| Section 2 | `edges` | 4 | Move later in actual implementation |
+| Section 3 | `vertex_id` | 2 | Should be #2, not #3 |
+| Section 4 | `target_id` | 6 | Move later in actual implementation |
+| Section 5 | `num_vertices` | 13 | Much later in actual implementation |
+| Section 6 | `find_vertex` | 3 | Should be #3, not #6 |
+| Section 7 | `degree` | 14 | Much later in actual implementation |
+| Section 8 | `target` | 8 | Move later in actual implementation |
+| Section 9 | `num_edges` | 5 | Should be #5, not #9 |
+| Section 10 | `vertex_value` | 15 | Matches relative position |
+| Section 11 | `edge_value` | 16 | Matches relative position |
+
+**When implementing `graph_cpo.hpp`,** follow the order in [graph_cpo_order.md](graph_cpo_order.md), not the section numbers below.
+
+## CPO Implementations
+
+Each CPO below includes complete code with the MSVC-style `_Choice_t` pattern. Use these implementations but place them in the canonical order.
+
+### 1. `vertices(g)` - Get Vertex Range (Implementation Order: #1)
 
 **Signature:** `vertex_range_t<G> vertices(G& g)`  
 **Return:** Range of vertices in the graph  
@@ -208,7 +235,7 @@ inline namespace _cpos {
 }
 ```
 
-### 2. `edges(g, u)` - Get Edge Range for Vertex
+### 2. `edges(g, u)` - Get Edge Range for Vertex (Implementation Order: #4)
 
 **Signature:** `vertex_edge_range_t<G> edges(G& g, vertex_t<G> u)`  
 **Return:** Range of outgoing edges from vertex `u`  
@@ -296,7 +323,7 @@ inline namespace _cpos {
 }
 ```
 
-### 3. `vertex_id(g, u)` - Get Vertex ID
+### 3. `vertex_id(g, u)` - Get Vertex ID (Implementation Order: #2)
 
 **Signature:** `vertex_id_t<G> vertex_id(G& g, vertex_t<G> u)`  
 **Return:** Unique identifier for vertex `u`  
@@ -385,7 +412,7 @@ inline namespace _cpos {
 }
 ```
 
-### 4. `target_id(g, uv)` - Get Target Vertex ID from Edge
+### 4. `target_id(g, uv)` - Get Target Vertex ID from Edge (Implementation Order: #6)
 
 **Signature:** `vertex_id_t<G> target_id(G& g, edge_t<G> uv)`  
 **Return:** Target vertex ID of edge `uv`  
@@ -495,7 +522,7 @@ inline namespace _cpos {
 
 ## Priority 2: Vertex Query Functions
 
-### 5. `num_vertices(g)` - Count Vertices
+### 5. `num_vertices(g)` - Count Vertices (Implementation Order: #13)
 
 **Signature:** `integral num_vertices(G& g)`  
 **Return:** Number of vertices in the graph  
@@ -566,7 +593,7 @@ inline namespace _cpos {
 }
 ```
 
-### 6. `find_vertex(g, uid)` - Find Vertex by ID
+### 6. `find_vertex(g, uid)` - Find Vertex by ID (Implementation Order: #3)
 
 **Signature:** `vertex_iterator_t<G> find_vertex(G& g, vertex_id_t<G> uid)`  
 **Return:** Iterator to vertex with ID `uid`  
@@ -640,7 +667,7 @@ inline namespace _cpos {
 }
 ```
 
-### 7. `degree(g, u)` - Get Vertex Degree
+### 7. `degree(g, u)` - Get Vertex Degree (Implementation Order: #14)
 
 **Signature:** `integral degree(G& g, vertex_t<G> u)`  
 **Return:** Number of outgoing edges from vertex `u`  
@@ -716,7 +743,7 @@ inline namespace _cpos {
 
 ## Priority 3: Edge Query Functions
 
-### 8. `target(g, uv)` - Get Target Vertex Descriptor
+### 8. `target(g, uv)` - Get Target Vertex Descriptor (Implementation Order: #8)
 
 **Signature:** `vertex_t<G> target(G& g, edge_t<G> uv)`  
 **Return:** Target vertex descriptor for edge `uv`  
@@ -796,7 +823,7 @@ inline namespace _cpos {
 }
 ```
 
-### 9. `num_edges(g)` - Count Total Edges
+### 9. `num_edges(g)` - Count Total Edges (Implementation Order: #5)
 
 **Signature:** `integral num_edges(G& g)`  
 **Return:** Total number of edges in the graph  
@@ -873,7 +900,7 @@ inline namespace _cpos {
 
 These functions provide access to optional user-defined values.
 
-### 10. `vertex_value(g, u)` - Get Vertex Value
+### 10. `vertex_value(g, u)` - Get Vertex Value (Implementation Order: #15)
 
 **Signature:** `vertex_value_t<G> vertex_value(G& g, vertex_t<G> u)`  
 **Return:** User-defined value associated with vertex `u`  
@@ -948,7 +975,7 @@ inline namespace _cpos {
 }
 ```
 
-### 11. `edge_value(g, uv)` - Get Edge Value
+### 11. `edge_value(g, uv)` - Get Edge Value (Implementation Order: #16)
 
 **Signature:** `edge_value_t<G> edge_value(G& g, edge_t<G> uv)`  
 **Return:** User-defined value associated with edge `uv`  
