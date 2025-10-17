@@ -15,7 +15,7 @@
 #include <set>
 #include <algorithm>
 
-using namespace desc;
+using namespace graph;
 
 // =============================================================================
 // Random Access Iterator Tests (std::vector)

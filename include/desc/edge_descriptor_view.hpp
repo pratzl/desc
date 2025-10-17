@@ -9,7 +9,7 @@
 #include <ranges>
 #include <iterator>
 
-namespace desc {
+namespace graph {
 
 /**
  * @brief Forward-only view over edge storage yielding edge descriptors
@@ -146,4 +146,4 @@ template<typename Container, typename VertexDesc>
 edge_descriptor_view(Container&, VertexDesc) 
     -> edge_descriptor_view<typename Container::iterator, typename VertexDesc::iterator_type>;
 
-} // namespace desc
+} // namespace graph

@@ -16,7 +16,7 @@
 #include <list>
 #include <string>
 
-using namespace desc;
+using namespace graph;
 
 // =============================================================================
 // Type Identification Traits Tests

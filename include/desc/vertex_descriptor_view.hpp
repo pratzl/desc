@@ -9,7 +9,7 @@
 #include <ranges>
 #include <iterator>
 
-namespace desc {
+namespace graph {
 
 /**
  * @brief Forward-only view over vertex storage yielding vertex descriptors
@@ -133,4 +133,4 @@ private:
 template<typename Container>
 vertex_descriptor_view(Container&) -> vertex_descriptor_view<typename Container::iterator>;
 
-} // namespace desc
+} // namespace graph

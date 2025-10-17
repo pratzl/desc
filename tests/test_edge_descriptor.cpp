@@ -16,7 +16,7 @@
 #include <set>
 #include <algorithm>
 
-using namespace desc;
+using namespace graph;
 
 // =============================================================================
 // Edge Descriptor Tests - Random Access Iterator (vector)

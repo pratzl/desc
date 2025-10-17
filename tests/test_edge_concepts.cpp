@@ -9,9 +9,9 @@
 #include <tuple>
 #include <string>
 
-using namespace desc;
+using namespace graph;
 
-// Test edge types
+// Test edge data types
 struct CustomEdge {
     int target;
     double weight;

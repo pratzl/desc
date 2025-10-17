@@ -12,7 +12,7 @@
 #include <list>
 #include <string>
 
-using namespace desc;
+using namespace graph;
 
 // Test vertex data types
 struct VertexData {

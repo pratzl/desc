@@ -9,7 +9,7 @@
 #include <compare>
 #include <functional>
 
-namespace desc {
+namespace graph {
 
 /**
  * @brief Descriptor for edges in a graph
@@ -302,13 +302,13 @@ private:
     vertex_desc source_;
 };
 
-} // namespace desc
+} // namespace graph
 
 // Hash specialization for std::unordered containers
 namespace std {
-    template<desc::edge_iterator EdgeIter, desc::vertex_iterator VertexIter>
-    struct hash<desc::edge_descriptor<EdgeIter, VertexIter>> {
-        [[nodiscard]] size_t operator()(const desc::edge_descriptor<EdgeIter, VertexIter>& ed) const noexcept {
+    template<graph::edge_iterator EdgeIter, graph::vertex_iterator VertexIter>
+    struct hash<graph::edge_descriptor<EdgeIter, VertexIter>> {
+        [[nodiscard]] size_t operator()(const graph::edge_descriptor<EdgeIter, VertexIter>& ed) const noexcept {
             // Combine hash of edge storage and source vertex
             size_t h1 = [&ed]() {
                 if constexpr (std::random_access_iterator<EdgeIter>) {
@@ -323,7 +323,7 @@ namespace std {
                 }
             }();
             
-            size_t h2 = std::hash<desc::vertex_descriptor<VertexIter>>{}(ed.source());
+            size_t h2 = std::hash<graph::vertex_descriptor<VertexIter>>{}(ed.source());
             
             // Combine hashes using a simple mixing function
             return h1 ^ (h2 << 1);

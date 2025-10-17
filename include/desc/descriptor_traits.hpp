@@ -9,7 +9,7 @@
 #include <type_traits>
 #include <concepts>
 
-namespace desc {
+namespace graph {
 
 // Forward declarations
 template<vertex_iterator VertexIter>
@@ -398,4 +398,4 @@ constexpr const char* storage_category() noexcept {
     }
 }
 
-} // namespace desc
+} // namespace graph

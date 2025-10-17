@@ -15,14 +15,14 @@ int main() {
     std::vector<int> vertices = {10, 20, 30, 40, 50};
     
     using VectorIter = std::vector<int>::iterator;
-    using VD_Vector = desc::vertex_descriptor<VectorIter>;
+    using VD_Vector = graph::vertex_descriptor<VectorIter>;
     
     VD_Vector vd{2};  // Refers to index 2
     std::cout << "Vertex ID: " << vd.vertex_id() << "\n";
     std::cout << "Value: " << vd.value() << "\n";
     
     // Create view and iterate
-    desc::vertex_descriptor_view view{vertices};
+    graph::vertex_descriptor_view view{vertices};
     std::cout << "All vertices:\n";
     for (auto desc : view) {
         std::cout << "  Vertex " << desc.vertex_id() << "\n";
@@ -37,14 +37,14 @@ int main() {
     };
     
     using MapIter = std::map<int, std::string>::iterator;
-    using VD_Map = desc::vertex_descriptor<MapIter>;
+    using VD_Map = graph::vertex_descriptor<MapIter>;
     
     auto it = vertex_map.find(200);
     VD_Map vd_map{it};
     std::cout << "Vertex ID: " << vd_map.vertex_id() << "\n";
     
     // Create view and iterate
-    desc::vertex_descriptor_view map_view{vertex_map};
+    graph::vertex_descriptor_view map_view{vertex_map};
     std::cout << "All vertices:\n";
     for (auto desc : map_view) {
         std::cout << "  Vertex " << desc.vertex_id() << "\n";
