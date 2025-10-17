@@ -6,6 +6,8 @@ A modern C++20 library providing type-safe, efficient descriptors for vertices a
 
 This library implements descriptors as lightweight, copyable handles for graph elements. Descriptors abstract away the underlying storage strategy, allowing graphs to use various container types (vectors, maps, custom containers) while maintaining a consistent interface.
 
+**Note**: This library focuses solely on descriptor abstractions. Property maps and graph algorithms are not included, allowing users to build custom solutions on top of these fundamental building blocks.
+
 ## Features
 
 - **Type-safe descriptors**: Vertex and edge descriptors are distinct types, preventing accidental misuse
@@ -14,6 +16,7 @@ This library implements descriptors as lightweight, copyable handles for graph e
 - **C++20 concepts**: Strong compile-time guarantees using concepts
 - **STL compatibility**: Descriptors work seamlessly with standard containers and algorithms
 - **Forward-only views**: Descriptor views provide range-based iteration over graph elements
+- **Hash support**: Built-in std::hash specializations for use in unordered containers
 
 ## Requirements
 
@@ -39,21 +42,21 @@ ctest --test-dir build --output-on-failure
 ### Vertex Descriptors with Vector Storage
 
 ```cpp
-#include <desc/vertex_descriptor.hpp>
-#include <desc/vertex_descriptor_view.hpp>
+#include <graph/vertex_descriptor.hpp>
+#include <graph/vertex_descriptor_view.hpp>
 #include <vector>
 
 std::vector<int> vertices = {10, 20, 30, 40, 50};
 
 using VectorIter = std::vector<int>::iterator;
-using VD = desc::vertex_descriptor<VectorIter>;
+using VD = graph::vertex_descriptor<VectorIter>;
 
 // Create descriptor for vertex at index 2
 VD vd{2};
 std::cout << "Vertex ID: " << vd.vertex_id() << "\n";  // Output: 2
 
 // Iterate over all vertices
-desc::vertex_descriptor_view view{vertices};
+graph::vertex_descriptor_view view{vertices};
 for (auto desc : view) {
     std::cout << "Vertex " << desc.vertex_id() << "\n";
 }
@@ -62,8 +65,8 @@ for (auto desc : view) {
 ### Vertex Descriptors with Map Storage
 
 ```cpp
-#include <desc/vertex_descriptor.hpp>
-#include <desc/vertex_descriptor_view.hpp>
+#include <graph/vertex_descriptor.hpp>
+#include <graph/vertex_descriptor_view.hpp>
 #include <map>
 
 std::map<int, std::string> vertex_map = {
@@ -73,7 +76,7 @@ std::map<int, std::string> vertex_map = {
 };
 
 using MapIter = std::map<int, std::string>::iterator;
-using VD = desc::vertex_descriptor<MapIter>;
+using VD = graph::vertex_descriptor<MapIter>;
 
 // Create descriptor from iterator
 auto it = vertex_map.find(200);
@@ -81,7 +84,7 @@ VD vd{it};
 std::cout << "Vertex ID: " << vd.vertex_id() << "\n";  // Output: 200
 
 // Iterate over all vertices
-desc::vertex_descriptor_view map_view{vertex_map};
+graph::vertex_descriptor_view map_view{vertex_map};
 for (auto desc : map_view) {
     std::cout << "Vertex " << desc.vertex_id() << "\n";
 }
@@ -102,10 +105,30 @@ for (auto desc : map_view) {
   - Edge descriptor view
   - Unit tests
 
-- [x] **Phase 3: Advanced Features** (PARTIAL)
-  - [x] Descriptor traits (COMPLETE)
-  - [ ] Property maps (TODO)
-  - [ ] Performance benchmarks (TODO)
+- [x] **Phase 3: Type Traits and Concepts** (COMPLETE)
+  - Descriptor traits for compile-time introspection
+  - Type identification traits
+  - Storage pattern detection
+  - Edge and vertex value type concepts
+  - Comprehensive concept tests
+
+## Library Scope
+
+This library is intentionally focused and minimal:
+
+### Included
+- ✅ Vertex and edge descriptor abstractions
+- ✅ Descriptor views for range-based iteration
+- ✅ Type traits and concepts for descriptor types
+- ✅ Hash support for use in unordered containers
+- ✅ Iterator-agnostic design supporting multiple storage strategies
+
+### Not Included
+- ❌ Property maps (users manage properties separately using descriptors as keys)
+- ❌ Graph algorithms (users implement algorithms using descriptors)
+- ❌ Graph containers (users choose their own storage)
+
+This design allows maximum flexibility for users to build graph libraries tailored to their specific needs.
 
 ## Design Principles
 
@@ -115,8 +138,8 @@ Descriptors compile down to simple index or iterator operations with no runtime 
 ### Type Safety
 Different descriptor types cannot be accidentally mixed:
 ```cpp
-using VectorDesc = vertex_descriptor<std::vector<int>::iterator>;
-using MapDesc = vertex_descriptor<std::map<int,int>::iterator>;
+using VectorDesc = graph::vertex_descriptor<std::vector<int>::iterator>;
+using MapDesc = graph::vertex_descriptor<std::map<int,int>::iterator>;
 // These are distinct types - cannot be assigned to each other
 ```
 
