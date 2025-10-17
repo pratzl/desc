@@ -157,8 +157,8 @@ public:
     }
     
     // Comparison operators (C++20 spaceship operator)
-    [[nodiscard]] constexpr auto operator<=>(const vertex_descriptor&) const noexcept = default;
-    [[nodiscard]] constexpr bool operator==(const vertex_descriptor&) const noexcept = default;
+    [[nodiscard]] auto operator<=>(const vertex_descriptor&) const noexcept = default;
+    [[nodiscard]] bool operator==(const vertex_descriptor&) const noexcept = default;
     
 private:
     storage_type storage_;

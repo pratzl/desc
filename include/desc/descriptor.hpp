@@ -77,7 +77,7 @@ concept direct_vertex_type = std::random_access_iterator<Iter>;
  */
 template<typename Iter>
 concept keyed_vertex_type = 
-    std::bidirectional_iterator<Iter> &&
+    std::forward_iterator<Iter> &&
     !std::random_access_iterator<Iter> &&
     pair_like_value<typename std::iterator_traits<Iter>::value_type>;
 

@@ -294,8 +294,8 @@ public:
     }
     
     // Comparison operators
-    [[nodiscard]] constexpr auto operator<=>(const edge_descriptor&) const noexcept = default;
-    [[nodiscard]] constexpr bool operator==(const edge_descriptor&) const noexcept = default;
+    [[nodiscard]] auto operator<=>(const edge_descriptor&) const noexcept = default;
+    [[nodiscard]] bool operator==(const edge_descriptor&) const noexcept = default;
     
 private:
     edge_storage_type edge_storage_;
