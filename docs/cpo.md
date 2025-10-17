@@ -417,39 +417,57 @@ namespace _operation {
     // ... more paths as needed
     
     // 3. Single compile-time choice evaluation
-    template<typename T>
+    template<typename... Args>
     [[nodiscard]] consteval graph::_cpo::_Choice_t<_St> _Choose() noexcept {
-        if constexpr (_has_path1<T>) {
+        if constexpr (_has_path1<Args...>) {
             return {_St::_path1, noexcept(/* path1 expression */)};
-        } else if constexpr (_has_path2<T>) {
+        } else if constexpr (_has_path2<Args...>) {
             return {_St::_path2, noexcept(/* path2 expression */)};
-        } else if constexpr (_has_path3<T>) {
+        } else if constexpr (_has_path3<Args...>) {
             return {_St::_path3, noexcept(/* path3 expression */)};
         } else {
             return {_St::_none, true};  // or _St::_default
         }
     }
     
-    // 4. CPO class with single operator()
+    // 4. CPO class with single operator() - multiple signatures
     class _fn {
     private:
+        // Cache choice for single-argument calls
         template<typename T>
-        static constexpr graph::_cpo::_Choice_t<_St> _Choice = _Choose<T>();
+        static constexpr graph::_cpo::_Choice_t<_St> _Choice1 = _Choose<T>();
+        
+        // Cache choice for two-argument calls
+        template<typename T, typename U>
+        static constexpr graph::_cpo::_Choice_t<_St> _Choice2 = _Choose<T, U>();
         
     public:
+        // Single-argument overload
         template<typename T>
         [[nodiscard]] constexpr auto operator()(T&& t) const
-            noexcept(_Choice<T>._No_throw)
+            noexcept(_Choice1<T>._No_throw)
             -> decltype(auto)
         {
-            if constexpr (_Choice<T>._Strategy == _St::_path1) {
+            if constexpr (_Choice1<T>._Strategy == _St::_path1) {
                 return /* path1 implementation */;
-            } else if constexpr (_Choice<T>._Strategy == _St::_path2) {
+            } else if constexpr (_Choice1<T>._Strategy == _St::_path2) {
                 return /* path2 implementation */;
-            } else if constexpr (_Choice<T>._Strategy == _St::_path3) {
-                return /* path3 implementation */;
             } else {
-                // Default implementation or static_assert
+                return /* default */;
+            }
+        }
+        
+        // Two-argument overload (different signature)
+        template<typename T, typename U>
+        [[nodiscard]] constexpr auto operator()(T&& t, U&& u) const
+            noexcept(_Choice2<T, U>._No_throw)
+            -> decltype(auto)
+        {
+            if constexpr (_Choice2<T, U>._Strategy == _St::_path1) {
+                return /* path1 implementation with 2 args */;
+            } else if constexpr (_Choice2<T, U>._Strategy == _St::_path3) {
+                return /* path3 implementation with 2 args */;
+            } else {
                 return /* default */;
             }
         }
@@ -459,10 +477,127 @@ namespace _operation {
 
 **Key advantages:**
 1. **No negation chains**: `if constexpr` order determines priority naturally
-2. **Single evaluation**: `_Choose<T>()` evaluates once, cached in `_Choice<T>`
-3. **Simple noexcept**: Just use `_Choice<T>._No_throw`
-4. **Easy maintenance**: Add/remove paths without touching other code
-5. **Self-documenting**: Read top-to-bottom to see priority order
+2. **Single evaluation**: `_Choose<Args...>()` evaluates once, cached in `_Choice<Args...>`
+3. **Multiple signatures**: Different `operator()` overloads for different use cases
+4. **Simple noexcept**: Just use `_Choice<Args...>._No_throw`
+5. **Easy maintenance**: Add/remove paths without touching other code
+6. **Self-documenting**: Read top-to-bottom to see priority order
+
+### Concrete Example: CPO with Multiple Signatures
+
+Here's a realistic example of a CPO that supports both single-argument and two-argument forms:
+
+```cpp
+namespace graph::_cpo {
+namespace _find_vertex {
+    // Strategy enum for different find methods
+    enum class _St { 
+        _none, 
+        _member_find,      // g.find_vertex(id)
+        _adl_find,         // find_vertex(g, id)
+        _index_operator,   // g[id]
+        _at_method         // g.at(id)
+    };
+    
+    // Concepts for single ID argument
+    template<typename G, typename Id>
+    concept _has_member_find = requires(G& g, const Id& id) {
+        { g.find_vertex(id) } -> /* returns vertex descriptor or iterator */;
+    };
+    
+    template<typename G, typename Id>
+    concept _has_adl_find = requires(G& g, const Id& id) {
+        { find_vertex(g, id) } -> /* returns vertex descriptor or iterator */;
+    };
+    
+    template<typename G, typename Id>
+    concept _has_index_op = requires(G& g, const Id& id) {
+        { g[id] } -> /* returns vertex reference or descriptor */;
+    };
+    
+    template<typename G, typename Id>
+    concept _has_at_method = requires(G& g, const Id& id) {
+        { g.at(id) } -> /* returns vertex reference or descriptor */;
+    };
+    
+    // Choice evaluation for (graph, id) signature
+    template<typename G, typename Id>
+    [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
+        if constexpr (_has_member_find<G, Id>) {
+            return {_St::_member_find, noexcept(std::declval<G&>().find_vertex(std::declval<const Id&>()))};
+        } else if constexpr (_has_adl_find<G, Id>) {
+            return {_St::_adl_find, noexcept(find_vertex(std::declval<G&>(), std::declval<const Id&>()))};
+        } else if constexpr (_has_index_op<G, Id>) {
+            return {_St::_index_operator, noexcept(std::declval<G&>()[std::declval<const Id&>()])};
+        } else if constexpr (_has_at_method<G, Id>) {
+            return {_St::_at_method, noexcept(std::declval<G&>().at(std::declval<const Id&>()))};
+        } else {
+            return {_St::_none, false};
+        }
+    }
+    
+    class _fn {
+    private:
+        template<typename G, typename Id>
+        static constexpr _Choice_t<_St> _Choice = _Choose<G, Id>();
+        
+    public:
+        // Primary signature: (graph, id)
+        template<typename G, typename Id>
+        [[nodiscard]] constexpr auto operator()(G&& g, const Id& id) const
+            noexcept(_Choice<G, Id>._No_throw)
+            -> decltype(auto)
+        {
+            if constexpr (_Choice<G, Id>._Strategy == _St::_member_find) {
+                return std::forward<G>(g).find_vertex(id);
+            } else if constexpr (_Choice<G, Id>._Strategy == _St::_adl_find) {
+                return find_vertex(std::forward<G>(g), id);
+            } else if constexpr (_Choice<G, Id>._Strategy == _St::_index_operator) {
+                return std::forward<G>(g)[id];
+            } else if constexpr (_Choice<G, Id>._Strategy == _St::_at_method) {
+                return std::forward<G>(g).at(id);
+            } else {
+                static_assert(_Choice<G, Id>._Strategy != _St::_none,
+                    "Graph type must support find_vertex(id), [id], or at(id)");
+            }
+        }
+        
+        // Alternative signature: (graph, key, value) for graphs with compound keys
+        template<typename G, typename Key, typename Value>
+            requires requires(G& g, const Key& k, const Value& v) {
+                { g.find_vertex(k, v) };
+            }
+        [[nodiscard]] constexpr auto operator()(G&& g, const Key& key, const Value& value) const
+            noexcept(noexcept(std::forward<G>(g).find_vertex(key, value)))
+            -> decltype(std::forward<G>(g).find_vertex(key, value))
+        {
+            return std::forward<G>(g).find_vertex(key, value);
+        }
+    };
+} // namespace _find_vertex
+
+inline namespace _cpos {
+    inline constexpr _cpo::_find_vertex::_fn find_vertex{};
+}
+} // namespace graph::_cpo
+
+// Usage examples
+void example() {
+    MyGraph g;
+    
+    // Single ID lookup - uses primary overload with path detection
+    auto v1 = graph::find_vertex(g, 42);           // Uses best available method
+    
+    // Compound key lookup - uses alternative signature
+    auto v2 = graph::find_vertex(g, "name", 123);  // Specialized overload
+}
+```
+
+This example demonstrates:
+- **Multiple operator() signatures**: `(G, Id)` and `(G, Key, Value)`
+- **Per-signature path detection**: Different `_Choice` cache for each signature
+- **Different concepts per signature**: Appropriate checks for each use case
+- **Real-world utility**: Handles both simple and complex vertex lookup patterns
 
 ### Example: CPO with 4 Overload Paths (MSVC Style)
 
