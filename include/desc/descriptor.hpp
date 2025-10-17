@@ -92,6 +92,62 @@ template<typename Iter>
 concept vertex_iterator = direct_vertex_type<Iter> || keyed_vertex_type<Iter>;
 
 // =============================================================================
+// Vertex Inner Value Pattern Concepts (for inner_value() method)
+// =============================================================================
+
+/**
+ * @brief Concept for random-access vertex pattern (vector-like)
+ * 
+ * Used with random-access containers where inner_value returns the entire element.
+ * Pattern: container[index] -> returns whole value
+ * Example: std::vector<VertexData> where inner_value returns VertexData&
+ */
+template<typename Iter>
+concept random_access_vertex_pattern = std::random_access_iterator<Iter>;
+
+/**
+ * @brief Concept for pair-value vertex pattern (map-like)
+ * 
+ * Used with bidirectional iterators where the value_type is pair-like.
+ * inner_value returns the .second part (the data, excluding the key).
+ * Pattern: *iterator -> pair{key, data}, inner_value returns data&
+ * Example: std::map<int, VertexData> where inner_value returns VertexData& (.second)
+ */
+template<typename Iter>
+concept pair_value_vertex_pattern = 
+    std::bidirectional_iterator<Iter> &&
+    !std::random_access_iterator<Iter> &&
+    pair_like_value<typename std::iterator_traits<Iter>::value_type>;
+
+/**
+ * @brief Concept for whole-value vertex pattern (custom bidirectional)
+ * 
+ * Used with bidirectional iterators where the value_type is NOT pair-like.
+ * inner_value returns the entire element (same as underlying_value).
+ * Pattern: *iterator -> value, inner_value returns value&
+ * Example: Custom bidirectional container with non-pair value_type
+ */
+template<typename Iter>
+concept whole_value_vertex_pattern = 
+    std::bidirectional_iterator<Iter> &&
+    !std::random_access_iterator<Iter> &&
+    !pair_like_value<typename std::iterator_traits<Iter>::value_type>;
+
+/**
+ * @brief Comprehensive concept for any valid vertex inner_value pattern
+ * 
+ * A vertex iterator must match exactly one of these patterns:
+ * - Random access: Returns entire container[index] value
+ * - Pair value: Returns .second of pair-like value
+ * - Whole value: Returns entire dereferenced iterator value
+ */
+template<typename Iter>
+concept has_inner_value_pattern = 
+    random_access_vertex_pattern<Iter> || 
+    pair_value_vertex_pattern<Iter> || 
+    whole_value_vertex_pattern<Iter>;
+
+// =============================================================================
 // Vertex Storage Pattern Detection
 // =============================================================================
 
@@ -133,6 +189,52 @@ struct vertex_pattern_type {
  */
 template<typename Iter>
 inline constexpr vertex_pattern vertex_pattern_type_v = vertex_pattern_type<Iter>::value;
+
+// =============================================================================
+// Vertex Inner Value Pattern Detection
+// =============================================================================
+
+/**
+ * @brief Type trait to determine which inner_value pattern an iterator uses
+ */
+template<typename Iter>
+struct vertex_inner_value_pattern {
+    static constexpr bool is_random_access = random_access_vertex_pattern<Iter>;
+    static constexpr bool is_pair_value = pair_value_vertex_pattern<Iter>;
+    static constexpr bool is_whole_value = whole_value_vertex_pattern<Iter>;
+};
+
+/**
+ * @brief Helper variable template for vertex inner_value pattern detection
+ */
+template<typename Iter>
+inline constexpr auto vertex_inner_value_pattern_v = vertex_inner_value_pattern<Iter>{};
+
+/**
+ * @brief Enumeration of vertex inner_value patterns
+ */
+enum class vertex_inner_pattern {
+    random_access,  ///< Random-access container, returns container[index]
+    pair_value,     ///< Pair-like value, returns .second (data without key)
+    whole_value     ///< Non-pair value, returns entire dereferenced iterator
+};
+
+/**
+ * @brief Type trait to get the vertex inner_value pattern as an enum value
+ */
+template<typename Iter>
+struct vertex_inner_pattern_type {
+    static constexpr vertex_inner_pattern value = 
+        random_access_vertex_pattern<Iter> ? vertex_inner_pattern::random_access :
+        pair_value_vertex_pattern<Iter> ? vertex_inner_pattern::pair_value :
+        vertex_inner_pattern::whole_value;
+};
+
+/**
+ * @brief Helper variable template for vertex inner_value pattern type
+ */
+template<typename Iter>
+inline constexpr vertex_inner_pattern vertex_inner_pattern_type_v = vertex_inner_pattern_type<Iter>::value;
 
 // =============================================================================
 // Vertex ID Type Extraction
