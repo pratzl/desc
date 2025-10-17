@@ -399,47 +399,81 @@ public:
 
 ### Pattern for N Optional Overloads (MSVC Style)
 
+This pattern shows how to implement a CPO with multiple function signatures, each with its own customization paths.
+
 ```cpp
 namespace _operation {
-    // 1. Strategy enum
-    enum class _St { _none, _path1, _path2, _path3 /* ... more paths */ };
+    // 1. Separate strategy enums for each signature
     
-    // 2. Define concepts for each customization point
+    // Enum for single-argument signature
+    enum class _St1 { _none, _member, _adl, _custom };
+    
+    // Enum for two-argument signature  
+    enum class _St2 { _none, _member, _adl, _default };
+    
+    // 2. Define concepts for single-argument paths
     template<typename T>
-    concept _has_path1 = /* highest priority check */;
+    concept _has_member1 = requires(T&& t) {
+        { std::forward<T>(t).operation() } -> /* constraint */;
+    };
     
     template<typename T>
-    concept _has_path2 = /* second priority check */;
+    concept _has_adl1 = requires(T&& t) {
+        { operation(std::forward<T>(t)) } -> /* constraint */;
+    };
     
     template<typename T>
-    concept _has_path3 = /* third priority check */;
+    concept _has_custom1 = /* custom check for single arg */;
     
-    // ... more paths as needed
+    // 3. Define concepts for two-argument paths
+    template<typename T, typename U>
+    concept _has_member2 = requires(T&& t, U&& u) {
+        { std::forward<T>(t).operation(std::forward<U>(u)) } -> /* constraint */;
+    };
     
-    // 3. Single compile-time choice evaluation
-    template<typename... Args>
-    [[nodiscard]] consteval graph::_cpo::_Choice_t<_St> _Choose() noexcept {
-        if constexpr (_has_path1<Args...>) {
-            return {_St::_path1, noexcept(/* path1 expression */)};
-        } else if constexpr (_has_path2<Args...>) {
-            return {_St::_path2, noexcept(/* path2 expression */)};
-        } else if constexpr (_has_path3<Args...>) {
-            return {_St::_path3, noexcept(/* path3 expression */)};
+    template<typename T, typename U>
+    concept _has_adl2 = requires(T&& t, U&& u) {
+        { operation(std::forward<T>(t), std::forward<U>(u)) } -> /* constraint */;
+    };
+    
+    // 4. Separate compile-time choice evaluation for each signature
+    
+    // Choose function for single-argument signature
+    template<typename T>
+    [[nodiscard]] consteval graph::_cpo::_Choice_t<_St1> _Choose1() noexcept {
+        if constexpr (_has_member1<T>) {
+            return {_St1::_member, noexcept(std::declval<T>().operation())};
+        } else if constexpr (_has_adl1<T>) {
+            return {_St1::_adl, noexcept(operation(std::declval<T>()))};
+        } else if constexpr (_has_custom1<T>) {
+            return {_St1::_custom, noexcept(/* custom noexcept */)};
         } else {
-            return {_St::_none, true};  // or _St::_default
+            return {_St1::_none, false};
         }
     }
     
-    // 4. CPO class with single operator() - multiple signatures
+    // Choose function for two-argument signature
+    template<typename T, typename U>
+    [[nodiscard]] consteval graph::_cpo::_Choice_t<_St2> _Choose2() noexcept {
+        if constexpr (_has_member2<T, U>) {
+            return {_St2::_member, noexcept(std::declval<T>().operation(std::declval<U>()))};
+        } else if constexpr (_has_adl2<T, U>) {
+            return {_St2::_adl, noexcept(operation(std::declval<T>(), std::declval<U>()))};
+        } else {
+            return {_St2::_default, true};
+        }
+    }
+    
+    // 5. CPO class with multiple operator() signatures
     class _fn {
     private:
-        // Cache choice for single-argument calls
+        // Separate cache for single-argument calls
         template<typename T>
-        static constexpr graph::_cpo::_Choice_t<_St> _Choice1 = _Choose<T>();
+        static constexpr graph::_cpo::_Choice_t<_St1> _Choice1 = _Choose1<T>();
         
-        // Cache choice for two-argument calls
+        // Separate cache for two-argument calls
         template<typename T, typename U>
-        static constexpr graph::_cpo::_Choice_t<_St> _Choice2 = _Choose<T, U>();
+        static constexpr graph::_cpo::_Choice_t<_St2> _Choice2 = _Choose2<T, U>();
         
     public:
         // Single-argument overload
@@ -448,40 +482,44 @@ namespace _operation {
             noexcept(_Choice1<T>._No_throw)
             -> decltype(auto)
         {
-            if constexpr (_Choice1<T>._Strategy == _St::_path1) {
-                return /* path1 implementation */;
-            } else if constexpr (_Choice1<T>._Strategy == _St::_path2) {
-                return /* path2 implementation */;
+            if constexpr (_Choice1<T>._Strategy == _St1::_member) {
+                return std::forward<T>(t).operation();
+            } else if constexpr (_Choice1<T>._Strategy == _St1::_adl) {
+                return operation(std::forward<T>(t));
+            } else if constexpr (_Choice1<T>._Strategy == _St1::_custom) {
+                return /* custom implementation */;
             } else {
-                return /* default */;
+                static_assert(_Choice1<T>._Strategy != _St1::_none,
+                    "No valid customization found for single-argument operation");
             }
         }
         
-        // Two-argument overload (different signature)
+        // Two-argument overload
         template<typename T, typename U>
         [[nodiscard]] constexpr auto operator()(T&& t, U&& u) const
             noexcept(_Choice2<T, U>._No_throw)
             -> decltype(auto)
         {
-            if constexpr (_Choice2<T, U>._Strategy == _St::_path1) {
-                return /* path1 implementation with 2 args */;
-            } else if constexpr (_Choice2<T, U>._Strategy == _St::_path3) {
-                return /* path3 implementation with 2 args */;
+            if constexpr (_Choice2<T, U>._Strategy == _St2::_member) {
+                return std::forward<T>(t).operation(std::forward<U>(u));
+            } else if constexpr (_Choice2<T, U>._Strategy == _St2::_adl) {
+                return operation(std::forward<T>(t), std::forward<U>(u));
             } else {
-                return /* default */;
+                // Default implementation for two arguments
+                return /* default value */;
             }
         }
     };
 }
 ```
 
-**Key advantages:**
-1. **No negation chains**: `if constexpr` order determines priority naturally
-2. **Single evaluation**: `_Choose<Args...>()` evaluates once, cached in `_Choice<Args...>`
-3. **Multiple signatures**: Different `operator()` overloads for different use cases
-4. **Simple noexcept**: Just use `_Choice<Args...>._No_throw`
-5. **Easy maintenance**: Add/remove paths without touching other code
-6. **Self-documenting**: Read top-to-bottom to see priority order
+**Key design principles:**
+1. **Separate enums per signature**: `_St1` for single-arg, `_St2` for two-arg
+2. **Separate concepts per signature**: `_has_member1` vs `_has_member2`, etc.
+3. **Separate `_Choose()` functions**: `_Choose1<T>()` vs `_Choose2<T, U>()`
+4. **Separate `_Choice` caches**: `_Choice1<T>` vs `_Choice2<T, U>`
+5. **Clear customization hierarchy**: Member → ADL → Custom → Default
+6. **Type-safe path detection**: Each signature has its own strategy enum type
 
 ### Concrete Example: CPO with Multiple Signatures
 
