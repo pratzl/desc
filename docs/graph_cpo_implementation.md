@@ -23,6 +23,66 @@ include/
 
 ## CPO Implementation Strategy
 
+### Inner Value Priority Pattern
+
+**IMPORTANT**: When implementing CPOs that operate on graph elements (vertices or edges), the resolution order MUST check the **inner_value** (the actual element stored in the container) before checking the descriptor wrapper.
+
+#### Rationale
+The descriptor is a lightweight wrapper around iterators/indices. The actual graph element (inner_value) should have the highest priority for defining its own behavior, with the descriptor serving only as a fallback when no customization exists on the element itself.
+
+#### Resolution Order for Element-Based CPOs
+
+For CPOs like `vertex_id(g, u)`, `edges(g, u)`, etc. that operate on graph elements through descriptors:
+
+1. **Inner value member function** (highest priority)
+   - Example: `u.inner_value(g).vertex_id(g)` where `u` is a vertex_descriptor
+   - Checks if the actual vertex data has a member function
+
+2. **ADL with inner_value** 
+   - Example: `vertex_id(g, u.inner_value(g))`
+   - ADL lookup using the actual vertex data type
+
+3. **ADL with descriptor**
+   - Example: `vertex_id(g, u)`
+   - ADL lookup using the descriptor type
+
+4. **Descriptor default** (lowest priority)
+   - Example: `u.vertex_id()`
+   - Built-in descriptor functionality as fallback
+
+Where:
+- `u` is a `vertex_descriptor<Iter>` 
+- `u.inner_value(g)` extracts the actual element from the graph container
+- For vectors: returns `g[u.value()]` (the actual vertex data)
+- For maps: returns `(*iter).second` (the value part of the key-value pair)
+
+#### Example: vertex_id(g, u)
+
+```cpp
+// User's custom vertex type
+struct MyVertex {
+    std::string name;
+    int custom_id;
+    
+    // Highest priority: inner value member
+    template<typename G>
+    int vertex_id(const G& g) const {
+        return custom_id;  // Use custom ID instead of index/key
+    }
+};
+
+// Graph using custom vertices
+std::vector<MyVertex> graph = {
+    {"Alice", 100},
+    {"Bob", 200},
+    {"Charlie", 300}
+};
+
+// The CPO will call: u.inner_value(g).vertex_id(g)
+// Returns: 100, 200, 300 (custom IDs)
+// NOT: 0, 1, 2 (indices from descriptor default)
+```
+
 ### MSVC-Style Pattern Summary
 
 All CPOs follow this structure:
@@ -247,57 +307,66 @@ inline namespace _cpos {
 **Signature:** `vertex_edge_range_t<G> edges(G& g, vertex_t<G> u)`  
 **Return:** `edge_descriptor_view` wrapping outgoing edges from vertex `u`  
 **Complexity:** O(1)  
-**Default:** Returns `edge_descriptor_view(u.inner_value(), u)` if the vertex descriptor's inner value is a forward range with edge value pattern support, otherwise no default
+**Default:** Returns `edge_descriptor_view(u.inner_value(g), u)` if the vertex descriptor's inner value is a forward range with edge value pattern support, otherwise no default
 
-**IMPORTANT:** `edges(g, u)` MUST always return an `edge_descriptor_view`. The implementation should:
-1. First check if `g.edges(u)` member exists - if so, use it (must return `edge_descriptor_view`)
-2. Then check if ADL `edges(g, u)` exists - if so, use it (must return `edge_descriptor_view`)
-3. Otherwise, if the vertex descriptor's inner value follows edge value patterns (is a forward range of edge values), return `edge_descriptor_view(u.inner_value(), u)` wrapping the edge range
+**IMPORTANT:** `edges(g, u)` MUST always return an `edge_descriptor_view`.
+
+**Resolution Order** (follows inner_value priority pattern):
+1. `u.inner_value(g).edges(g)` - Inner value member (highest priority)
+2. `edges(g, u.inner_value(g))` - ADL with inner_value
+3. `edges(g, u)` - ADL with descriptor
+4. `edge_descriptor_view(u.inner_value(g), u)` - Default if inner_value has edge pattern (lowest priority)
 
 ```cpp
 namespace _edges {
-    enum class _St { _none, _member_desc, _member_id, _adl, _edge_value_pattern };
+    enum class _St { _none, _inner_value_member, _adl_inner_value, _adl_descriptor, _edge_value_pattern };
     
-    // Check for g.edges(descriptor)
+    // Check for inner_value.edges(g) member function
     template<typename G, typename U>
-    concept _has_member_desc = requires(G& g, U&& u) {
-        { g.edges(std::forward<U>(u)) } -> std::ranges::forward_range;
-    };
+    concept _has_inner_value_member = 
+        is_vertex_descriptor_v<std::remove_cvref_t<U>> &&
+        requires(G& g, const U& u) {
+            { u.inner_value(g).edges(g) } -> std::ranges::forward_range;
+        };
     
-    // Check for g.edges(vertex_id)
+    // Check for ADL edges(g, inner_value)
     template<typename G, typename U>
-    concept _has_member_id = requires(G& g, U&& u) {
-        { g.edges(u.vertex_id()) } -> std::ranges::forward_range;
-    } && requires(U&& u) {
-        { u.vertex_id() };
-    };
+    concept _has_adl_inner_value = 
+        is_vertex_descriptor_v<std::remove_cvref_t<U>> &&
+        requires(G& g, const U& u) {
+            { edges(g, u.inner_value(g)) } -> std::ranges::forward_range;
+        };
     
-    // Check for ADL edges(g, u)
+    // Check for ADL edges(g, descriptor)
     template<typename G, typename U>
-    concept _has_adl = requires(G& g, U&& u) {
-        { edges(g, std::forward<U>(u)) } -> std::ranges::forward_range;
-    };
+    concept _has_adl_descriptor = 
+        is_vertex_descriptor_v<std::remove_cvref_t<U>> &&
+        requires(G& g, const U& u) {
+            { edges(g, u) } -> std::ranges::forward_range;
+        };
     
     // Check if vertex descriptor's inner value is a range of edge values
-    template<typename U>
-    concept _has_edge_value_pattern = requires(U&& u) {
-        { u.inner_value() } -> std::ranges::forward_range;
-    } && requires {
-        typename std::ranges::range_value_t<decltype(std::declval<U>().inner_value())>;
-    } && edge_value_type<std::ranges::range_value_t<decltype(std::declval<U>().inner_value())>>;
+    template<typename G, typename U>
+    concept _has_edge_value_pattern = 
+        is_vertex_descriptor_v<std::remove_cvref_t<U>> &&
+        requires(G& g, const U& u) {
+            { u.inner_value(g) } -> std::ranges::forward_range;
+        } && requires(G& g, const U& u) {
+            typename std::ranges::range_value_t<decltype(u.inner_value(g))>;
+        } && edge_value_type<std::ranges::range_value_t<decltype(std::declval<U>().inner_value(std::declval<G&>()))>>;
     
     template<typename G, typename U>
     [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
-        if constexpr (_has_member_desc<G, U>) {
-            return {_St::_member_desc, 
-                    noexcept(std::declval<G&>().edges(std::declval<U>()))};
-        } else if constexpr (_has_member_id<G, U>) {
-            return {_St::_member_id, 
-                    noexcept(std::declval<G&>().edges(std::declval<U>().vertex_id()))};
-        } else if constexpr (_has_adl<G, U>) {
-            return {_St::_adl, 
-                    noexcept(edges(std::declval<G&>(), std::declval<U>()))};
-        } else if constexpr (_has_edge_value_pattern<U>) {
+        if constexpr (_has_inner_value_member<G, U>) {
+            return {_St::_inner_value_member, 
+                    noexcept(std::declval<U&>().inner_value(std::declval<G&>()).edges(std::declval<G&>()))};
+        } else if constexpr (_has_adl_inner_value<G, U>) {
+            return {_St::_adl_inner_value, 
+                    noexcept(edges(std::declval<G&>(), std::declval<U&>().inner_value(std::declval<G&>())))};
+        } else if constexpr (_has_adl_descriptor<G, U>) {
+            return {_St::_adl_descriptor, 
+                    noexcept(edges(std::declval<G&>(), std::declval<const U&>()))};
+        } else if constexpr (_has_edge_value_pattern<G, U>) {
             return {_St::_edge_value_pattern, true};
         } else {
             return {_St::_none, false};
@@ -311,24 +380,24 @@ namespace _edges {
         
     public:
         template<typename G, typename U>
-        [[nodiscard]] constexpr auto operator()(G&& g, U&& u) const
+        [[nodiscard]] constexpr auto operator()(G& g, const U& u) const
             noexcept(_Choice<std::remove_cvref_t<G>, std::remove_cvref_t<U>>._No_throw)
             -> decltype(auto)
         {
             using _G = std::remove_cvref_t<G>;
             using _U = std::remove_cvref_t<U>;
             
-            if constexpr (_Choice<_G, _U>._Strategy == _St::_member_desc) {
-                return std::forward<G>(g).edges(std::forward<U>(u));
-            } else if constexpr (_Choice<_G, _U>._Strategy == _St::_member_id) {
-                return std::forward<G>(g).edges(std::forward<U>(u).vertex_id());
-            } else if constexpr (_Choice<_G, _U>._Strategy == _St::_adl) {
-                return edges(std::forward<G>(g), std::forward<U>(u));
+            if constexpr (_Choice<_G, _U>._Strategy == _St::_inner_value_member) {
+                return u.inner_value(g).edges(g);
+            } else if constexpr (_Choice<_G, _U>._Strategy == _St::_adl_inner_value) {
+                return edges(g, u.inner_value(g));
+            } else if constexpr (_Choice<_G, _U>._Strategy == _St::_adl_descriptor) {
+                return edges(g, u);
             } else if constexpr (_Choice<_G, _U>._Strategy == _St::_edge_value_pattern) {
-                return edge_descriptor_view(std::forward<U>(u).inner_value(), std::forward<U>(u));
+                return edge_descriptor_view(u.inner_value(g), u);
             } else {
                 static_assert(_Choice<_G, _U>._Strategy != _St::_none,
-                    "edges(g,u) requires .edges() member, ADL edges(), or edge value pattern support");
+                    "edges(g,u) requires inner_value.edges(g), ADL edges(), or edge value pattern support");
             }
         }
     };
@@ -346,44 +415,57 @@ inline namespace _cpos {
 **Complexity:** O(1)  
 **Default:** Returns descriptor's index for random-access, or key from pair for associative
 
+**Resolution Order** (follows inner_value priority pattern):
+1. `u.inner_value(g).vertex_id(g)` - Inner value member (highest priority)
+2. `vertex_id(g, u.inner_value(g))` - ADL with inner_value
+3. `vertex_id(g, u)` - ADL with descriptor
+4. `u.vertex_id()` - Descriptor default (lowest priority)
+
 ```cpp
 namespace _vertex_id {
-    enum class _St { _none, _member_g_u, _member_u, _adl, _descriptor };
+    enum class _St { _none, _inner_value_member, _adl_inner_value, _adl_descriptor, _descriptor };
     
-    // Check for g.vertex_id(u)
+    // Check for inner_value.vertex_id(g) member function
     template<typename G, typename U>
-    concept _has_member_g_u = requires(const G& g, const U& u) {
-        { g.vertex_id(u) };
-    };
+    concept _has_inner_value_member = 
+        is_vertex_descriptor_v<std::remove_cvref_t<U>> &&
+        requires(G& g, const U& u) {
+            { u.inner_value(g).vertex_id(g) };
+        };
     
-    // Check for u.vertex_id()
-    template<typename U>
-    concept _has_member_u = requires(const U& u) {
-        { u.vertex_id() };
-    };
-    
-    // Check for ADL vertex_id(g, u)
+    // Check for ADL vertex_id(g, inner_value)
     template<typename G, typename U>
-    concept _has_adl = requires(const G& g, const U& u) {
-        { vertex_id(g, u) };
-    };
+    concept _has_adl_inner_value = 
+        is_vertex_descriptor_v<std::remove_cvref_t<U>> &&
+        requires(G& g, const U& u) {
+            { vertex_id(g, u.inner_value(g)) };
+        };
     
-    // Check if descriptor has vertex_id() member
+    // Check for ADL vertex_id(g, descriptor)
+    template<typename G, typename U>
+    concept _has_adl_descriptor = 
+        is_vertex_descriptor_v<std::remove_cvref_t<U>> &&
+        requires(const G& g, const U& u) {
+            { vertex_id(g, u) };
+        };
+    
+    // Check if descriptor has vertex_id() member (default)
     template<typename U>
-    concept _has_descriptor = requires(const U& u) {
-        { u.vertex_id() };
-    };
+    concept _has_descriptor = is_vertex_descriptor_v<std::remove_cvref_t<U>> &&
+        requires(const U& u) {
+            { u.vertex_id() };
+        };
     
     template<typename G, typename U>
     [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
-        if constexpr (_has_member_g_u<G, U>) {
-            return {_St::_member_g_u, 
-                    noexcept(std::declval<const G&>().vertex_id(std::declval<const U&>()))};
-        } else if constexpr (_has_member_u<U>) {
-            return {_St::_member_u, 
-                    noexcept(std::declval<const U&>().vertex_id())};
-        } else if constexpr (_has_adl<G, U>) {
-            return {_St::_adl, 
+        if constexpr (_has_inner_value_member<G, U>) {
+            return {_St::_inner_value_member, 
+                    noexcept(std::declval<U&>().inner_value(std::declval<G&>()).vertex_id(std::declval<const G&>()))};
+        } else if constexpr (_has_adl_inner_value<G, U>) {
+            return {_St::_adl_inner_value, 
+                    noexcept(vertex_id(std::declval<G&>(), std::declval<U&>().inner_value(std::declval<G&>())))};
+        } else if constexpr (_has_adl_descriptor<G, U>) {
+            return {_St::_adl_descriptor, 
                     noexcept(vertex_id(std::declval<const G&>(), std::declval<const U&>()))};
         } else if constexpr (_has_descriptor<U>) {
             return {_St::_descriptor, 
@@ -400,24 +482,24 @@ namespace _vertex_id {
         
     public:
         template<typename G, typename U>
-        [[nodiscard]] constexpr auto operator()(const G& g, const U& u) const
+        [[nodiscard]] constexpr auto operator()(G& g, const U& u) const
             noexcept(_Choice<std::remove_cvref_t<G>, std::remove_cvref_t<U>>._No_throw)
             -> decltype(auto)
         {
             using _G = std::remove_cvref_t<G>;
             using _U = std::remove_cvref_t<U>;
             
-            if constexpr (_Choice<_G, _U>._Strategy == _St::_member_g_u) {
-                return g.vertex_id(u);
-            } else if constexpr (_Choice<_G, _U>._Strategy == _St::_member_u) {
-                return u.vertex_id();
-            } else if constexpr (_Choice<_G, _U>._Strategy == _St::_adl) {
+            if constexpr (_Choice<_G, _U>._Strategy == _St::_inner_value_member) {
+                return u.inner_value(g).vertex_id(g);
+            } else if constexpr (_Choice<_G, _U>._Strategy == _St::_adl_inner_value) {
+                return vertex_id(g, u.inner_value(g));
+            } else if constexpr (_Choice<_G, _U>._Strategy == _St::_adl_descriptor) {
                 return vertex_id(g, u);
             } else if constexpr (_Choice<_G, _U>._Strategy == _St::_descriptor) {
                 return u.vertex_id();
             } else {
                 static_assert(_Choice<_G, _U>._Strategy != _St::_none,
-                    "vertex_id(g,u) requires .vertex_id() member or ADL vertex_id()");
+                    "vertex_id(g,u) requires inner_value.vertex_id(g), ADL vertex_id(), or descriptor.vertex_id()");
             }
         }
     };
