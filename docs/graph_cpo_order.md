@@ -79,7 +79,10 @@ The following order should be followed for implementing CPOs and their correspon
 
 ### Phase 1: Core Foundation (Essential)
 **Required for basic graph operations**
-- ✅ `vertices(g)` + type aliases **COMPLETE** (18 tests passing)
+- ✅ `vertices(g)` + type aliases **COMPLETE** (18 CPO tests + 5 type alias tests = 23 total)
+  - ✅ `vertex_range_t<G>` - Range type returned by vertices(g)
+  - ✅ `vertex_iterator_t<G>` - Iterator over vertex range
+  - ✅ `vertex_t<G>` - Vertex descriptor type
 - `vertex_id(g, u)` + type alias
 - `find_vertex(g, uid)`
 - `edges(g, u)` + type aliases

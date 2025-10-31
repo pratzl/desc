@@ -1071,10 +1071,14 @@ inline namespace _cpos {
 - [x] Set up file structure and namespaces
 - [x] Define `_Choice_t<_Ty>` struct
 - [x] Implement `vertices(g)` ✅ **COMPLETE** - 18 tests passing (including 4 custom implementation tests)
+- [x] Define type aliases: `vertex_range_t<G>`, `vertex_iterator_t<G>`, `vertex_t<G>` ✅ **COMPLETE** - 5 tests passing
 - [ ] Implement `edges(g, u)`
+- [ ] Define type aliases: `vertex_edge_range_t<G>`, `vertex_edge_iterator_t<G>`, `edge_descriptor_t<G>`, `edge_t<G>`
 - [ ] Implement `vertex_id(g, u)`
+- [ ] Define type alias: `vertex_id_t<G>`
 - [ ] Implement `target_id(g, uv)`
 - [x] Create basic tests for `vertices(g)` ✅ **COMPLETE**
+- [x] Create tests for type aliases ✅ **COMPLETE**
 
 ### Phase 2: Vertex Queries (Priority 2)
 - [ ] Implement `num_vertices(g)`
@@ -1223,8 +1227,12 @@ Additional CPOs for multipartite graphs:
 
 **Current Progress:**
 - ✅ `vertices(g)` - COMPLETE (18 tests passing, handles both descriptor view and raw container returns)
+- ✅ Type aliases based on `vertices(g)` - COMPLETE (5 additional tests passing)
+  - `vertex_range_t<G>` - Range type returned by vertices(g)
+  - `vertex_iterator_t<G>` - Iterator over vertex range
+  - `vertex_t<G>` - Vertex descriptor type for graph G
 - Location: `include/graph/detail/graph_cpo.hpp`
-- Tests: `tests/test_vertices_cpo.cpp`
+- Tests: `tests/test_vertices_cpo.cpp`, `tests/test_type_aliases.cpp`
 - Features: Three-tier resolution (member/ADL/default), automatic wrapping via `_wrap_if_needed()`
 
 **Next Steps:**

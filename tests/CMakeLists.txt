@@ -19,6 +19,7 @@ add_executable(descriptor_tests
     test_edge_concepts.cpp
     test_vertex_concepts.cpp
     test_vertices_cpo.cpp
+    test_type_aliases.cpp
 )
 
 target_link_libraries(descriptor_tests

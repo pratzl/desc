@@ -144,4 +144,34 @@ inline namespace _cpos {
     inline constexpr _cpo::_vertices::_fn vertices{};
 }
 
+// ============================================================================
+// Type Aliases based on vertices(g)
+// ============================================================================
+
+/**
+ * @brief Range type returned by vertices(g)
+ * 
+ * This is always vertex_descriptor_view<Iter> where Iter is the iterator
+ * type of the underlying container.
+ */
+template<typename G>
+using vertex_range_t = decltype(vertices(std::declval<G&>()));
+
+/**
+ * @brief Iterator type for traversing vertices
+ * 
+ * Iterator over the vertex_descriptor_view returned by vertices(g).
+ */
+template<typename G>
+using vertex_iterator_t = std::ranges::iterator_t<vertex_range_t<G>>;
+
+/**
+ * @brief Vertex descriptor type for graph G
+ * 
+ * This is the value_type of the vertex range - a vertex_descriptor<Iter>
+ * that wraps an iterator into the graph's vertex container.
+ */
+template<typename G>
+using vertex_t = std::ranges::range_value_t<vertex_range_t<G>>;
+
 } // namespace graph
