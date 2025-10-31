@@ -181,8 +181,8 @@ Implement core graph operation CPOs in `graph_cpo.hpp` following the canonical o
 **Phase 1: Core Foundation (Essential)**
 - [x] `vertices(g)` - Get vertex range (returns `vertex_descriptor_view`) ✅ **COMPLETE** - 18 tests passing
 - [x] Type aliases: `vertex_range_t<G>`, `vertex_iterator_t<G>`, `vertex_t<G>` ✅ **COMPLETE** - 5 tests passing
-- [ ] `vertex_id(g, u)` - Get vertex ID from descriptor
-- [ ] Type alias: `vertex_id_t<G>`
+- [x] `vertex_id(g, u)` - Get vertex ID from descriptor ✅ **COMPLETE** - 14 tests passing
+- [x] Type alias: `vertex_id_t<G>` ✅ **COMPLETE** - 2 tests passing
 - [ ] `find_vertex(g, uid)` - Find vertex by ID
 - [ ] `edges(g, u)` - Get outgoing edges from vertex (returns `edge_descriptor_view`)
 - [ ] Type aliases: `vertex_edge_range_t<G>`, `vertex_edge_iterator_t<G>`, `edge_descriptor_t<G>`, `edge_t<G>`
@@ -428,7 +428,7 @@ cmake --build build
 
 ## Testing
 
-The project includes 97 unit tests covering descriptor functionality, CPO implementations, and type aliases:
+The project includes 113 unit tests covering descriptor functionality, CPO implementations, and type aliases:
 
 ```bash
 # Run all tests
@@ -440,8 +440,11 @@ ctest --test-dir build/linux-gcc-debug -R vertex_descriptor
 # Run vertices(g) CPO tests
 ctest --test-dir build/linux-gcc-debug -R vertices
 
+# Run vertex_id(g,u) CPO tests
+ctest --test-dir build/linux-gcc-debug -R vertex_id
+
 # Run type alias tests
-ctest --test-dir build/linux-gcc-debug -R type_aliases
+ctest --test-dir build/linux-gcc-debug -R "Type aliases"
 
 # Verbose output
 ctest --test-dir build/linux-gcc-debug -V
@@ -470,4 +473,4 @@ This library follows the design principles and specifications from:
 
 ---
 
-**Status**: Phase 1 Complete ✅ | Phase 2 In Progress 🔄 | 97/97 Tests Passing ✅ | vertices(g) + Type Aliases Complete ✅
+**Status**: Phase 1 Complete ✅ | Phase 2 In Progress 🔄 | 113/113 Tests Passing ✅ | vertices(g) + vertex_id(g,u) + Type Aliases Complete ✅

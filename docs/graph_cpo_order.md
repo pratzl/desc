@@ -83,7 +83,8 @@ The following order should be followed for implementing CPOs and their correspon
   - ✅ `vertex_range_t<G>` - Range type returned by vertices(g)
   - ✅ `vertex_iterator_t<G>` - Iterator over vertex range
   - ✅ `vertex_t<G>` - Vertex descriptor type
-- `vertex_id(g, u)` + type alias
+- ✅ `vertex_id(g, u)` + type alias **COMPLETE** (14 CPO tests + 2 type alias tests = 16 total)
+  - ✅ `vertex_id_t<G>` - Vertex ID type
 - `find_vertex(g, uid)`
 - `edges(g, u)` + type aliases
 - `target_id(g, uv)`

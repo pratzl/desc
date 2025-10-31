@@ -130,6 +130,102 @@ namespace _cpo {
         };
     } // namespace _vertices
 
+    // =========================================================================
+    // vertex_id(g, u) CPO
+    // =========================================================================
+    
+    namespace _vertex_id {
+        enum class _St { _none, _member_g_u, _member_u, _adl, _descriptor };
+        
+        // Check for g.vertex_id(u) member function
+        template<typename G, typename U>
+        concept _has_member_g_u = requires(const G& g, const U& u) {
+            { g.vertex_id(u) };
+        };
+        
+        // Check for u.vertex_id() member function
+        template<typename U>
+        concept _has_member_u = requires(const U& u) {
+            { u.vertex_id() };
+        };
+        
+        // Check for ADL vertex_id(g, u)
+        template<typename G, typename U>
+        concept _has_adl = requires(const G& g, const U& u) {
+            { vertex_id(g, u) };
+        };
+        
+        // Check if descriptor has vertex_id() member (default)
+        template<typename U>
+        concept _has_descriptor = is_vertex_descriptor_v<std::remove_cvref_t<U>> &&
+            requires(const U& u) {
+                { u.vertex_id() };
+            };
+        
+        template<typename G, typename U>
+        [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
+            if constexpr (_has_member_g_u<G, U>) {
+                return {_St::_member_g_u, 
+                        noexcept(std::declval<const G&>().vertex_id(std::declval<const U&>()))};
+            } else if constexpr (_has_member_u<U>) {
+                return {_St::_member_u, 
+                        noexcept(std::declval<const U&>().vertex_id())};
+            } else if constexpr (_has_adl<G, U>) {
+                return {_St::_adl, 
+                        noexcept(vertex_id(std::declval<const G&>(), std::declval<const U&>()))};
+            } else if constexpr (_has_descriptor<U>) {
+                return {_St::_descriptor, 
+                        noexcept(std::declval<const U&>().vertex_id())};
+            } else {
+                return {_St::_none, false};
+            }
+        }
+        
+        class _fn {
+        private:
+            template<typename G, typename U>
+            static constexpr _Choice_t<_St> _Choice = _Choose<std::remove_cvref_t<G>, std::remove_cvref_t<U>>();
+            
+        public:
+            /**
+             * @brief Get unique ID for a vertex
+             * 
+             * Resolution order:
+             * 1. If g.vertex_id(u) exists -> use it
+             * 2. If u.vertex_id() exists -> use it
+             * 3. If ADL vertex_id(g, u) exists -> use it
+             * 4. If u is a vertex_descriptor with vertex_id() -> use it (default)
+             * 
+             * For random-access containers: returns the index
+             * For associative containers: returns the key
+             * For bidirectional containers: returns the iterator position
+             * 
+             * @param g Graph container
+             * @param u Vertex descriptor
+             * @return Unique identifier for the vertex
+             */
+            template<typename G, typename U>
+            [[nodiscard]] constexpr auto operator()(const G& g, const U& u) const
+                noexcept(_Choice<std::remove_cvref_t<G>, std::remove_cvref_t<U>>._No_throw)
+                -> decltype(auto)
+                requires (_Choice<std::remove_cvref_t<G>, std::remove_cvref_t<U>>._Strategy != _St::_none)
+            {
+                using _G = std::remove_cvref_t<G>;
+                using _U = std::remove_cvref_t<U>;
+                
+                if constexpr (_Choice<_G, _U>._Strategy == _St::_member_g_u) {
+                    return g.vertex_id(u);
+                } else if constexpr (_Choice<_G, _U>._Strategy == _St::_member_u) {
+                    return u.vertex_id();
+                } else if constexpr (_Choice<_G, _U>._Strategy == _St::_adl) {
+                    return vertex_id(g, u);
+                } else if constexpr (_Choice<_G, _U>._Strategy == _St::_descriptor) {
+                    return u.vertex_id();
+                }
+            }
+        };
+    } // namespace _vertex_id
+
 } // namespace _cpo
 
 // Public CPO instances
@@ -142,6 +238,15 @@ inline namespace _cpos {
      * Returns: vertex_descriptor_view
      */
     inline constexpr _cpo::_vertices::_fn vertices{};
+    
+    /**
+     * @brief CPO for getting vertex ID from a vertex descriptor
+     * 
+     * Usage: auto id = graph::vertex_id(my_graph, vertex_descriptor);
+     * 
+     * Returns: Vertex ID (index for vector, key for map, etc.)
+     */
+    inline constexpr _cpo::_vertex_id::_fn vertex_id{};
 }
 
 // ============================================================================
@@ -173,5 +278,20 @@ using vertex_iterator_t = std::ranges::iterator_t<vertex_range_t<G>>;
  */
 template<typename G>
 using vertex_t = std::ranges::range_value_t<vertex_range_t<G>>;
+
+// ============================================================================
+// Type Alias based on vertex_id(g, u)
+// ============================================================================
+
+/**
+ * @brief Vertex ID type for graph G
+ * 
+ * The type of the unique identifier returned by vertex_id(g, u).
+ * - For random-access containers (vector, deque): size_t (index)
+ * - For associative containers (map): key type
+ * - For bidirectional containers: iterator-based ID
+ */
+template<typename G>
+using vertex_id_t = decltype(vertex_id(std::declval<const G&>(), std::declval<vertex_t<G>>()));
 
 } // namespace graph

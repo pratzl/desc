@@ -180,10 +180,74 @@ TEST_CASE("Type aliases - compile-time computation", "[type_aliases][constexpr]"
         using VRange = vertex_range_t<Graph>;
         using VIter = vertex_iterator_t<Graph>;
         using V = vertex_t<Graph>;
+        using VId = vertex_id_t<Graph>;
         
         // Just having these compile proves they work at compile time
         STATIC_REQUIRE(sizeof(VRange) > 0);
         STATIC_REQUIRE(sizeof(VIter) > 0);
         STATIC_REQUIRE(sizeof(V) > 0);
+        STATIC_REQUIRE(sizeof(VId) > 0);
+    }
+}
+
+TEST_CASE("Type aliases - vertex_id(g,u) based types", "[type_aliases][vertex_id]") {
+    SECTION("vector<vector<int>> - vertex_id_t is size_t") {
+        using Graph = std::vector<std::vector<int>>;
+        
+        STATIC_REQUIRE(std::same_as<vertex_id_t<Graph>, size_t>);
+    }
+    
+    SECTION("map<int, vector<int>> - vertex_id_t is int") {
+        using Graph = std::map<int, std::vector<int>>;
+        
+        STATIC_REQUIRE(std::same_as<vertex_id_t<Graph>, int>);
+    }
+    
+    SECTION("map<string, vector<int>> - vertex_id_t is string") {
+        using Graph = std::map<std::string, std::vector<int>>;
+        
+        STATIC_REQUIRE(std::same_as<vertex_id_t<Graph>, std::string>);
+    }
+    
+    SECTION("deque<deque<int>> - vertex_id_t is size_t") {
+        using Graph = std::deque<std::deque<int>>;
+        
+        STATIC_REQUIRE(std::same_as<vertex_id_t<Graph>, size_t>);
+    }
+    
+    SECTION("vertex_id_t matches actual return value") {
+        using Graph = std::vector<std::vector<int>>;
+        Graph g = {{}};
+        
+        vertex_range_t<Graph> verts = vertices(g);
+        vertex_t<Graph> v = *std::ranges::begin(verts);
+        
+        auto id = vertex_id(g, v);
+        STATIC_REQUIRE(std::same_as<decltype(id), vertex_id_t<Graph>>);
+        REQUIRE(id == 0);
+    }
+}
+
+TEST_CASE("Type aliases - vertex_id_t with different key types", "[type_aliases][vertex_id]") {
+    SECTION("map with unsigned key") {
+        using Graph = std::map<unsigned int, std::vector<int>>;
+        
+        STATIC_REQUIRE(std::same_as<vertex_id_t<Graph>, unsigned int>);
+    }
+    
+    SECTION("map with long key") {
+        using Graph = std::map<long, std::vector<int>>;
+        
+        STATIC_REQUIRE(std::same_as<vertex_id_t<Graph>, long>);
+    }
+    
+    SECTION("map with custom key type") {
+        struct CustomKey {
+            int value;
+            bool operator<(const CustomKey& other) const { return value < other.value; }
+        };
+        using Graph = std::map<CustomKey, std::vector<int>>;
+        
+        STATIC_REQUIRE(std::same_as<vertex_id_t<Graph>, CustomKey>);
     }
 }
