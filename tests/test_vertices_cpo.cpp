@@ -37,7 +37,8 @@ using namespace graph;
 // =============================================================================
 
 TEST_CASE("vertices(g) - vector<vector<int>> simple adjacency list", "[vertices][cpo]") {
-    std::vector<std::vector<int>> graph = {
+    using Graph = std::vector<std::vector<int>>;
+    Graph graph = {
         {1, 2},      // vertex 0 -> edges to 1, 2
         {2, 3},      // vertex 1 -> edges to 2, 3
         {3},         // vertex 2 -> edge to 3
@@ -45,19 +46,19 @@ TEST_CASE("vertices(g) - vector<vector<int>> simple adjacency list", "[vertices]
     };
     
     SECTION("returns vertex_descriptor_view") {
-        auto verts = vertices(graph);
+        // Using type alias demonstrates proper usage
+        vertex_range_t<Graph> verts = vertices(graph);
         REQUIRE(std::ranges::forward_range<decltype(verts)>);
         
-        // Verify it's a descriptor view
-        using ViewType = decltype(verts);
-        using IterType = std::ranges::iterator_t<ViewType>;
-        REQUIRE(std::same_as<ViewType, vertex_descriptor_view<std::vector<std::vector<int>>::iterator>>);
+        // Verify type aliases are correct
+        REQUIRE(std::same_as<vertex_range_t<Graph>, vertex_descriptor_view<Graph::iterator>>);
     }
     
     SECTION("iterates over all vertices") {
-        auto verts = vertices(graph);
+        vertex_range_t<Graph> verts = vertices(graph);
         std::vector<size_t> vertex_ids;
         
+        // Use auto in range-for for readability
         for (auto v : verts) {
             vertex_ids.push_back(v.vertex_id());
         }
@@ -67,24 +68,25 @@ TEST_CASE("vertices(g) - vector<vector<int>> simple adjacency list", "[vertices]
     }
     
     SECTION("vertex descriptors have correct properties") {
-        auto verts = vertices(graph);
-        auto it = std::ranges::begin(verts);
+        vertex_range_t<Graph> verts = vertices(graph);
+        vertex_iterator_t<Graph> it = std::ranges::begin(verts);
         
-        auto v0 = *it;
+        // Type alias shows the vertex descriptor type
+        vertex_t<Graph> v0 = *it;
         REQUIRE(v0.vertex_id() == 0);
         
         ++it;
-        auto v1 = *it;
+        vertex_t<Graph> v1 = *it;
         REQUIRE(v1.vertex_id() == 1);
     }
     
     SECTION("can use with range algorithms") {
-        auto verts = vertices(graph);
+        vertex_range_t<Graph> verts = vertices(graph);
         
         size_t count = std::ranges::distance(verts);
         REQUIRE(count == 4);
         
-        // Check we can use range-for
+        // Keep auto in range-for - it's clearer
         size_t visited = 0;
         for ([[maybe_unused]] auto v : verts) {
             ++visited;
@@ -130,7 +132,8 @@ TEST_CASE("vertices(g) - vector<vector<pair<int,double>>> weighted graph", "[ver
 // =============================================================================
 
 TEST_CASE("vertices(g) - map<int, vector<int>> sparse graph", "[vertices][cpo]") {
-    std::map<int, std::vector<int>> graph = {
+    using Graph = std::map<int, std::vector<int>>;
+    Graph graph = {
         {10, {20, 30}},
         {20, {30}},
         {30, {}},
@@ -138,14 +141,15 @@ TEST_CASE("vertices(g) - map<int, vector<int>> sparse graph", "[vertices][cpo]")
     };
     
     SECTION("returns vertex_descriptor_view") {
-        auto verts = vertices(graph);
+        vertex_range_t<Graph> verts = vertices(graph);
         REQUIRE(std::ranges::forward_range<decltype(verts)>);
     }
     
     SECTION("iterates over all vertices with correct keys") {
-        auto verts = vertices(graph);
+        vertex_range_t<Graph> verts = vertices(graph);
         std::vector<int> vertex_ids;
         
+        // Use auto in range-for for readability
         for (auto v : verts) {
             vertex_ids.push_back(v.vertex_id());
         }
@@ -155,10 +159,10 @@ TEST_CASE("vertices(g) - map<int, vector<int>> sparse graph", "[vertices][cpo]")
     }
     
     SECTION("vertex descriptors access correct edge lists") {
-        auto verts = vertices(graph);
-        auto it = std::ranges::begin(verts);
+        vertex_range_t<Graph> verts = vertices(graph);
+        vertex_iterator_t<Graph> it = std::ranges::begin(verts);
         
-        auto v10 = *it;
+        vertex_t<Graph> v10 = *it;
         REQUIRE(v10.vertex_id() == 10);
         auto& edges_10 = v10.inner_value(graph);
         REQUIRE(edges_10.size() == 2);
@@ -203,19 +207,21 @@ TEST_CASE("vertices(g) - map<int, vector<int>> sparse graph", "[vertices][cpo]")
 // =============================================================================
 
 TEST_CASE("vertices(g) - deque<deque<int>>", "[vertices][cpo]") {
-    std::deque<std::deque<int>> graph;
+    using Graph = std::deque<std::deque<int>>;
+    Graph graph;
     graph.push_back({1, 2});
     graph.push_back({2});
     graph.push_back({});
     
     SECTION("returns vertex_descriptor_view") {
-        auto verts = vertices(graph);
+        vertex_range_t<Graph> verts = vertices(graph);
         REQUIRE(std::ranges::forward_range<decltype(verts)>);
     }
     
     SECTION("correct vertex count and IDs") {
-        auto verts = vertices(graph);
+        vertex_range_t<Graph> verts = vertices(graph);
         std::vector<size_t> ids;
+        // Use auto in range-for for readability
         for (auto v : verts) {
             ids.push_back(v.vertex_id());
         }
@@ -432,24 +438,25 @@ TEST_CASE("vertices(g) - map<int, list<int>>", "[vertices][cpo]") {
 // =============================================================================
 
 TEST_CASE("vertices(g) - vertex descriptor properties", "[vertices][cpo]") {
-    std::vector<std::vector<int>> graph = {
+    using Graph = std::vector<std::vector<int>>;
+    Graph graph = {
         {1, 2},
         {2, 3},
         {3}
     };
     
-    auto verts = vertices(graph);
+    vertex_range_t<Graph> verts = vertices(graph);
     
     SECTION("vertex descriptors are copyable") {
-        auto it = std::ranges::begin(verts);
-        auto v1 = *it;
-        auto v2 = v1;
+        vertex_iterator_t<Graph> it = std::ranges::begin(verts);
+        vertex_t<Graph> v1 = *it;
+        vertex_t<Graph> v2 = v1;  // Copy
         REQUIRE(v2.vertex_id() == v1.vertex_id());
     }
     
     SECTION("vertex descriptors provide inner_value access") {
-        auto it = std::ranges::begin(verts);
-        auto v0 = *it;
+        vertex_iterator_t<Graph> it = std::ranges::begin(verts);
+        vertex_t<Graph> v0 = *it;
         auto& edges = v0.inner_value(graph);
         REQUIRE(edges.size() == 2);
         REQUIRE(edges[0] == 1);
