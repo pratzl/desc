@@ -20,7 +20,8 @@ This library provides the foundation for a complete graph library following the 
 - **Type-safe descriptors**: Vertex and edge descriptors are distinct types, preventing accidental misuse
 - **Zero-cost abstraction**: No runtime overhead compared to raw indices/iterators
 - **Storage flexibility**: Works with random-access containers (vector, deque) and associative containers (map, unordered_map)
-- **Forward-only views**: Descriptor views provide range-based iteration over graph elements
+- **Descriptor views**: `vertex_descriptor_view` and `edge_descriptor_view` provide range-based iteration
+- **Automatic pattern support**: `vertices(g)` and `edges(g, u)` automatically return descriptor views for containers following inner value and edge value patterns
 - **Hash support**: Built-in std::hash specializations for use in unordered containers
 
 ### Graph Container Interface (GCI)
@@ -58,6 +59,46 @@ ctest --test-dir build --output-on-failure
 ```
 
 ## Quick Start
+
+### Automatic Graph Support (No Custom Code Needed!)
+
+```cpp
+#include <graph/graph.hpp>
+#include <vector>
+#include <map>
+
+// Simple adjacency list: vector of vectors of ints
+std::vector<std::vector<int>> adj_list = {
+    {1, 2},      // Vertex 0 -> edges to 1, 2
+    {2, 3},      // Vertex 1 -> edges to 2, 3
+    {3},         // Vertex 2 -> edge to 3
+    {}           // Vertex 3 -> no edges
+};
+
+// Works automatically with vertices(g) and edges(g, u)!
+for (auto u : graph::vertices(adj_list)) {
+    std::cout << "Vertex " << u.vertex_id() << " connects to: ";
+    for (auto e : graph::edges(adj_list, u)) {
+        std::cout << e.target_id(adj_list) << " ";
+    }
+    std::cout << "\n";
+}
+
+// Map-based graph also works automatically
+std::map<int, std::vector<int>> map_graph = {
+    {100, {200, 300}},
+    {200, {300}},
+    {300, {}}
+};
+
+for (auto u : graph::vertices(map_graph)) {
+    std::cout << "Vertex " << u.vertex_id() << " connects to: ";
+    for (auto e : graph::edges(map_graph, u)) {
+        std::cout << e.target_id(map_graph) << " ";
+    }
+    std::cout << "\n";
+}
+```
 
 ### Vertex Descriptors with Vector Storage
 
@@ -135,15 +176,38 @@ for (auto desc : map_view) {
   - Migration documentation
 
 ### 📋 Phase 2: Graph Utility CPOs (PLANNED)
-- [ ] Implement core graph operation CPOs in `graph_utility.hpp`:
-  - `vertex_id(g, v)` - Get vertex ID from descriptor
-  - `num_vertices(g)` - Get vertex count
-  - `num_edges(g)` - Get edge count
-  - `vertices(g)` - Get vertex range
-  - `edges(g)` - Get all edges range
-  - `out_edges(g, v)` - Get outgoing edges from vertex
-- [ ] Unit tests for each CPO
-- [ ] Documentation for CPO usage
+Implement core graph operation CPOs in `graph_cpo.hpp` following the canonical order:
+
+**Phase 1: Core Foundation (Essential)**
+- [ ] `vertices(g)` - Get vertex range (returns `vertex_descriptor_view`)
+- [ ] `vertex_id(g, u)` - Get vertex ID from descriptor
+- [ ] `find_vertex(g, uid)` - Find vertex by ID
+- [ ] `edges(g, u)` - Get outgoing edges from vertex (returns `edge_descriptor_view`)
+- [ ] `target_id(g, uv)` - Get target vertex ID from edge
+
+**Phase 2: Query Functions (High Priority)**
+- [ ] `num_vertices(g)` - Count vertices in graph
+- [ ] `num_edges(g)` - Count total edges in graph
+- [ ] `target(g, uv)` - Get target vertex descriptor from edge
+- [ ] `degree(g, u)` - Get degree of vertex
+
+**Phase 3: Edge Queries (Medium Priority)**
+- [ ] `find_vertex_edge(g, u, vid)` - Find edge from u to vid
+- [ ] `contains_edge(g, uid, vid)` - Check if edge exists
+
+**Phase 4: Optional Features**
+- [ ] `source_id(g, uv)` - Get source vertex ID (for sourced edges)
+- [ ] `source(g, uv)` - Get source vertex descriptor (for sourced edges)
+- [ ] `partition_id(g, u)` - Get partition ID (for multipartite graphs)
+- [ ] `num_partitions(g)` - Get number of partitions
+- [ ] `has_edge(g)` - Check if graph has any edges
+
+**Phase 5: Value Access (Optional)**
+- [ ] `vertex_value(g, u)` - Get user-defined vertex value
+- [ ] `edge_value(g, uv)` - Get user-defined edge value
+- [ ] `graph_value(g)` - Get user-defined graph value
+
+Unit tests and documentation for each CPO to be added incrementally.
 
 ### 📋 Phase 3: First Container Implementation (PLANNED)
 - [ ] `adjacency_list.hpp` in `include/graph/container/`:
@@ -214,7 +278,19 @@ desc/
 
 ## Design Principles
 
-### 1. CPO-Based Interface
+### 1. Descriptor View Architecture
+**IMPORTANT**: All range-returning CPOs must return descriptor views:
+- `vertices(g)` MUST return `vertex_descriptor_view` 
+- `edges(g, u)` MUST return `edge_descriptor_view`
+
+This ensures consistent descriptor semantics across all graph types. The CPOs use a three-tier resolution:
+1. Custom override via member function (e.g., `g.vertices()`)
+2. Custom override via ADL (e.g., `vertices(g)`)
+3. Default implementation using pattern recognition:
+   - `vertices(g)` → `vertex_descriptor_view(g)` if g follows inner value patterns
+   - `edges(g, u)` → `edge_descriptor_view(u.inner_value(), u)` if u.inner_value() follows edge value patterns
+
+### 2. CPO-Based Interface
 All graph operations are customization point objects (CPOs) following MSVC standard library style:
 - Member functions (highest priority)
 - ADL-findable free functions (medium priority)  
@@ -222,22 +298,22 @@ All graph operations are customization point objects (CPOs) following MSVC stand
 
 This allows adaptation of existing graph data structures without modification.
 
-### 2. Outgoing Edge Focus
+### 3. Outgoing Edge Focus
 The interface focuses on outgoing edges from vertices. If a graph exposes incoming edges, a separate view presents them through the same outgoing-edge interface for consistency.
 
-### 3. Range-of-Ranges Model
+### 4. Range-of-Ranges Model
 Adjacency lists are treated as ranges of vertices, where each vertex is a range of edges. This enables use of standard algorithms and range adaptors.
 
-### 4. Descriptor Abstraction
+### 5. Descriptor Abstraction
 Descriptors are opaque objects that abstract implementation details:
 - Random-access containers: descriptors are integral indices
 - Bidirectional containers: descriptors are iterators
 - Provides uniform interface regardless of storage strategy
 
-### 5. Zero-Cost Abstraction
+### 6. Zero-Cost Abstraction
 Descriptors compile down to simple index or iterator operations with no runtime overhead.
 
-### 6. Type Safety
+### 7. Type Safety
 Different descriptor types cannot be accidentally mixed:
 ```cpp
 using VectorDesc = graph::vertex_descriptor<std::vector<int>::iterator>;
@@ -245,11 +321,31 @@ using MapDesc = graph::vertex_descriptor<std::map<int,int>::iterator>;
 // These are distinct types - cannot be assigned to each other
 ```
 
+### 8. Automatic Pattern Recognition
+The library automatically recognizes common container patterns:
+
+**Inner Value Patterns** (for `vertices(g)`):
+- Random-access containers (vector, deque) - index-based vertex IDs
+- Associative containers (map, unordered_map) - key-based vertex IDs
+- Bidirectional containers - iterator-based vertex IDs
+
+**Edge Value Patterns** (for `edges(g, u)`):
+- Simple edges: `std::vector<int>` - integers as target IDs
+- Pair edges: `std::vector<std::pair<int, Weight>>` - .first as target ID
+- Tuple edges: `std::vector<std::tuple<int, ...>>` - first element as target ID
+- Custom edges: structs/classes with custom target ID extraction
+
+This means simple graph containers like `std::vector<std::vector<int>>` or `std::map<int, std::vector<int>>` work automatically without any customization!
+
 ## Documentation
 
 ### Main Documentation Files
 - **[docs/common_graph_guidelines.md](docs/common_graph_guidelines.md)**: Complete naming conventions, architectural commitments, and project structure requirements
 - **[docs/container_interface.md](docs/container_interface.md)**: Comprehensive summary of the Graph Container Interface (adjacency lists and edgelists)
+- **[docs/graph_cpo_order.md](docs/graph_cpo_order.md)**: Canonical CPO implementation order with 19 CPOs organized by phases
+- **[docs/graph_cpo_implementation.md](docs/graph_cpo_implementation.md)**: Complete CPO implementation guide with full code examples (11 CPOs with MSVC-style _Choice_t pattern)
+- **[docs/vertex_inner_value_patterns.md](docs/vertex_inner_value_patterns.md)**: Inner value pattern concepts for automatic `vertices(g)` support
+- **[docs/edge_value_concepts.md](docs/edge_value_concepts.md)**: Edge value pattern concepts for automatic `edges(g, u)` support
 - **[docs/cpo.md](docs/cpo.md)**: Detailed guide for implementing customization point objects
 - **[PHASE1_COMPLETE.md](PHASE1_COMPLETE.md)**: Phase 1 completion report with verification results
 - **[MIGRATION_PHASE1.md](MIGRATION_PHASE1.md)**: Detailed record of Phase 1 migration
