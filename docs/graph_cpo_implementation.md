@@ -32,29 +32,37 @@ The descriptor is a lightweight wrapper around iterators/indices. The actual gra
 
 #### Resolution Order for Element-Based CPOs
 
-For CPOs like `vertex_id(g, u)`, `edges(g, u)`, etc. that operate on graph elements through descriptors:
+For CPOs that operate on graph elements through descriptors:
+- **Vertex CPOs**: `vertex_id(g, u)`, `edges(g, u)`, etc. where `u` is a vertex_descriptor
+- **Edge CPOs**: `target_id(g, uv)`, `source_id(g, uv)`, `edge_value(g, uv)`, etc. where `uv` is an edge_descriptor
 
 1. **Inner value member function** (highest priority)
-   - Example: `u.inner_value(g).vertex_id(g)` where `u` is a vertex_descriptor
-   - Checks if the actual vertex data has a member function
+   - Vertex example: `u.inner_value(g).vertex_id(g)` where `u` is a vertex_descriptor
+   - Edge example: `uv.inner_value(g).target_id(g)` where `uv` is an edge_descriptor
+   - Checks if the actual element data has a member function
 
 2. **ADL with inner_value** 
-   - Example: `vertex_id(g, u.inner_value(g))`
-   - ADL lookup using the actual vertex data type
+   - Vertex example: `vertex_id(g, u.inner_value(g))`
+   - Edge example: `target_id(g, uv.inner_value(g))`
+   - ADL lookup using the actual element data type
 
 3. **ADL with descriptor**
-   - Example: `vertex_id(g, u)`
+   - Vertex example: `vertex_id(g, u)`
+   - Edge example: `target_id(g, uv)`
    - ADL lookup using the descriptor type
 
-4. **Descriptor default** (lowest priority)
-   - Example: `u.vertex_id()`
-   - Built-in descriptor functionality as fallback
+4. **Descriptor default or pattern extraction** (lowest priority)
+   - Vertex example: `u.vertex_id()` - built-in descriptor functionality
+   - Edge example: Pattern extraction (integral/pair/tuple) from `uv.inner_value(g)`
+   - Fallback when no customization exists
 
 Where:
-- `u` is a `vertex_descriptor<Iter>` 
-- `u.inner_value(g)` extracts the actual element from the graph container
-- For vectors: returns `g[u.value()]` (the actual vertex data)
-- For maps: returns `(*iter).second` (the value part of the key-value pair)
+- `u` is a `vertex_descriptor<Iter>` and `u.inner_value(g)` extracts the actual vertex data
+  - For vectors: returns `g[u.value()]` (the actual vertex data)
+  - For maps: returns `(*iter).second` (the value part of the key-value pair)
+- `uv` is an `edge_descriptor<EdgeIter, VertexIter>` and `uv.inner_value(g)` extracts the actual edge data
+  - For vector of vectors: returns the target ID (int)
+  - For vector of pairs/tuples: returns the pair/tuple containing target and optional weight/data
 
 #### Example: vertex_id(g, u)
 
@@ -81,6 +89,33 @@ std::vector<MyVertex> graph = {
 // The CPO will call: u.inner_value(g).vertex_id(g)
 // Returns: 100, 200, 300 (custom IDs)
 // NOT: 0, 1, 2 (indices from descriptor default)
+```
+
+#### Example: target_id(g, uv)
+
+```cpp
+// User's custom edge type
+struct MyEdge {
+    int destination;
+    double weight;
+    
+    // Highest priority: inner value member
+    template<typename G>
+    int target_id(const G& g) const {
+        return destination;  // Custom extraction logic
+    }
+};
+
+// Graph using custom edges
+std::vector<std::vector<MyEdge>> graph = {
+    {{1, 1.5}, {2, 2.5}},  // Vertex 0 -> edges to 1 and 2
+    {{2, 3.5}},            // Vertex 1 -> edge to 2
+    {}                     // Vertex 2 -> no edges
+};
+
+// The CPO will call: uv.inner_value(g).target_id(g)
+// Returns target IDs using custom MyEdge::target_id(g) member
+// Alternative: for pair<int, double>, pattern extraction uses .first
 ```
 
 ### MSVC-Style Pattern Summary
@@ -515,64 +550,92 @@ inline namespace _cpos {
 **Signature:** `vertex_id_t<G> target_id(G& g, edge_t<G> uv)`  
 **Return:** Target vertex ID of edge `uv`  
 **Complexity:** O(1)  
-**Default:** Pattern-based extraction for integral, pair, or tuple edge values
+**Default:** Pattern-based extraction for integral, pair, or tuple edge values from inner_value
+
+**Resolution Order** (follows inner_value priority pattern):
+1. `uv.inner_value(g).target_id(g)` - Inner value member (highest priority)
+2. `target_id(g, uv.inner_value(g))` - ADL with inner_value
+3. `target_id(g, uv)` - ADL with descriptor
+4. Pattern extraction from `uv.inner_value(g)` - Default (lowest priority):
+   - Integral: returns the value itself
+   - Pair: returns `.first`
+   - Tuple: returns `std::get<0>(...)`
+
+Where:
+- `uv` is an `edge_descriptor<EdgeIter, VertexIter>`
+- `uv.inner_value(g)` extracts the actual edge data from the graph
 
 ```cpp
 namespace _target_id {
-    enum class _St { _none, _member_g_uv, _member_uv, _adl, _integral, _pair, _tuple };
+    enum class _St { _none, _inner_value_member, _adl_inner_value, _adl_descriptor, 
+                     _integral, _pair, _tuple };
     
-    // Check for g.target_id(uv)
+    // Check for inner_value.target_id(g) member function
     template<typename G, typename E>
-    concept _has_member_g_uv = requires(const G& g, const E& uv) {
-        { g.target_id(uv) };
-    };
+    concept _has_inner_value_member = 
+        is_edge_descriptor_v<std::remove_cvref_t<E>> &&
+        requires(G& g, const E& uv) {
+            { uv.inner_value(g).target_id(g) };
+        };
     
-    // Check for uv.target_id()
-    template<typename E>
-    concept _has_member_uv = requires(const E& uv) {
-        { uv.target_id() };
-    };
-    
-    // Check for ADL target_id(g, uv)
+    // Check for ADL target_id(g, inner_value)
     template<typename G, typename E>
-    concept _has_adl = requires(const G& g, const E& uv) {
-        { target_id(g, uv) };
-    };
+    concept _has_adl_inner_value = 
+        is_edge_descriptor_v<std::remove_cvref_t<E>> &&
+        requires(G& g, const E& uv) {
+            { target_id(g, uv.inner_value(g)) };
+        };
     
-    // Check if edge value is integral (simple target_id)
-    template<typename E>
-    concept _is_integral = std::integral<std::remove_cvref_t<E>>;
+    // Check for ADL target_id(g, descriptor)
+    template<typename G, typename E>
+    concept _has_adl_descriptor = 
+        is_edge_descriptor_v<std::remove_cvref_t<E>> &&
+        requires(const G& g, const E& uv) {
+            { target_id(g, uv) };
+        };
     
-    // Check if edge value is pair-like
-    template<typename E>
-    concept _is_pair = requires(const E& uv) {
-        { uv.first };
-        { uv.second };
-    };
+    // Check if edge inner_value is integral (simple target_id)
+    template<typename G, typename E>
+    concept _is_integral = 
+        is_edge_descriptor_v<std::remove_cvref_t<E>> &&
+        requires(G& g, const E& uv) {
+            { uv.inner_value(g) } -> std::integral;
+        };
     
-    // Check if edge value is tuple-like
-    template<typename E>
-    concept _is_tuple = requires {
-        typename std::tuple_size<std::remove_cvref_t<E>>::type;
-    } && (std::tuple_size_v<std::remove_cvref_t<E>> >= 1);
+    // Check if edge inner_value is pair-like
+    template<typename G, typename E>
+    concept _is_pair = 
+        is_edge_descriptor_v<std::remove_cvref_t<E>> &&
+        requires(G& g, const E& uv) {
+            { uv.inner_value(g).first };
+            { uv.inner_value(g).second };
+        };
+    
+    // Check if edge inner_value is tuple-like
+    template<typename G, typename E>
+    concept _is_tuple = 
+        is_edge_descriptor_v<std::remove_cvref_t<E>> &&
+        requires(G& g, const E& uv) {
+            typename std::tuple_size<std::remove_cvref_t<decltype(uv.inner_value(g))>>::type;
+        } && (std::tuple_size_v<std::remove_cvref_t<decltype(std::declval<E>().inner_value(std::declval<G&>()))>> >= 1);
     
     template<typename G, typename E>
     [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
-        if constexpr (_has_member_g_uv<G, E>) {
-            return {_St::_member_g_uv, 
-                    noexcept(std::declval<const G&>().target_id(std::declval<const E&>()))};
-        } else if constexpr (_has_member_uv<E>) {
-            return {_St::_member_uv, 
-                    noexcept(std::declval<const E&>().target_id())};
-        } else if constexpr (_has_adl<G, E>) {
-            return {_St::_adl, 
+        if constexpr (_has_inner_value_member<G, E>) {
+            return {_St::_inner_value_member, 
+                    noexcept(std::declval<E&>().inner_value(std::declval<G&>()).target_id(std::declval<const G&>()))};
+        } else if constexpr (_has_adl_inner_value<G, E>) {
+            return {_St::_adl_inner_value, 
+                    noexcept(target_id(std::declval<G&>(), std::declval<E&>().inner_value(std::declval<G&>())))};
+        } else if constexpr (_has_adl_descriptor<G, E>) {
+            return {_St::_adl_descriptor, 
                     noexcept(target_id(std::declval<const G&>(), std::declval<const E&>()))};
-        } else if constexpr (_is_integral<E>) {
+        } else if constexpr (_is_integral<G, E>) {
             return {_St::_integral, true};
-        } else if constexpr (_is_pair<E>) {
-            return {_St::_pair, noexcept(std::declval<const E&>().first)};
-        } else if constexpr (_is_tuple<E>) {
-            return {_St::_tuple, noexcept(std::get<0>(std::declval<const E&>()))};
+        } else if constexpr (_is_pair<G, E>) {
+            return {_St::_pair, noexcept(std::declval<E&>().inner_value(std::declval<G&>()).first)};
+        } else if constexpr (_is_tuple<G, E>) {
+            return {_St::_tuple, noexcept(std::get<0>(std::declval<E&>().inner_value(std::declval<G&>())))};
         } else {
             return {_St::_none, false};
         }
@@ -585,29 +648,29 @@ namespace _target_id {
         
     public:
         template<typename G, typename E>
-        [[nodiscard]] constexpr auto operator()(const G& g, const E& uv) const
+        [[nodiscard]] constexpr auto operator()(G& g, const E& uv) const
             noexcept(_Choice<std::remove_cvref_t<G>, std::remove_cvref_t<E>>._No_throw)
             -> decltype(auto)
         {
             using _G = std::remove_cvref_t<G>;
             using _E = std::remove_cvref_t<E>;
             
-            if constexpr (_Choice<_G, _E>._Strategy == _St::_member_g_uv) {
-                return g.target_id(uv);
-            } else if constexpr (_Choice<_G, _E>._Strategy == _St::_member_uv) {
-                return uv.target_id();
-            } else if constexpr (_Choice<_G, _E>._Strategy == _St::_adl) {
+            if constexpr (_Choice<_G, _E>._Strategy == _St::_inner_value_member) {
+                return uv.inner_value(g).target_id(g);
+            } else if constexpr (_Choice<_G, _E>._Strategy == _St::_adl_inner_value) {
+                return target_id(g, uv.inner_value(g));
+            } else if constexpr (_Choice<_G, _E>._Strategy == _St::_adl_descriptor) {
                 return target_id(g, uv);
             } else if constexpr (_Choice<_G, _E>._Strategy == _St::_integral) {
-                return uv;  // Edge value itself is the target_id
+                return uv.inner_value(g);  // Edge value itself is the target_id
             } else if constexpr (_Choice<_G, _E>._Strategy == _St::_pair) {
-                return uv.first;  // First element is target_id
+                return uv.inner_value(g).first;  // First element is target_id
             } else if constexpr (_Choice<_G, _E>._Strategy == _St::_tuple) {
-                return std::get<0>(uv);  // First tuple element is target_id
+                return std::get<0>(uv.inner_value(g));  // First tuple element is target_id
             } else {
                 static_assert(_Choice<_G, _E>._Strategy != _St::_none,
-                    "target_id(g,uv) requires .target_id() member, ADL target_id(), "
-                    "or edge value as integral/pair/tuple with target_id as first element");
+                    "target_id(g,uv) requires inner_value.target_id(g), ADL target_id(), "
+                    "or edge inner_value as integral/pair/tuple with target_id as first element");
             }
         }
     };
@@ -1078,37 +1141,67 @@ inline namespace _cpos {
 **Signature:** `edge_value_t<G> edge_value(G& g, edge_t<G> uv)`  
 **Return:** User-defined value associated with edge `uv`  
 **Complexity:** O(1)  
-**Default:** Returns `uv` if it's a forward_range element, otherwise none
+**Default:** Returns `uv.inner_value(g)` (the edge data itself)
+
+**Resolution Order** (follows inner_value priority pattern):
+1. `uv.inner_value(g).edge_value(g)` - Inner value member (highest priority)
+2. `edge_value(g, uv.inner_value(g))` - ADL with inner_value
+3. `edge_value(g, uv)` - ADL with descriptor
+4. `uv.inner_value(g)` - Default (returns edge data itself, lowest priority)
+
+Where:
+- `uv` is an `edge_descriptor<EdgeIter, VertexIter>`
+- `uv.inner_value(g)` extracts the actual edge data
 
 ```cpp
 namespace _edge_value {
-    enum class _St { _none, _member, _adl, _passthrough };
+    enum class _St { _none, _inner_value_member, _adl_inner_value, _adl_descriptor, _inner_value };
     
+    // Check for inner_value.edge_value(g) member function
     template<typename G, typename E>
-    concept _has_member = requires(G& g, E&& uv) {
-        { g.edge_value(std::forward<E>(uv)) };
-    };
+    concept _has_inner_value_member = 
+        is_edge_descriptor_v<std::remove_cvref_t<E>> &&
+        requires(G& g, const E& uv) {
+            { uv.inner_value(g).edge_value(g) };
+        };
     
+    // Check for ADL edge_value(g, inner_value)
     template<typename G, typename E>
-    concept _has_adl = requires(G& g, E&& uv) {
-        { edge_value(g, std::forward<E>(uv)) };
-    };
+    concept _has_adl_inner_value = 
+        is_edge_descriptor_v<std::remove_cvref_t<E>> &&
+        requires(G& g, const E& uv) {
+            { edge_value(g, uv.inner_value(g)) };
+        };
     
-    // Edge value could be the edge reference itself from a range
-    template<typename E>
-    concept _is_passthrough = std::ranges::forward_range<std::remove_cvref_t<E>> 
-                              || std::is_reference_v<E>;
+    // Check for ADL edge_value(g, descriptor)
+    template<typename G, typename E>
+    concept _has_adl_descriptor = 
+        is_edge_descriptor_v<std::remove_cvref_t<E>> &&
+        requires(G& g, const E& uv) {
+            { edge_value(g, uv) };
+        };
+    
+    // Default: return inner_value itself
+    template<typename G, typename E>
+    concept _has_inner_value = 
+        is_edge_descriptor_v<std::remove_cvref_t<E>> &&
+        requires(G& g, const E& uv) {
+            { uv.inner_value(g) };
+        };
     
     template<typename G, typename E>
     [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
-        if constexpr (_has_member<G, E>) {
-            return {_St::_member, 
-                    noexcept(std::declval<G&>().edge_value(std::declval<E>()))};
-        } else if constexpr (_has_adl<G, E>) {
-            return {_St::_adl, 
-                    noexcept(edge_value(std::declval<G&>(), std::declval<E>()))};
-        } else if constexpr (_is_passthrough<E>) {
-            return {_St::_passthrough, true};
+        if constexpr (_has_inner_value_member<G, E>) {
+            return {_St::_inner_value_member, 
+                    noexcept(std::declval<E&>().inner_value(std::declval<G&>()).edge_value(std::declval<const G&>()))};
+        } else if constexpr (_has_adl_inner_value<G, E>) {
+            return {_St::_adl_inner_value, 
+                    noexcept(edge_value(std::declval<G&>(), std::declval<E&>().inner_value(std::declval<G&>())))};
+        } else if constexpr (_has_adl_descriptor<G, E>) {
+            return {_St::_adl_descriptor, 
+                    noexcept(edge_value(std::declval<G&>(), std::declval<const E&>()))};
+        } else if constexpr (_has_inner_value<G, E>) {
+            return {_St::_inner_value, true};
         } else {
             return {_St::_none, false};
         }
@@ -1121,22 +1214,24 @@ namespace _edge_value {
         
     public:
         template<typename G, typename E>
-        [[nodiscard]] constexpr auto operator()(G&& g, E&& uv) const
+        [[nodiscard]] constexpr auto operator()(G& g, const E& uv) const
             noexcept(_Choice<std::remove_cvref_t<G>, std::remove_cvref_t<E>>._No_throw)
             -> decltype(auto)
         {
             using _G = std::remove_cvref_t<G>;
             using _E = std::remove_cvref_t<E>;
             
-            if constexpr (_Choice<_G, _E>._Strategy == _St::_member) {
-                return std::forward<G>(g).edge_value(std::forward<E>(uv));
-            } else if constexpr (_Choice<_G, _E>._Strategy == _St::_adl) {
-                return edge_value(std::forward<G>(g), std::forward<E>(uv));
-            } else if constexpr (_Choice<_G, _E>._Strategy == _St::_passthrough) {
-                return std::forward<E>(uv);
+            if constexpr (_Choice<_G, _E>._Strategy == _St::_inner_value_member) {
+                return uv.inner_value(g).edge_value(g);
+            } else if constexpr (_Choice<_G, _E>._Strategy == _St::_adl_inner_value) {
+                return edge_value(g, uv.inner_value(g));
+            } else if constexpr (_Choice<_G, _E>._Strategy == _St::_adl_descriptor) {
+                return edge_value(g, uv);
+            } else if constexpr (_Choice<_G, _E>._Strategy == _St::_inner_value) {
+                return uv.inner_value(g);  // Return edge data itself
             } else {
                 static_assert(_Choice<_G, _E>._Strategy != _St::_none,
-                    "edge_value(g,uv) is optional and requires explicit implementation");
+                    "edge_value(g,uv) requires inner_value.edge_value(g), ADL edge_value(), or edge descriptor");
             }
         }
     };
