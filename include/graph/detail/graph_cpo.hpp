@@ -135,25 +135,32 @@ namespace _cpo {
     // =========================================================================
     
     namespace _vertex_id {
-        enum class _St { _none, _member_g_u, _member_u, _adl, _descriptor };
+        enum class _St { _none, _inner_value_member, _adl_inner_value, _adl_descriptor, _descriptor };
         
-        // Check for g.vertex_id(u) member function
+        // Check for inner_value.vertex_id(g) member function
+        // Note: u.inner_value(g) returns the inner value from the descriptor
         template<typename G, typename U>
-        concept _has_member_g_u = requires(const G& g, const U& u) {
-            { g.vertex_id(u) };
-        };
+        concept _has_inner_value_member = 
+            is_vertex_descriptor_v<std::remove_cvref_t<U>> &&
+            requires(G& g, const U& u) {
+                { u.inner_value(g).vertex_id(g) };
+            };
         
-        // Check for u.vertex_id() member function
-        template<typename U>
-        concept _has_member_u = requires(const U& u) {
-            { u.vertex_id() };
-        };
-        
-        // Check for ADL vertex_id(g, u)
+        // Check for ADL vertex_id(g, inner_value)
         template<typename G, typename U>
-        concept _has_adl = requires(const G& g, const U& u) {
-            { vertex_id(g, u) };
-        };
+        concept _has_adl_inner_value = 
+            is_vertex_descriptor_v<std::remove_cvref_t<U>> &&
+            requires(G& g, const U& u) {
+                { vertex_id(g, u.inner_value(g)) };
+            };
+        
+        // Check for ADL vertex_id(g, descriptor)
+        template<typename G, typename U>
+        concept _has_adl_descriptor = 
+            is_vertex_descriptor_v<std::remove_cvref_t<U>> &&
+            requires(const G& g, const U& u) {
+                { vertex_id(g, u) };
+            };
         
         // Check if descriptor has vertex_id() member (default)
         template<typename U>
@@ -164,14 +171,14 @@ namespace _cpo {
         
         template<typename G, typename U>
         [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
-            if constexpr (_has_member_g_u<G, U>) {
-                return {_St::_member_g_u, 
-                        noexcept(std::declval<const G&>().vertex_id(std::declval<const U&>()))};
-            } else if constexpr (_has_member_u<U>) {
-                return {_St::_member_u, 
-                        noexcept(std::declval<const U&>().vertex_id())};
-            } else if constexpr (_has_adl<G, U>) {
-                return {_St::_adl, 
+            if constexpr (_has_inner_value_member<G, U>) {
+                return {_St::_inner_value_member, 
+                        noexcept(std::declval<U&>().inner_value(std::declval<G&>()).vertex_id(std::declval<const G&>()))};
+            } else if constexpr (_has_adl_inner_value<G, U>) {
+                return {_St::_adl_inner_value, 
+                        noexcept(vertex_id(std::declval<G&>(), std::declval<U&>().inner_value(std::declval<G&>())))};
+            } else if constexpr (_has_adl_descriptor<G, U>) {
+                return {_St::_adl_descriptor, 
                         noexcept(vertex_id(std::declval<const G&>(), std::declval<const U&>()))};
             } else if constexpr (_has_descriptor<U>) {
                 return {_St::_descriptor, 
@@ -190,11 +197,15 @@ namespace _cpo {
             /**
              * @brief Get unique ID for a vertex
              * 
-             * Resolution order:
-             * 1. If g.vertex_id(u) exists -> use it
-             * 2. If u.vertex_id() exists -> use it
-             * 3. If ADL vertex_id(g, u) exists -> use it
-             * 4. If u is a vertex_descriptor with vertex_id() -> use it (default)
+             * Resolution order (checks inner_value first, then descriptor):
+             * 1. u.inner_value(g).vertex_id(g) - inner_value member function (highest priority)
+             * 2. vertex_id(g, u.inner_value(g)) - ADL with inner_value
+             * 3. vertex_id(g, u) - ADL with vertex_descriptor
+             * 4. u.vertex_id() - descriptor's default method (lowest priority)
+             * 
+             * Where:
+             * - u is a vertex_descriptor<Iter>
+             * - u.inner_value(g) extracts the actual vertex data from the graph container
              * 
              * For random-access containers: returns the index
              * For associative containers: returns the key
@@ -205,7 +216,7 @@ namespace _cpo {
              * @return Unique identifier for the vertex
              */
             template<typename G, typename U>
-            [[nodiscard]] constexpr auto operator()(const G& g, const U& u) const
+            [[nodiscard]] constexpr auto operator()(G& g, const U& u) const
                 noexcept(_Choice<std::remove_cvref_t<G>, std::remove_cvref_t<U>>._No_throw)
                 -> decltype(auto)
                 requires (_Choice<std::remove_cvref_t<G>, std::remove_cvref_t<U>>._Strategy != _St::_none)
@@ -213,11 +224,11 @@ namespace _cpo {
                 using _G = std::remove_cvref_t<G>;
                 using _U = std::remove_cvref_t<U>;
                 
-                if constexpr (_Choice<_G, _U>._Strategy == _St::_member_g_u) {
-                    return g.vertex_id(u);
-                } else if constexpr (_Choice<_G, _U>._Strategy == _St::_member_u) {
-                    return u.vertex_id();
-                } else if constexpr (_Choice<_G, _U>._Strategy == _St::_adl) {
+                if constexpr (_Choice<_G, _U>._Strategy == _St::_inner_value_member) {
+                    return u.inner_value(g).vertex_id(g);
+                } else if constexpr (_Choice<_G, _U>._Strategy == _St::_adl_inner_value) {
+                    return vertex_id(g, u.inner_value(g));
+                } else if constexpr (_Choice<_G, _U>._Strategy == _St::_adl_descriptor) {
                     return vertex_id(g, u);
                 } else if constexpr (_Choice<_G, _U>._Strategy == _St::_descriptor) {
                     return u.vertex_id();
@@ -292,6 +303,6 @@ using vertex_t = std::ranges::range_value_t<vertex_range_t<G>>;
  * - For bidirectional containers: iterator-based ID
  */
 template<typename G>
-using vertex_id_t = decltype(vertex_id(std::declval<const G&>(), std::declval<vertex_t<G>>()));
+using vertex_id_t = decltype(vertex_id(std::declval<G&>(), std::declval<vertex_t<G>>()));
 
 } // namespace graph

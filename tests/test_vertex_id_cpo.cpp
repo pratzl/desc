@@ -8,11 +8,17 @@
  * - Deque-based graphs (index-based IDs)
  * - Custom vertex ID implementations
  * 
+ * Resolution order tested:
+ * 1. inner_value.vertex_id(g) - custom member on inner_value
+ * 2. vertex_id(g, inner_value) - ADL with inner_value
+ * 3. vertex_id(g, descriptor) - ADL with descriptor
+ * 4. descriptor.vertex_id() - default fallback
+ * 
  * Verifies:
  * - Correct ID extraction for different storage types
  * - Works with vertex descriptors from vertices(g)
  * - Consistency across multiple calls
- * - Custom member function and ADL overrides
+ * - All four resolution tiers
  */
 
 #include <catch2/catch_test_macros.hpp>
@@ -260,25 +266,34 @@ TEST_CASE("vertex_id(g,u) - sparse map with non-contiguous keys", "[vertex_id][c
 }
 
 // =============================================================================
-// Test 9: Custom Graph with vertex_id() Member (Graph Level)
+// Test 9: Custom Inner Value with vertex_id(g) Member
 // =============================================================================
 
-TEST_CASE("vertex_id(g,u) - custom g.vertex_id(u) member", "[vertex_id][cpo][custom]") {
-    struct CustomGraph {
-        std::vector<std::string> data = {"A", "B", "C"};
+namespace test_inner_value_member {    
+    struct CustomVertex {
+        std::string data;
+        size_t index;
         
-        auto vertices() {
-            return vertex_descriptor_view(data);
-        }
-        
-        // Custom vertex_id at graph level - returns custom string IDs
-        std::string vertex_id(vertex_descriptor<std::vector<std::string>::iterator> v) const {
-            return "vertex_" + std::to_string(v.vertex_id());
+        // Inner value has vertex_id(g) member - highest priority
+        template<typename G>
+        std::string vertex_id(const G& g) const {
+            return "vertex_" + std::to_string(index);
         }
     };
     
-    SECTION("uses custom g.vertex_id(u)") {
-        CustomGraph g;
+    using CustomGraph = std::vector<CustomVertex>;
+}
+
+TEST_CASE("vertex_id(g,u) - custom inner_value.vertex_id(g) member", "[vertex_id][cpo][custom]") {
+    using test_inner_value_member::CustomGraph;
+    using test_inner_value_member::CustomVertex;
+    
+    SECTION("uses custom inner_value.vertex_id(g)") {
+        CustomGraph g = {
+            {"A", 0},
+            {"B", 1},
+            {"C", 2}
+        };
         vertex_range_t<CustomGraph> verts = vertices(g);
         
         std::vector<std::string> ids;
@@ -294,34 +309,28 @@ TEST_CASE("vertex_id(g,u) - custom g.vertex_id(u) member", "[vertex_id][cpo][cus
 }
 
 // =============================================================================
-// Test 10: ADL vertex_id Override
+// Test 10: ADL vertex_id with Inner Value
 // =============================================================================
 
-namespace test_adl {
-    struct GraphType {
-        std::vector<int> data = {10, 20, 30};
+namespace test_adl_inner {
+    struct CustomVertex {
+        int value;
     };
     
-    auto vertices(GraphType& g) {
-        return vertex_descriptor_view(g.data);
-    }
+    using GraphType = std::vector<CustomVertex>;
     
-    // ADL vertex_id - returns double the normal ID
-    int vertex_id(const GraphType& g, vertex_descriptor<std::vector<int>::iterator> v) {
-        return v.vertex_id() * 2;
+    // ADL vertex_id with inner_value - returns value * 2
+    int vertex_id(const GraphType& g, const CustomVertex& inner_value) {
+        return inner_value.value * 2;
     }
 }
 
-TEST_CASE("vertex_id(g,u) - ADL override", "[vertex_id][cpo][custom]") {
-    using test_adl::GraphType;
+TEST_CASE("vertex_id(g,u) - ADL with inner_value", "[vertex_id][cpo][custom]") {
+    using test_adl_inner::GraphType;
+    using test_adl_inner::CustomVertex;
     
-    SECTION("descriptor's vertex_id() takes precedence over ADL") {
-        // Note: In CPO resolution order, member functions (u.vertex_id())
-        // have higher priority than ADL. This is correct CPO behavior.
-        // The ADL vertex_id exists but is not called because the descriptor
-        // already has a vertex_id() method.
-        
-        GraphType g;
+    SECTION("uses ADL vertex_id(g, inner_value)") {
+        GraphType g = {{10}, {20}, {30}};
         auto verts = vertices(g);
         
         std::vector<int> ids;
@@ -330,14 +339,60 @@ TEST_CASE("vertex_id(g,u) - ADL override", "[vertex_id][cpo][custom]") {
         }
         
         REQUIRE(ids.size() == 3);
-        REQUIRE(ids[0] == 0);  // Uses descriptor's vertex_id(), not ADL
-        REQUIRE(ids[1] == 1);
-        REQUIRE(ids[2] == 2);
+        REQUIRE(ids[0] == 20);  // 10 * 2
+        REQUIRE(ids[1] == 40);  // 20 * 2
+        REQUIRE(ids[2] == 60);  // 30 * 2
     }
 }
 
 // =============================================================================
-// Test 11: Vertex Descriptor Directly (Default Behavior)
+// Test 11: ADL vertex_id with Descriptor
+// =============================================================================
+
+namespace test_adl_descriptor {
+    struct GraphType {
+        using iterator = std::vector<int>::iterator;
+        std::vector<int> data;
+        
+        // Make it indexable for vertex_descriptor::inner_value()
+        auto& operator[](size_t i) { return data[i]; }
+        const auto& operator[](size_t i) const { return data[i]; }
+        
+        // Make it iterable for vertices()
+        auto begin() { return data.begin(); }
+        auto end() { return data.end(); }
+        const auto begin() const { return data.begin(); }
+        const auto end() const { return data.end(); }
+        auto size() const { return data.size(); }
+    };
+    
+    // ADL vertex_id with descriptor - returns descriptor's ID * 3
+    int vertex_id(const GraphType& g, vertex_descriptor<GraphType::iterator> v) {
+        return v.vertex_id() * 3;
+    }
+}
+
+TEST_CASE("vertex_id(g,u) - ADL with descriptor", "[vertex_id][cpo][custom]") {
+    using test_adl_descriptor::GraphType;
+    
+    SECTION("uses ADL vertex_id(g, descriptor)") {
+        GraphType g{{10, 20, 30}};
+        auto verts = vertices(g);
+        
+        std::vector<int> ids;
+        for (auto v : verts) {
+            ids.push_back(vertex_id(g, v));
+        }
+        
+        REQUIRE(ids.size() == 3);
+        REQUIRE(ids[0] == 0);  // 0 * 3
+        REQUIRE(ids[1] == 3);  // 1 * 3
+        REQUIRE(ids[2] == 6);  // 2 * 3
+    }
+}
+
+// =============================================================================
+// Test 12: Vertex Descriptor Default (Fallback Behavior)
 // =============================================================================
 
 TEST_CASE("vertex_id(g,u) - uses descriptor's vertex_id() by default", "[vertex_id][cpo]") {
@@ -358,7 +413,7 @@ TEST_CASE("vertex_id(g,u) - uses descriptor's vertex_id() by default", "[vertex_
 }
 
 // =============================================================================
-// Test 12: Type Alias Consistency
+// Test 13: Type Alias Consistency
 // =============================================================================
 
 TEST_CASE("vertex_id(g,u) - type alias consistency", "[vertex_id][cpo][type_aliases]") {
@@ -386,7 +441,7 @@ TEST_CASE("vertex_id(g,u) - type alias consistency", "[vertex_id][cpo][type_alia
 }
 
 // =============================================================================
-// Test 13: Weighted Graphs (Different Edge Types)
+// Test 14: Weighted Graphs (Different Edge Types)
 // =============================================================================
 
 TEST_CASE("vertex_id(g,u) - weighted graphs with different edge types", "[vertex_id][cpo]") {
@@ -427,7 +482,7 @@ TEST_CASE("vertex_id(g,u) - weighted graphs with different edge types", "[vertex
 }
 
 // =============================================================================
-// Test 14: Const Correctness
+// Test 15: Const Correctness
 // =============================================================================
 
 TEST_CASE("vertex_id(g,u) - const correctness", "[vertex_id][cpo]") {

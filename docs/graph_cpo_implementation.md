@@ -1233,12 +1233,19 @@ Additional CPOs for multipartite graphs:
   - `vertex_range_t<G>` - Range type returned by vertices(g)
   - `vertex_iterator_t<G>` - Iterator over vertex range
   - `vertex_t<G>` - Vertex descriptor type for graph G
-- ✅ `vertex_id(g, u)` - COMPLETE (14 tests passing, four-tier resolution)
+- ✅ `vertex_id(g, u)` - COMPLETE (15 tests passing, four-tier resolution with inner_value priority)
+  - Resolution order:
+    1. `u.inner_value(g).vertex_id(g)` - Inner value member (highest priority)
+    2. `vertex_id(g, u.inner_value(g))` - ADL with inner_value
+    3. `vertex_id(g, u)` - ADL with descriptor
+    4. `u.vertex_id()` - Descriptor default (lowest priority)
+  - Where `u` is a vertex_descriptor and `u.inner_value(g)` extracts the actual vertex data
 - ✅ Type alias based on `vertex_id(g, u)` - COMPLETE (2 additional tests passing)
   - `vertex_id_t<G>` - Vertex ID type (size_t for vector, key type for map)
 - Location: `include/graph/detail/graph_cpo.hpp`
 - Tests: `tests/test_vertices_cpo.cpp`, `tests/test_vertex_id_cpo.cpp`, `tests/test_type_aliases.cpp`
-- Features: Three/four-tier resolution (member/ADL/default), automatic wrapping via `_wrap_if_needed()`
+- Total: 114 tests passing (75 descriptors + 18 vertices + 15 vertex_id + 7 type aliases - 1 overlap)
+- Features: Three/four-tier resolution (member/ADL/default), automatic wrapping via `_wrap_if_needed()`, inner_value pattern support
 
 **Next Steps:**
 1. Implement `find_vertex(g, uid)` CPO (uses vertex_id_t<G> for lookup)

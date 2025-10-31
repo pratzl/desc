@@ -83,8 +83,14 @@ The following order should be followed for implementing CPOs and their correspon
   - ✅ `vertex_range_t<G>` - Range type returned by vertices(g)
   - ✅ `vertex_iterator_t<G>` - Iterator over vertex range
   - ✅ `vertex_t<G>` - Vertex descriptor type
-- ✅ `vertex_id(g, u)` + type alias **COMPLETE** (14 CPO tests + 2 type alias tests = 16 total)
+- ✅ `vertex_id(g, u)` + type alias **COMPLETE** (15 CPO tests + 2 type alias tests = 17 total)
   - ✅ `vertex_id_t<G>` - Vertex ID type
+  - **Resolution order** (checks inner_value first, then descriptor):
+    1. `u.inner_value(g).vertex_id(g)` - Inner value member (highest priority)
+    2. `vertex_id(g, u.inner_value(g))` - ADL with inner_value
+    3. `vertex_id(g, u)` - ADL with descriptor
+    4. `u.vertex_id()` - Descriptor default (lowest priority)
+  - Where `u` is a `vertex_descriptor<Iter>` and `u.inner_value(g)` extracts the actual vertex data from the graph
 - `find_vertex(g, uid)`
 - `edges(g, u)` + type aliases
 - `target_id(g, uv)`
