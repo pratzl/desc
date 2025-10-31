@@ -160,7 +160,7 @@ for (auto desc : map_view) {
   - Vertex descriptors (keyed and direct storage)
   - Edge descriptors with source vertex tracking
   - Descriptor views for range-based access
-  - Comprehensive unit tests (75 tests passing)
+  - Comprehensive unit tests (75 tests passing for descriptors)
 - [x] **Infrastructure**:
   - CPO framework with _Choice_t pattern
   - Common std library imports (detail/graph_using.hpp)
@@ -175,11 +175,11 @@ for (auto desc : map_view) {
   - Common graph guidelines
   - Migration documentation
 
-### 📋 Phase 2: Graph Utility CPOs (PLANNED)
+### � Phase 2: Graph Utility CPOs (IN PROGRESS)
 Implement core graph operation CPOs in `graph_cpo.hpp` following the canonical order:
 
 **Phase 1: Core Foundation (Essential)**
-- [ ] `vertices(g)` - Get vertex range (returns `vertex_descriptor_view`)
+- [x] `vertices(g)` - Get vertex range (returns `vertex_descriptor_view`) ✅ **COMPLETE** - 18 tests passing
 - [ ] `vertex_id(g, u)` - Get vertex ID from descriptor
 - [ ] `find_vertex(g, uid)` - Find vertex by ID
 - [ ] `edges(g, u)` - Get outgoing edges from vertex (returns `edge_descriptor_view`)
@@ -425,7 +425,7 @@ cmake --build build
 
 ## Testing
 
-The project includes 75 unit tests covering all descriptor functionality:
+The project includes 92 unit tests covering descriptor functionality and CPO implementations:
 
 ```bash
 # Run all tests
@@ -433,6 +433,9 @@ ctest --test-dir build/linux-gcc-debug --output-on-failure
 
 # Run specific test
 ctest --test-dir build/linux-gcc-debug -R vertex_descriptor
+
+# Run vertices(g) CPO tests
+ctest --test-dir build/linux-gcc-debug -R vertices
 
 # Verbose output
 ctest --test-dir build/linux-gcc-debug -V
@@ -461,4 +464,4 @@ This library follows the design principles and specifications from:
 
 ---
 
-**Status**: Phase 1 Complete ✅ | 75/75 Tests Passing ✅ | Ready for Phase 2 Development 🚀
+**Status**: Phase 1 Complete ✅ | Phase 2 In Progress 🔄 | 92/92 Tests Passing ✅ | vertices(g) CPO Complete ✅

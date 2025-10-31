@@ -79,18 +79,18 @@ The following order should be followed for implementing CPOs and their correspon
 
 ### Phase 1: Core Foundation (Essential)
 **Required for basic graph operations**
-- ✅ `vertices(g)` + type aliases
-- ✅ `vertex_id(g, u)` + type alias
-- ✅ `find_vertex(g, uid)`
-- ✅ `edges(g, u)` + type aliases
-- ✅ `target_id(g, uv)`
+- ✅ `vertices(g)` + type aliases **COMPLETE** (18 tests passing)
+- `vertex_id(g, u)` + type alias
+- `find_vertex(g, uid)`
+- `edges(g, u)` + type aliases
+- `target_id(g, uv)`
 
 ### Phase 2: Query Functions (High Priority)
 **Required for graph algorithms**
-- ✅ `num_vertices(g)`
-- ✅ `num_edges(g)`
-- ✅ `target(g, uv)`
-- ✅ `degree(g, u)`
+- `num_vertices(g)`
+- `num_edges(g)`
+- `target(g, uv)`
+- `degree(g, u)`
 
 ### Phase 3: Edge Queries (Medium Priority)
 **Required for advanced graph operations**

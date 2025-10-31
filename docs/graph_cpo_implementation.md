@@ -1068,13 +1068,13 @@ inline namespace _cpos {
 ## Implementation Checklist
 
 ### Phase 1: Foundation (Priority 1)
-- [ ] Set up file structure and namespaces
-- [ ] Define `_Choice_t<_Ty>` struct
-- [ ] Implement `vertices(g)`
+- [x] Set up file structure and namespaces
+- [x] Define `_Choice_t<_Ty>` struct
+- [x] Implement `vertices(g)` ✅ **COMPLETE** - 18 tests passing (including 4 custom implementation tests)
 - [ ] Implement `edges(g, u)`
 - [ ] Implement `vertex_id(g, u)`
 - [ ] Implement `target_id(g, uv)`
-- [ ] Create basic tests for each CPO
+- [x] Create basic tests for `vertices(g)` ✅ **COMPLETE**
 
 ### Phase 2: Vertex Queries (Priority 2)
 - [ ] Implement `num_vertices(g)`
@@ -1221,8 +1221,16 @@ Additional CPOs for multipartite graphs:
 
 **Document Status:** Implementation guide for Phase 2 development
 
+**Current Progress:**
+- ✅ `vertices(g)` - COMPLETE (18 tests passing, handles both descriptor view and raw container returns)
+- Location: `include/graph/detail/graph_cpo.hpp`
+- Tests: `tests/test_vertices_cpo.cpp`
+- Features: Three-tier resolution (member/ADL/default), automatic wrapping via `_wrap_if_needed()`
+
 **Next Steps:**
-1. Implement Priority 1 CPOs (vertices, edges, vertex_id, target_id)
-2. Create comprehensive test suite with adjacency list types 1-5
-3. Validate with GCC, Clang, and MSVC compilers
-4. Proceed to Priority 2 functions
+1. Implement `edges(g, u)` CPO (follow parallel pattern to vertices)
+2. Implement `vertex_id(g, u)` CPO
+3. Implement remaining Priority 1 CPOs (find_vertex, target_id)
+4. Create comprehensive test suite for each CPO
+5. Validate with GCC, Clang, and MSVC compilers
+6. Proceed to Priority 2 functions
