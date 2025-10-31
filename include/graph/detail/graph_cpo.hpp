@@ -18,6 +18,7 @@
 #include <iterator>
 #include "graph/vertex_descriptor_view.hpp"
 #include "graph/descriptor.hpp"
+#include "graph/descriptor_traits.hpp"
 
 namespace graph {
 
@@ -76,6 +77,19 @@ namespace _cpo {
             }
         }
         
+        // Helper to wrap result in vertex_descriptor_view if not already
+        template<typename Result>
+        [[nodiscard]] constexpr auto _wrap_if_needed(Result&& result) noexcept {
+            using ResultType = std::remove_cvref_t<Result>;
+            if constexpr (is_vertex_descriptor_view_v<ResultType>) {
+                // Already a vertex_descriptor_view, return as-is
+                return std::forward<Result>(result);
+            } else {
+                // Not a vertex_descriptor_view, wrap it
+                return vertex_descriptor_view(std::forward<Result>(result));
+            }
+        }
+        
         class _fn {
         private:
             template<typename G>
@@ -88,9 +102,13 @@ namespace _cpo {
              * IMPORTANT: This CPO MUST always return a vertex_descriptor_view.
              * 
              * Resolution order:
-             * 1. If g.vertices() exists -> use it (must return vertex_descriptor_view)
-             * 2. If ADL vertices(g) exists -> use it (must return vertex_descriptor_view)
+             * 1. If g.vertices() exists -> use it (wrap in descriptor view if needed)
+             * 2. If ADL vertices(g) exists -> use it (wrap in descriptor view if needed)
              * 3. If g follows inner value patterns -> return vertex_descriptor_view(g)
+             * 
+             * If custom g.vertices() or ADL vertices(g) already returns a 
+             * vertex_descriptor_view, it's used as-is. Otherwise, the result is 
+             * automatically wrapped in vertex_descriptor_view.
              * 
              * @param g Graph container
              * @return vertex_descriptor_view wrapping the vertices
@@ -102,9 +120,9 @@ namespace _cpo {
             {
                 using _G = std::remove_cvref_t<G>;
                 if constexpr (_Choice<_G>._Strategy == _St::_member) {
-                    return g.vertices();
+                    return _wrap_if_needed(g.vertices());
                 } else if constexpr (_Choice<_G>._Strategy == _St::_adl) {
-                    return vertices(g);
+                    return _wrap_if_needed(vertices(g));
                 } else if constexpr (_Choice<_G>._Strategy == _St::_inner_value_pattern) {
                     return vertex_descriptor_view(g);
                 }

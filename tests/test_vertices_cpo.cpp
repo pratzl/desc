@@ -488,7 +488,140 @@ TEST_CASE("vertices(g) - complex vertex value types", "[vertices][cpo]") {
 }
 
 // =============================================================================
-// Test 16: Verify No Compilation for Invalid Types
+// Test 16: Custom vertices() that returns vertex_descriptor_view
+// =============================================================================
+
+TEST_CASE("vertices(g) - custom member returning vertex_descriptor_view", "[vertices][cpo][custom]") {
+    struct CustomGraph {
+        std::vector<std::vector<int>> data = {{1, 2}, {2}, {}};
+        
+        auto vertices() {
+            return graph::vertex_descriptor_view(data);
+        }
+    };
+    
+    CustomGraph g;
+    
+    SECTION("uses custom member function") {
+        auto verts = vertices(g);
+        REQUIRE(std::ranges::forward_range<decltype(verts)>);
+        
+        std::vector<size_t> ids;
+        for (auto v : verts) {
+            ids.push_back(v.vertex_id());
+        }
+        REQUIRE(ids == std::vector<size_t>{0, 1, 2});
+    }
+    
+    SECTION("returns vertex_descriptor_view") {
+        auto verts = vertices(g);
+        using ViewType = decltype(verts);
+        REQUIRE(graph::is_vertex_descriptor_view_v<ViewType>);
+    }
+}
+
+// =============================================================================
+// Test 17: Custom vertices() that returns raw container (not descriptor view)
+// =============================================================================
+
+TEST_CASE("vertices(g) - custom member returning raw container", "[vertices][cpo][custom]") {
+    struct CustomGraph {
+        std::vector<std::vector<int>> data = {{1, 2}, {2}, {}};
+        
+        // Returns raw container, NOT vertex_descriptor_view
+        auto vertices() -> std::vector<std::vector<int>>& {
+            return data;
+        }
+    };
+    
+    CustomGraph g;
+    
+    SECTION("automatically wraps in vertex_descriptor_view") {
+        auto verts = vertices(g);
+        
+        // Should still be a vertex_descriptor_view
+        using ViewType = decltype(verts);
+        REQUIRE(graph::is_vertex_descriptor_view_v<ViewType>);
+        
+        std::vector<size_t> ids;
+        for (auto v : verts) {
+            ids.push_back(v.vertex_id());
+        }
+        REQUIRE(ids == std::vector<size_t>{0, 1, 2});
+    }
+}
+
+// =============================================================================
+// Test 18: ADL vertices() returning vertex_descriptor_view
+// =============================================================================
+
+namespace custom_graph_ns {
+    struct Graph {
+        std::vector<std::vector<int>> data = {{1, 2}, {2}, {}};
+    };
+    
+    // ADL-findable vertices() that returns vertex_descriptor_view
+    auto vertices(Graph& g) {
+        return graph::vertex_descriptor_view(g.data);
+    }
+}
+
+TEST_CASE("vertices(g) - ADL returning vertex_descriptor_view", "[vertices][cpo][adl]") {
+    custom_graph_ns::Graph g;
+    
+    SECTION("uses ADL function") {
+        auto verts = vertices(g);
+        REQUIRE(std::ranges::forward_range<decltype(verts)>);
+        
+        std::vector<size_t> ids;
+        for (auto v : verts) {
+            ids.push_back(v.vertex_id());
+        }
+        REQUIRE(ids == std::vector<size_t>{0, 1, 2});
+    }
+    
+    SECTION("returns vertex_descriptor_view") {
+        auto verts = vertices(g);
+        using ViewType = decltype(verts);
+        REQUIRE(graph::is_vertex_descriptor_view_v<ViewType>);
+    }
+}
+
+// =============================================================================
+// Test 19: ADL vertices() returning raw container
+// =============================================================================
+
+namespace custom_graph_ns2 {
+    struct Graph {
+        std::vector<std::vector<int>> data = {{1, 2}, {2}, {}};
+    };
+    
+    // ADL-findable vertices() that returns raw container
+    auto vertices(Graph& g) -> std::vector<std::vector<int>>& {
+        return g.data;
+    }
+}
+
+TEST_CASE("vertices(g) - ADL returning raw container", "[vertices][cpo][adl]") {
+    custom_graph_ns2::Graph g;
+    
+    SECTION("automatically wraps in vertex_descriptor_view") {
+        auto verts = vertices(g);
+        
+        // Should still be a vertex_descriptor_view
+        using ViewType = decltype(verts);
+        REQUIRE(graph::is_vertex_descriptor_view_v<ViewType>);
+        
+        std::vector<size_t> ids;
+        for (auto v : verts) {
+            ids.push_back(v.vertex_id());
+        }
+        REQUIRE(ids == std::vector<size_t>{0, 1, 2});
+    }
+}
+
+// =============================================================================
+// Test 20: Verify No Compilation for Invalid Types
 // =============================================================================
 
 // These should not compile if uncommented:
