@@ -126,13 +126,18 @@ Type aliases follow the `_t<G>` convention where `G` is the graph type.
 | Function | Return Type | Complexity | Default Implementation |
 |----------|-------------|------------|------------------------|
 | `graph_value(g)` | `graph_value_t<G>` | constant | n/a, optional |
-| `vertices(g)` | `vertex_range_t<G>` | constant | `g` if `random_access_range<G>`, n/a otherwise |
+| `vertices(g)` | `vertex_range_t<G>` | constant | `vertex_descriptor_view(g)` if `g` follows inner value patterns, n/a otherwise |
 | `num_vertices(g)` | integral | constant | `size(vertices(g))` |
 | `num_edges(g)` | integral | \|E\| | `n=0; for(u: vertices(g)) n+=distance(edges(g,u)); return n;` |
 | `has_edge(g)` | bool | \|V\| | `for(u: vertices(g)) if !empty(edges(g,u)) return true; return false;` |
 | `num_partitions(g)` | integral | constant | 1 |
 | `vertices(g,pid)` | `partition_vertex_range_t<G>` | constant | `vertices(g)` |
 | `num_vertices(g,pid)` | integral | constant | `size(vertices(g))` |
+
+**IMPORTANT - vertices(g) Return Type:** `vertices(g)` MUST always return a `vertex_descriptor_view`. The implementation should:
+1. Use `g.vertices()` if available (must return `vertex_descriptor_view`)
+2. Use ADL `vertices(g)` if available (must return `vertex_descriptor_view`)
+3. Otherwise, if `g` follows inner value patterns, return `vertex_descriptor_view(g)` wrapping the container itself
 
 **Note:** Complexity shown for `num_edges(g)` and `has_edge(g)` is for the default implementation. Specific implementations may have better characteristics.
 

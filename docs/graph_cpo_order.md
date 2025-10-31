@@ -10,9 +10,14 @@ The following order should be followed for implementing CPOs and their correspon
 
 | # | CPO Function | Type Aliases | Description |
 |---|--------------|--------------|-------------|
-| 1 | `vertices(g)` | `vertex_range_t<G>`<br>`vertex_iterator_t<G>`<br>`vertex_t<G>` | Get range of vertices in graph (returns descriptor view) |
+| 1 | `vertices(g)` | `vertex_range_t<G>`<br>`vertex_iterator_t<G>`<br>`vertex_t<G>` | Get range of vertices in graph (MUST return `vertex_descriptor_view`) |
 | 2 | `vertex_id(g, u)` | `vertex_id_t<G>` | Get unique ID for vertex |
 | 3 | `find_vertex(g, uid)` | - | Find vertex by ID |
+
+**IMPORTANT:** `vertices(g)` MUST always return a `vertex_descriptor_view`:
+- If `g.vertices()` exists, it must return `vertex_descriptor_view`
+- If ADL `vertices(g)` exists, it must return `vertex_descriptor_view`
+- Otherwise, if `g` follows inner value patterns, return `vertex_descriptor_view(g)`
 
 ### 2. Edge Range Access
 

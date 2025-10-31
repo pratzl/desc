@@ -170,13 +170,18 @@ Each CPO below includes complete code with the MSVC-style `_Choice_t` pattern. U
 ### 1. `vertices(g)` - Get Vertex Range (Implementation Order: #1)
 
 **Signature:** `vertex_range_t<G> vertices(G& g)`  
-**Return:** Range of vertices in the graph  
+**Return:** `vertex_descriptor_view` wrapping vertices in the graph  
 **Complexity:** O(1)  
-**Default:** Returns `g` if `g` is a `random_access_range`, otherwise no default
+**Default:** Returns `vertex_descriptor_view(g)` if `g` follows inner value patterns (is a range with inner value pattern support), otherwise no default
+
+**IMPORTANT:** `vertices(g)` MUST always return a `vertex_descriptor_view`. The implementation should:
+1. First check if `g.vertices()` member exists - if so, use it (must return `vertex_descriptor_view`)
+2. Then check if ADL `vertices(g)` exists - if so, use it (must return `vertex_descriptor_view`)
+3. Otherwise, if `g` follows inner value patterns (has a range of elements with inner value pattern support), return `vertex_descriptor_view(g)` wrapping the graph container itself
 
 ```cpp
 namespace _vertices {
-    enum class _St { _none, _member, _adl, _passthrough };
+    enum class _St { _none, _member, _adl, _inner_value_pattern };
     
     template<typename G>
     concept _has_member = requires(G& g) {
@@ -189,7 +194,9 @@ namespace _vertices {
     };
     
     template<typename G>
-    concept _is_passthrough = std::ranges::random_access_range<G>;
+    concept _has_inner_value_pattern = std::ranges::forward_range<G> && 
+        requires { typename std::ranges::iterator_t<G>; } &&
+        has_inner_value_pattern<std::ranges::iterator_t<G>>;
     
     template<typename G>
     [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
@@ -197,8 +204,8 @@ namespace _vertices {
             return {_St::_member, noexcept(std::declval<G&>().vertices())};
         } else if constexpr (_has_adl<G>) {
             return {_St::_adl, noexcept(vertices(std::declval<G&>()))};
-        } else if constexpr (_is_passthrough<G>) {
-            return {_St::_passthrough, true};
+        } else if constexpr (_has_inner_value_pattern<G>) {
+            return {_St::_inner_value_pattern, true};
         } else {
             return {_St::_none, false};
         }
@@ -220,11 +227,11 @@ namespace _vertices {
                 return std::forward<G>(g).vertices();
             } else if constexpr (_Choice<_G>._Strategy == _St::_adl) {
                 return vertices(std::forward<G>(g));
-            } else if constexpr (_Choice<_G>._Strategy == _St::_passthrough) {
-                return std::forward<G>(g);
+            } else if constexpr (_Choice<_G>._Strategy == _St::_inner_value_pattern) {
+                return vertex_descriptor_view(std::forward<G>(g));
             } else {
                 static_assert(_Choice<_G>._Strategy != _St::_none,
-                    "vertices(g) requires .vertices() member, ADL vertices(), or random_access_range");
+                    "vertices(g) requires .vertices() member, ADL vertices(), or inner value pattern support");
             }
         }
     };

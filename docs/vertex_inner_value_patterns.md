@@ -6,6 +6,8 @@ This document describes the concepts and type traits added to support the differ
 
 The `inner_value()` method returns the vertex data (excluding the vertex ID/key) and behaves differently based on the container type. Three distinct patterns are supported:
 
+**IMPORTANT:** These patterns enable the default implementation of `vertices(g)`. When a graph container `g` follows one of these inner value patterns, `vertices(g)` can automatically return `vertex_descriptor_view(g)` without requiring a custom `vertices()` member or ADL override.
+
 ## 1. Random Access Vertex Pattern
 
 **Concept:** `random_access_vertex_pattern<Iter>`
@@ -187,3 +189,50 @@ These new inner_value pattern concepts complement the existing vertex storage co
 - `random_access_vertex_pattern` / `pair_value_vertex_pattern` / `whole_value_vertex_pattern`: Determine how vertex data is accessed via `inner_value()`
 
 Both concept families work together to provide complete type safety for vertex descriptor operations.
+
+## Integration with vertices(g) CPO
+
+The inner value pattern concepts are crucial for the default implementation of `vertices(g)`:
+
+### Default Implementation Strategy
+
+`vertices(g)` MUST always return a `vertex_descriptor_view`. The CPO uses the following resolution order:
+
+1. **Override with member function**: If `g.vertices()` exists, use it (must return `vertex_descriptor_view`)
+2. **Override with ADL**: If ADL `vertices(g)` exists, use it (must return `vertex_descriptor_view`)
+3. **Default to inner value pattern**: If `g` is a forward range with iterators satisfying `has_inner_value_pattern`, return `vertex_descriptor_view(g)`
+
+### Why Inner Value Patterns Enable Default Implementation
+
+When a container follows one of the inner value patterns, `vertex_descriptor_view` can automatically:
+- Iterate over the container's elements
+- Create `vertex_descriptor` instances that know how to extract vertex IDs and data
+- Provide a uniform interface regardless of the underlying container type
+
+### Example: Automatic vertices(g) Support
+
+```cpp
+// No custom vertices() needed for these containers:
+
+// Random access pattern: vector as graph
+std::vector<std::vector<int>> adj_list;
+auto verts = vertices(adj_list);  // Returns vertex_descriptor_view(adj_list)
+                                   // Descriptors use index as vertex ID
+
+// Pair value pattern: map as graph
+std::map<int, std::vector<int>> adj_map;
+auto verts2 = vertices(adj_map);  // Returns vertex_descriptor_view(adj_map)
+                                   // Descriptors use key as vertex ID
+
+// Custom override when needed:
+class MyGraph {
+public:
+    auto vertices() const { 
+        return vertex_descriptor_view(internal_vertices_); 
+    }
+private:
+    std::vector<VertexData> internal_vertices_;
+};
+```
+
+This design means that most simple graph containers automatically support `vertices(g)` without any additional code, as long as they follow one of the three inner value patterns.
