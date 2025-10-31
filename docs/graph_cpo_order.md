@@ -10,7 +10,7 @@ The following order should be followed for implementing CPOs and their correspon
 
 | # | CPO Function | Type Aliases | Description |
 |---|--------------|--------------|-------------|
-| 1 | `vertices(g)` | `vertex_range_t<G>`<br>`vertex_iterator_t<G>`<br>`vertex_t<G>`<br>`vertex_reference_t<G>` | Get range of vertices in graph |
+| 1 | `vertices(g)` | `vertex_range_t<G>`<br>`vertex_iterator_t<G>`<br>`vertex_t<G>` | Get range of vertices in graph (returns descriptor view) |
 | 2 | `vertex_id(g, u)` | `vertex_id_t<G>` | Get unique ID for vertex |
 | 3 | `find_vertex(g, uid)` | - | Find vertex by ID |
 
@@ -18,7 +18,7 @@ The following order should be followed for implementing CPOs and their correspon
 
 | # | CPO Function | Type Aliases | Description |
 |---|--------------|--------------|-------------|
-| 4 | `edges(g, u)` | `vertex_edge_range_t<G>`<br>`vertex_edge_iterator_t<G>`<br>`edge_descriptor_t<G>`<br>`edge_t<G>`<br>`edge_reference_t<G>` | Get outgoing edges from vertex |
+| 4 | `edges(g, u)` | `vertex_edge_range_t<G>`<br>`vertex_edge_iterator_t<G>`<br>`edge_descriptor_t<G>`<br>`edge_t<G>` | Get outgoing edges from vertex (returns edge descriptor view) |
 | 5 | `num_edges(g)` | - | Count total edges in graph |
 
 ### 3. Edge Target/Source Access
@@ -109,27 +109,25 @@ Type aliases should be defined immediately after their corresponding CPO:
 // After vertices CPO
 using vertex_range_t = decltype(vertices(declval<G&&>()));
 using vertex_iterator_t = iterator_t<vertex_range_t<G>>;
-using vertex_t = range_value_t<vertex_range_t<G>>;
-using vertex_reference_t = range_reference_t<vertex_range_t<G>>;
+using vertex_t = range_value_t<vertex_range_t<G>>;  // vertex_descriptor<Iter>
 
 // After vertex_id CPO
-using vertex_id_t = decltype(vertex_id(declval<G&&>(), declval<vertex_iterator_t<G>>()));
+using vertex_id_t = decltype(vertex_id(declval<G&&>(), declval<vertex_t<G>>()));
 
 // After edges CPO
-using vertex_edge_range_t = decltype(edges(declval<G&&>(), declval<vertex_reference_t<G>>()));
+using vertex_edge_range_t = decltype(edges(declval<G&&>(), declval<vertex_t<G>>()));
 using vertex_edge_iterator_t = iterator_t<vertex_edge_range_t<G>>;
 using edge_descriptor_t = range_value_t<vertex_edge_range_t<G>>;
-using edge_t = range_value_t<vertex_edge_range_t<G>>;
-using edge_reference_t = range_reference_t<vertex_edge_range_t<G>>;
+using edge_t = range_value_t<vertex_edge_range_t<G>>;  // edge_descriptor<EdgeIter, VertexIter>
 
 // After partition_id CPO (optional)
-using partition_id_t = decltype(partition_id(declval<G>(), declval<vertex_reference_t<G>>()));
+using partition_id_t = decltype(partition_id(declval<G>(), declval<vertex_t<G>>()));
 
 // After vertex_value CPO (optional)
-using vertex_value_t = decltype(vertex_value(declval<G&&>(), declval<vertex_reference_t<G>>()));
+using vertex_value_t = decltype(vertex_value(declval<G&&>(), declval<vertex_t<G>>()));
 
 // After edge_value CPO (optional)
-using edge_value_t = decltype(edge_value(declval<G&&>(), declval<edge_reference_t<G>>()));
+using edge_value_t = decltype(edge_value(declval<G&&>(), declval<edge_t<G>>()));
 
 // After graph_value CPO (optional)
 using graph_value_t = decltype(graph_value(declval<G&&>()));

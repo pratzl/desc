@@ -6,12 +6,12 @@ namespace graph {
 //
 // vertex_info
 // for(auto&& [uid, u]        : vertexlist(g))
-// for(auto&& [uid, u, value] : vertexlist(g, [](vertex_reference_t<G> u) { return ...; } )
+// for(auto&& [uid, u, value] : vertexlist(g, [](vertex_t<G> u) { return ...; } )
 //
 template <class VId, class V, class VV>
 struct vertex_info {
   using id_type     = VId; // e.g. vertex_id_t<G>
-  using vertex_type = V;   // e.g. vertex_reference_t<G>
+  using vertex_type = V;   // e.g. vertex_t<G> (vertex descriptor)
   using value_type  = VV;  // e.g. vertex_value_t<G>
 
   id_type     id;
@@ -52,16 +52,16 @@ using copyable_vertex_t = vertex_info<VId, void, VV>; // {id, value}
 // edge_info
 //
 // for(auto&& [target_id, uv]        : incidence(g,u))
-// for(auto&& [target_id, uv, value] : incidence(g,u, [](edge_reference_t<G> uv) { return ...; })
+// for(auto&& [target_id, uv, value] : incidence(g,u, [](edge_t<G> uv) { return ...; })
 //
 // for(auto&& [source_id, target_id, uv]        : incidence(g,u))
-// for(auto&& [source_id, target_id, uv, value] : incidence(g,u, [](edge_reference_t<G> uv) { return ...; })
+// for(auto&& [source_id, target_id, uv, value] : incidence(g,u, [](edge_t<G> uv) { return ...; })
 //
 template <class VId, bool Sourced, class E, class EV>
 struct edge_info {
   using source_id_type = VId; // e.g. vertex_id_t<G> when Sourced==true, or void
   using target_id_type = VId; // e.g. vertex_id_t<G>
-  using edge_type      = E;   // e.g. edge_reference_t<G> or void
+  using edge_type      = E;   // e.g. edge_t<G> (edge descriptor) or void
   using value_type     = EV;  // e.g. edge_value_t<G> or void
 
   source_id_type source_id;
@@ -147,7 +147,7 @@ struct edge_info<VId, false, void, void> {
 
 //
 // targeted_edge
-// for(auto&& [vid,uv,value] : edges_view(g, u, [](vertex_edge_reference_t<G> uv) { return ...; } )
+// for(auto&& [vid,uv,value] : edges_view(g, u, [](edge_t<G> uv) { return ...; } )
 // for(auto&& [vid,uv]       : edges_view(g, u) )
 //
 //template <class VId, class E, class EV>
@@ -155,7 +155,7 @@ struct edge_info<VId, false, void, void> {
 
 //
 // sourced_edge
-// for(auto&& [uid,vid,uv,value] : sourced_edges_view(g, u, [](vertex_edge_reference_t<G> uv) { return ...; } )
+// for(auto&& [uid,vid,uv,value] : sourced_edges_view(g, u, [](edge_t<G> uv) { return ...; } )
 // for(auto&& [uid,vid,uv]       : sourced_edges_view(g, u) )
 //
 //template <class VId, class V, class E, class EV>
@@ -163,7 +163,7 @@ struct edge_info<VId, false, void, void> {
 
 //
 // edgelist_edge
-// for(auto&& [uid,vid,uv,value] : edges_view(g, [](vertex_edge_reference_t<G> g) { return ...; } )
+// for(auto&& [uid,vid,uv,value] : edges_view(g, [](edge_t<G> uv) { return ...; } )
 // for(auto&& [uid,vid,uv]       : edges_view(g) )
 //
 template <class VId, class E, class EV>
@@ -182,7 +182,7 @@ template <class VId, bool Sourced, class V, class VV>
 struct neighbor_info {
   using source_id_type = VId; // e.g. vertex_id_t<G> when Sourced==true, or void
   using target_id_type = VId; // e.g. vertex_id_t<G>
-  using vertex_type    = V;   // e.g. vertex_reference_t<G> or void
+  using vertex_type    = V;   // e.g. vertex_t<G> (vertex descriptor) or void
   using value_type     = VV;  // e.g. vertex_value_t<G> or void
 
   source_id_type source_id;
