@@ -204,18 +204,20 @@ namespace _cpo {
              * 4. u.vertex_id() - descriptor's default method (lowest priority)
              * 
              * Where:
-             * - u is a vertex_descriptor<Iter>
+             * - u must be vertex_t<G> (the vertex descriptor type for graph G)
              * - u.inner_value(g) extracts the actual vertex data from the graph container
              * 
              * For random-access containers: returns the index
              * For associative containers: returns the key
              * For bidirectional containers: returns the iterator position
              * 
+             * @tparam G Graph type
+             * @tparam U Vertex descriptor type (constrained to be a vertex_descriptor_type)
              * @param g Graph container
-             * @param u Vertex descriptor
+             * @param u Vertex descriptor (must be vertex_t<G> - the vertex descriptor type for the graph)
              * @return Unique identifier for the vertex
              */
-            template<typename G, typename U>
+            template<typename G, vertex_descriptor_type U>
             [[nodiscard]] constexpr auto operator()(G& g, const U& u) const
                 noexcept(_Choice<std::remove_cvref_t<G>, std::remove_cvref_t<U>>._No_throw)
                 -> decltype(auto)
