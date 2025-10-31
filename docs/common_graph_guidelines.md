@@ -32,8 +32,7 @@ These requirements apply to every graph-related instruction set, including imple
 
 | Template Parameter | Type Alias | Variable Name | Description |
 |-------------------|------------|---------------|-------------|
-| `V` | `vertex_t<G>` | | Vertex descriptor |
-| | `vertex_reference_t<G>` | `u`, `v` | Vertex descriptor reference. `u` is the source (or only) vertex. `v` is the target vertex. |
+| `V` | `vertex_t<G>` | `u`, `v` | Vertex descriptor. `u` is the source (or only) vertex. `v` is the target vertex. |
 | `VId` | `vertex_id_t<G>` | `uid`, `vid`, `source` | Vertex id. `uid` is the source (or only) vertex id. `vid` is the target vertex id. |
 | `VV` | `vertex_value_t<G>` | `val` | Vertex Value, value or reference. This can be either the user-defined value on a vertex, or a value returned by a function object (e.g. `VVF`) that is related to the vertex. |
 | `VR` | `vertex_range_t<G>` | `ur`, `vr` | Vertex Range |
@@ -54,8 +53,7 @@ These requirements apply to every graph-related instruction set, including imple
 
 | Template Parameter | Type Alias | Variable Name | Description |
 |-------------------|------------|---------------|-------------|
-| `E` | `edge_t<G>` | | Edge descriptor |
-| | `edge_reference_t<G>` | `uv`, `vw` | Edge descriptor reference. `uv` is an edge from vertices `u` to `v`. `vw` is an edge from vertices `v` to `w`. |
+| `E` | `edge_t<G>` | `uv`, `vw` | Edge descriptor. `uv` is an edge from vertices `u` to `v`. `vw` is an edge from vertices `v` to `w`. |
 | `EV` | `edge_value_t<G>` | `val` | Edge Value, value or reference. This can be either the user-defined value on an edge, or a value returned by a function object (e.g. `EVF`) that is related to the edge. |
 | `ER` | `vertex_edge_range_t<G>` | | Edge Range for edges of a vertex |
 | `EI` | `vertex_edge_iterator_t<G>` | `uvi`, `vwi` | Edge Iterator for an edge of a vertex. `uvi` is an iterator for an edge from vertices `u` to `v`. `vwi` is an iterator for an edge from vertices `v` to `w`. |

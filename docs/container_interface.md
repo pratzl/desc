@@ -98,7 +98,6 @@ Type aliases follow the `_t<G>` convention where `G` is the graph type.
 | `vertex_range_t<G>` | `decltype(vertices(g))` | Range of vertices |
 | `vertex_iterator_t<G>` | `iterator_t<vertex_range_t<G>>` | Iterator over vertices |
 | `vertex_t<G>` | `range_value_t<vertex_range_t<G>>` | Vertex descriptor type |
-| `vertex_reference_t<G>` | `range_reference_t<vertex_range_t<G>>` | Reference to vertex |
 | `vertex_id_t<G>` | `decltype(vertex_id(g,u))` | Vertex identifier type |
 | `vertex_value_t<G>` | `decltype(vertex_value(g,u))` | Optional vertex value |
 
@@ -109,7 +108,6 @@ Type aliases follow the `_t<G>` convention where `G` is the graph type.
 | `vertex_edge_range_t<G>` | `decltype(edges(g,u))` | Range of outgoing edges from vertex |
 | `vertex_edge_iterator_t<G>` | `iterator_t<vertex_edge_range_t<G>>` | Iterator over edges |
 | `edge_t<G>` | `range_value_t<vertex_edge_range_t<G>>` | Edge descriptor type |
-| `edge_reference_t<G>` | `range_reference_t<vertex_edge_range_t<G>>` | Reference to edge |
 | `edge_value_t<G>` | `decltype(edge_value(g,uv))` | Optional edge value |
 
 #### Partition Types
@@ -253,7 +251,6 @@ An edgelist is a range of values with `source_id`, `target_id`, and optional `ed
 | `edge_range_t<EL>` | `EL` | |
 | `edge_iterator_t<EL>` | `iterator_t<edge_range_t<EL>>` | |
 | `edge_t<EL>` | `range_value_t<edge_range_t<EL>>` | |
-| `edge_reference_t<EL>` | `range_reference_t<edge_range_t<EL>>` | |
 | `edge_value_t<EL>` | `decltype(edge_value(e))` | Optional |
 | `vertex_id_t<EL>` | `decltype(target_id(e))` | |
 
