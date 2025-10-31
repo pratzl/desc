@@ -151,10 +151,15 @@ Type aliases follow the `_t<G>` convention where `G` is the graph type.
 | `vertex_value(g,uid)` | `vertex_value_t<G>` | constant | `vertex_value(g,*find_vertex(g,uid))`, optional |
 | `degree(g,u)` | integral | constant | `size(edges(g,u))` if sized_range |
 | `degree(g,uid)` | integral | constant | `degree(g,*find_vertex(g,uid))` if sized_range |
-| `edges(g,u)` | `vertex_edge_range_t<G>` | constant | `u` if `forward_range<vertex_t<G>>`, n/a otherwise |
+| `edges(g,u)` | `vertex_edge_range_t<G>` | constant | `edge_descriptor_view(u.inner_value(), u)` if `u.inner_value()` follows edge value patterns, n/a otherwise |
 | `edges(g,uid)` | `vertex_edge_range_t<G>` | constant | `edges(g,*find_vertex(g,uid))` |
 | `partition_id(g,u)` | `partition_id_t<G>` | constant | Optional |
 | `partition_id(g,uid)` | `partition_id_t<G>` | constant | Optional |
+
+**IMPORTANT - edges(g, u) Return Type:** `edges(g, u)` MUST always return an `edge_descriptor_view`. The implementation should:
+1. Use `g.edges(u)` if available (must return `edge_descriptor_view`)
+2. Use ADL `edges(g, u)` if available (must return `edge_descriptor_view`)
+3. Otherwise, if the vertex descriptor's inner value follows edge value patterns, return `edge_descriptor_view(u.inner_value(), u)` wrapping the edge range
 
 **Note:** Functions with `uid` parameter are convenience functions that call `find_vertex(g,uid)` first.
 

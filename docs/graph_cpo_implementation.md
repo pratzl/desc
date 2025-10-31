@@ -245,13 +245,18 @@ inline namespace _cpos {
 ### 2. `edges(g, u)` - Get Edge Range for Vertex (Implementation Order: #4)
 
 **Signature:** `vertex_edge_range_t<G> edges(G& g, vertex_t<G> u)`  
-**Return:** Range of outgoing edges from vertex `u`  
+**Return:** `edge_descriptor_view` wrapping outgoing edges from vertex `u`  
 **Complexity:** O(1)  
-**Default:** Returns `u` if `u` is a `forward_range`, otherwise no default
+**Default:** Returns `edge_descriptor_view(u.inner_value(), u)` if the vertex descriptor's inner value is a forward range with edge value pattern support, otherwise no default
+
+**IMPORTANT:** `edges(g, u)` MUST always return an `edge_descriptor_view`. The implementation should:
+1. First check if `g.edges(u)` member exists - if so, use it (must return `edge_descriptor_view`)
+2. Then check if ADL `edges(g, u)` exists - if so, use it (must return `edge_descriptor_view`)
+3. Otherwise, if the vertex descriptor's inner value follows edge value patterns (is a forward range of edge values), return `edge_descriptor_view(u.inner_value(), u)` wrapping the edge range
 
 ```cpp
 namespace _edges {
-    enum class _St { _none, _member_desc, _member_id, _adl, _passthrough };
+    enum class _St { _none, _member_desc, _member_id, _adl, _edge_value_pattern };
     
     // Check for g.edges(descriptor)
     template<typename G, typename U>
@@ -273,9 +278,13 @@ namespace _edges {
         { edges(g, std::forward<U>(u)) } -> std::ranges::forward_range;
     };
     
-    // Check if vertex descriptor itself is a range
+    // Check if vertex descriptor's inner value is a range of edge values
     template<typename U>
-    concept _is_passthrough = std::ranges::forward_range<U>;
+    concept _has_edge_value_pattern = requires(U&& u) {
+        { u.inner_value() } -> std::ranges::forward_range;
+    } && requires {
+        typename std::ranges::range_value_t<decltype(std::declval<U>().inner_value())>;
+    } && edge_value_type<std::ranges::range_value_t<decltype(std::declval<U>().inner_value())>>;
     
     template<typename G, typename U>
     [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
@@ -288,8 +297,8 @@ namespace _edges {
         } else if constexpr (_has_adl<G, U>) {
             return {_St::_adl, 
                     noexcept(edges(std::declval<G&>(), std::declval<U>()))};
-        } else if constexpr (_is_passthrough<U>) {
-            return {_St::_passthrough, true};
+        } else if constexpr (_has_edge_value_pattern<U>) {
+            return {_St::_edge_value_pattern, true};
         } else {
             return {_St::_none, false};
         }
@@ -315,11 +324,11 @@ namespace _edges {
                 return std::forward<G>(g).edges(std::forward<U>(u).vertex_id());
             } else if constexpr (_Choice<_G, _U>._Strategy == _St::_adl) {
                 return edges(std::forward<G>(g), std::forward<U>(u));
-            } else if constexpr (_Choice<_G, _U>._Strategy == _St::_passthrough) {
-                return std::forward<U>(u);
+            } else if constexpr (_Choice<_G, _U>._Strategy == _St::_edge_value_pattern) {
+                return edge_descriptor_view(std::forward<U>(u).inner_value(), std::forward<U>(u));
             } else {
                 static_assert(_Choice<_G, _U>._Strategy != _St::_none,
-                    "edges(g,u) requires .edges() member, ADL edges(), or forward_range vertex");
+                    "edges(g,u) requires .edges() member, ADL edges(), or edge value pattern support");
             }
         }
     };

@@ -23,8 +23,13 @@ The following order should be followed for implementing CPOs and their correspon
 
 | # | CPO Function | Type Aliases | Description |
 |---|--------------|--------------|-------------|
-| 4 | `edges(g, u)` | `vertex_edge_range_t<G>`<br>`vertex_edge_iterator_t<G>`<br>`edge_descriptor_t<G>`<br>`edge_t<G>` | Get outgoing edges from vertex (returns edge descriptor view) |
+| 4 | `edges(g, u)` | `vertex_edge_range_t<G>`<br>`vertex_edge_iterator_t<G>`<br>`edge_descriptor_t<G>`<br>`edge_t<G>` | Get outgoing edges from vertex (MUST return `edge_descriptor_view`) |
 | 5 | `num_edges(g)` | - | Count total edges in graph |
+
+**IMPORTANT:** `edges(g, u)` MUST always return an `edge_descriptor_view`:
+- If `g.edges(u)` exists, it must return `edge_descriptor_view`
+- If ADL `edges(g, u)` exists, it must return `edge_descriptor_view`
+- Otherwise, if the vertex descriptor's inner value follows edge value patterns, return `edge_descriptor_view(u.inner_value(), u)`
 
 ### 3. Edge Target/Source Access
 

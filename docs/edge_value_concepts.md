@@ -241,6 +241,67 @@ Comprehensive tests are provided in `test_edge_concepts.cpp`:
 - ? Runtime pattern queries
 - ? Type safety guarantees
 
+## Integration with edges(g, u) CPO
+
+The edge value concepts are crucial for the default implementation of `edges(g, u)`:
+
+### Default Implementation Strategy
+
+`edges(g, u)` MUST always return an `edge_descriptor_view`. The CPO uses the following resolution order:
+
+1. **Override with member function**: If `g.edges(u)` exists, use it (must return `edge_descriptor_view`)
+2. **Override with ADL**: If ADL `edges(g, u)` exists, use it (must return `edge_descriptor_view`)
+3. **Default to edge value pattern**: If the vertex descriptor's inner value is a forward range with elements satisfying `edge_value_type`, return `edge_descriptor_view(u.inner_value(), u)`
+
+### Why Edge Value Patterns Enable Default Implementation
+
+When a vertex's inner value (edge container) contains elements that follow one of the edge value patterns, `edge_descriptor_view` can automatically:
+- Iterate over the edge elements
+- Create `edge_descriptor` instances that know how to extract target IDs and edge values
+- Provide a uniform interface regardless of the underlying edge storage type
+
+### Example: Automatic edges(g, u) Support
+
+```cpp
+// No custom edges() needed for these containers:
+
+// Simple edge pattern: vector of integers
+std::vector<std::vector<int>> adj_list;
+auto verts = vertices(adj_list);
+for (auto u : verts) {
+    auto edges = edges(adj_list, u);  // Returns edge_descriptor_view
+    // Each edge descriptor wraps an int (target ID)
+}
+
+// Pair edge pattern: vector of pairs
+std::vector<std::vector<std::pair<int, double>>> weighted_graph;
+auto verts2 = vertices(weighted_graph);
+for (auto u : verts2) {
+    auto edges = edges(weighted_graph, u);  // Returns edge_descriptor_view
+    // Each edge descriptor wraps a pair<int, double>
+}
+
+// Tuple edge pattern: map with tuple edges
+std::map<int, std::vector<std::tuple<int, double, std::string>>> complex_graph;
+auto verts3 = vertices(complex_graph);
+for (auto u : verts3) {
+    auto edges = edges(complex_graph, u);  // Returns edge_descriptor_view
+    // Each edge descriptor wraps a tuple<int, double, string>
+}
+
+// Custom override when needed:
+class MyGraph {
+public:
+    auto edges(vertex_descriptor<VertexIter> u) const { 
+        return edge_descriptor_view(get_edges_for(u.vertex_id()), u); 
+    }
+private:
+    std::vector<Edge> get_edges_for(int vid) const;
+};
+```
+
+This design means that most simple graph containers automatically support `edges(g, u)` without any additional code, as long as the vertex's inner value contains elements following one of the four edge value patterns.
+
 ## Summary
 
 These concepts and traits provide:
@@ -249,3 +310,4 @@ These concepts and traits provide:
 - **Easy Detection**: Simple APIs for pattern matching
 - **Zero Cost**: All checks happen at compile-time
 - **Future Proof**: Extensible design for new patterns
+- **Automatic CPO Support**: Enable default `edges(g, u)` implementation for standard containers
