@@ -12,7 +12,7 @@ This library provides the foundation for a complete graph library following the 
 - **Range-Based Design**: Graphs as ranges of vertices, where each vertex is a range of edges
 - **Documentation**: Comprehensive documentation following P1709 conventions
 
-**Current Status**: Phase 4 complete - All core CPOs and value access CPOs implemented with comprehensive tests. Ready for adjacency list concepts and traits definition.
+**Current Status**: Phase 4 complete - All core CPOs, value access CPOs, and optional partitioning/sourced edge CPOs implemented with comprehensive tests. Ready for adjacency list concepts and traits definition.
 
 ## Features
 
@@ -330,7 +330,6 @@ Implement core graph operation CPOs in `graph_cpo.hpp` following the canonical o
   - **Note**: Provides access to user-defined graph-level properties/metadata (e.g., name, version, statistics)
   - **Use cases**: Graph metadata, version tracking, global parameters (weight multipliers), statistics
 
-**Phase 5: Adjacency List Concepts & Traits (PLANNED)**
 - [ ] Define adjacency list concepts in `graph/adjacency_list_concepts.hpp`:
   - Edge concepts:
     * `targeted_edge` - Target and Target IDs only
@@ -364,15 +363,47 @@ Implement core graph operation CPOs in `graph_cpo.hpp` following the canonical o
   - SFINAE-friendly design verification
   - Integration with existing descriptor framework
 
-**Phase 6: Optional Features**
-- [ ] `source_id(g, uv)` - Get source vertex ID (for sourced edges)
-- [ ] `source(g, uv)` - Get source vertex descriptor (for sourced edges)
-- [ ] `partition_id(g, u)` - Get partition ID (for multipartite graphs)
-- [ ] `num_partitions(g)` - Get number of partitions
+**Phase 5: Optional Features (Sourced Edges & Partitioning)**
+- [x] `source_id(g, uv)` - Get source vertex ID (for sourced edges) ✅ **COMPLETE** - No tests (CPO only)
+  - Resolution order:
+    1. `g.source_id(uv)` - Member function (highest priority)
+    2. `source_id(g, uv)` - ADL (lowest priority)
+  - **No default implementation**: Unlike target_id which works for standard adjacency lists, source requires explicit implementation
+  - **Use cases**: Bidirectional graphs, edge lists, graphs where edges explicitly track their source vertex
+  - **Return type**: Vertex ID (by value)
+- [x] `source(g, uv)` - Get source vertex descriptor (for sourced edges) ✅ **COMPLETE** - No tests (CPO only)
+  - Resolution order:
+    1. `g.source(uv)` - Member function (highest priority)
+    2. `source(g, uv)` - ADL (lowest priority)
+  - **No default implementation**: Unlike target which has default via find_vertex, source requires explicit implementation
+  - **Return type flexibility**: Custom implementations can return either:
+    - `vertex_descriptor` (vertex_t<G>) - used as-is
+    - `vertex_iterator` (iterator to vertices) - automatically converted to descriptor
+  - **Smart type conversion**: Internal `_to_vertex_descriptor` helper properly handles both cases
+  - **Use cases**: Bidirectional graphs, edge list graphs where edges are stored independently
+- [x] `partition_id(g, u)` - Get partition ID for a vertex ✅ **COMPLETE** - 16 tests passing
+  - Resolution order:
+    1. `g.partition_id(u)` - Member function (highest priority)
+    2. `partition_id(g, u)` - ADL (medium priority)
+    3. Default: returns 0 (lowest priority)
+  - **Default implementation**: Assumes single partition where all vertices belong to partition 0
+  - **Use cases**: Multi-partition distributed graphs, graph coloring, NUMA-aware partitioning, load balancing
+  - **Return type**: Integral type (default 0)
+  - **Noexcept**: Default implementation is noexcept
+- [x] `num_partitions(g)` - Get number of partitions in the graph ✅ **COMPLETE** - 27 tests passing
+  - Resolution order:
+    1. `g.num_partitions()` - Member function (highest priority)
+    2. `num_partitions(g)` - ADL (medium priority)
+    3. Default: returns 1 (lowest priority)
+  - **Default implementation**: Assumes single partition (all vertices in partition 0)
+  - **Relationship to partition_id**: partition_id values should be in range [0, num_partitions)
+  - **Use cases**: Distributed graphs, dynamic partition counting, graph coloring results, NUMA-aware partition counts
+  - **Return type**: Integral type (default 1)
+  - **Noexcept**: Default implementation is noexcept
 
-Unit tests and documentation for each CPO to be added incrementally.
+Unit tests and documentation for each CPO added.
 
-### 📋 Phase 7: First Container Implementation (PLANNED)
+### 📋 Phase 6: Adjacency List Concepts & Traits (PLANNED)
 - [ ] `adjacency_list.hpp` in `include/graph/container/`:
   - Dynamic adjacency list representation
   - Uses descriptors for vertices and edges
@@ -380,6 +411,7 @@ Unit tests and documentation for each CPO to be added incrementally.
   - Comprehensive unit tests
   - Usage examples
 
+### 📋 Phase 7: First Container Implementation (PLANNED)
 ### 📋 Phase 8: Basic Algorithms (PLANNED)
 - [ ] Foundational algorithms in `include/graph/algorithm/`:
   - `breadth_first_search.hpp` - BFS traversal
@@ -426,22 +458,30 @@ desc/
 │       └── graph_utility.hpp       # Utility CPOs (stub)
 ├── scripts/                # Build and maintenance scripts
 │   └── format.sh          # Code formatting script
-├── tests/                  # Unit tests (293 tests, all passing)
+├── tests/                  # Unit tests (490 tests, all passing)
+│   ├── test_contains_edge_cpo.cpp
+│   ├── test_degree_cpo.cpp
 │   ├── test_descriptor_traits.cpp
 │   ├── test_edge_concepts.cpp
 │   ├── test_edge_descriptor.cpp
+│   ├── test_edge_value_cpo.cpp
 │   ├── test_edges_cpo.cpp
 │   ├── test_edges_uid_cpo.cpp
 │   ├── test_find_vertex_cpo.cpp
+│   ├── test_find_vertex_edge_cpo.cpp
+│   ├── test_graph_value_cpo.cpp
+│   ├── test_has_edge_cpo.cpp
 │   ├── test_num_edges_cpo.cpp
+│   ├── test_num_partitions_cpo.cpp
 │   ├── test_num_vertices_cpo.cpp
-│   ├── test_degree_cpo.cpp
+│   ├── test_partition_id_cpo.cpp
 │   ├── test_target_cpo.cpp
 │   ├── test_target_id_cpo.cpp
 │   ├── test_type_aliases.cpp
 │   ├── test_vertex_concepts.cpp
 │   ├── test_vertex_descriptor.cpp
 │   ├── test_vertex_id_cpo.cpp
+│   ├── test_vertex_value_cpo.cpp
 │   └── test_vertices_cpo.cpp
 ├── CMakeLists.txt         # Root CMake configuration
 ├── CMakePresets.json      # CMake build presets
@@ -599,7 +639,7 @@ cmake --build build
 
 ## Testing
 
-The project includes 331 unit tests covering descriptor functionality, CPO implementations, and type aliases:
+The project includes 490 unit tests covering descriptor functionality, CPO implementations, partitioning, and type aliases:
 
 ```bash
 # Run all tests
@@ -638,6 +678,12 @@ ctest --test-dir build/linux-gcc-debug -R num_edges
 # Run degree(g,u) and degree(g,uid) CPO tests
 ctest --test-dir build/linux-gcc-debug -R degree
 
+# Run partition_id(g,u) CPO tests
+ctest --test-dir build/linux-gcc-debug -R partition_id
+
+# Run num_partitions(g) CPO tests
+ctest --test-dir build/linux-gcc-debug -R num_partitions
+
 # Run type alias tests
 ctest --test-dir build/linux-gcc-debug -R "Type aliases"
 
@@ -668,6 +714,8 @@ This library follows the design principles and specifications from:
 
 ---
 
-**Status**: Phase 1 Complete ✅ | Phase 2 & 3 Complete ✅ | Phase 4 Complete ✅ | 447/447 Tests Passing ✅ | vertices(g) + vertex_id(g,u) + find_vertex(g,uid) + edges(g,u) + edges(g,uid) + target_id(g,uv) + target(g,uv) + num_vertices(g) + num_edges(g) + degree(g,u) + degree(g,uid) + find_vertex_edge(g,u,v/vid) + find_vertex_edge(g,uid,vid) + contains_edge(g,u,v) + contains_edge(g,uid,vid) + has_edge(g) + vertex_value(g,u) + edge_value(g,uv) + graph_value(g) + Type Aliases Complete ✅
+**Status**: Phase 1-5 Complete ✅ | 490/490 Tests Passing ✅ | All Core CPOs + Value Access + Sourced Edges + Partitioning Complete ✅
+
+**Implemented CPOs**: vertices(g) • vertex_id(g,u) • find_vertex(g,uid) • edges(g,u) • edges(g,uid) • target_id(g,uv) • target(g,uv) • num_vertices(g) • num_edges(g) • degree(g,u) • degree(g,uid) • find_vertex_edge • contains_edge • has_edge(g) • vertex_value(g,u) • edge_value(g,uv) • graph_value(g) • source_id(g,uv) • source(g,uv) • partition_id(g,u) • num_partitions(g) • Type Aliases
 
 ````
