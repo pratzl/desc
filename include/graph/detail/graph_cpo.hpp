@@ -720,17 +720,17 @@ namespace _cpo_impls {
         using graph::target_id;
         
         // Check for g.target(uv) member function
+        // Accepts either edge_descriptor or underlying edge value type
         template<typename G, typename E>
         concept _has_member = 
-            is_edge_descriptor_v<std::remove_cvref_t<E>> &&
             requires(G& g, const E& uv) {
                 { g.target(uv) };
             };
         
         // Check for ADL target(g, uv)
+        // Accepts either edge_descriptor or underlying edge value type
         template<typename G, typename E>
         concept _has_adl = 
-            is_edge_descriptor_v<std::remove_cvref_t<E>> &&
             requires(G& g, const E& uv) {
                 { target(g, uv) };
             };
