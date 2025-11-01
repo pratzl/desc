@@ -245,7 +245,7 @@ namespace _cpo {
     // =========================================================================
     
     namespace _find_vertex {
-        enum class _St { _none, _member, _adl, _random_access };
+        enum class _St { _none, _member, _adl, _associative, _random_access };
         
         // Use the vertices CPO directly from _vertices namespace
         inline constexpr _vertices::_fn _vertices_cpo{};
@@ -260,6 +260,14 @@ namespace _cpo {
         template<typename G, typename VId>
         concept _has_adl = requires(G& g, const VId& uid) {
             { find_vertex(g, uid) };
+        };
+        
+        // Check if graph is an associative container with find() member
+        // (map, unordered_map, etc. where the key is the vertex ID)
+        template<typename G, typename VId>
+        concept _has_associative = requires(G& g, const VId& uid) {
+            { g.find(uid) } -> std::same_as<typename G::iterator>;
+            { g.end() } -> std::same_as<typename G::iterator>;
         };
         
         // Check if vertices(g) is sized (which implies we can use std::ranges::next with offset)
@@ -278,6 +286,10 @@ namespace _cpo {
             } else if constexpr (_has_adl<G, VId>) {
                 return {_St::_adl, 
                         noexcept(find_vertex(std::declval<G&>(), std::declval<const VId&>()))};
+            } else if constexpr (_has_associative<G, VId>) {
+                constexpr bool no_throw_find = noexcept(std::declval<G&>().find(std::declval<const VId&>()));
+                // Note: We directly construct iterator from map iterator
+                return {_St::_associative, no_throw_find};
             } else if constexpr (_has_random_access<G, VId>) {
                 constexpr bool no_throw_vertices = noexcept(_vertices_cpo(std::declval<G&>()));
                 constexpr bool no_throw_begin = noexcept(std::ranges::begin(_vertices_cpo(std::declval<G&>())));
@@ -300,11 +312,13 @@ namespace _cpo {
              * Resolution order:
              * 1. g.find_vertex(uid) - member function (highest priority)
              * 2. find_vertex(g, uid) - ADL
-             * 3. std::ranges::next(begin(vertices(g)), uid) - default for sized ranges (lowest priority)
+             * 3. g.find(uid) + convert to vertex iterator - associative container default
+             * 4. std::ranges::next(begin(vertices(g)), uid) - random access default (lowest priority)
              * 
-             * For random-access containers (vector, deque): O(1) via indexed access
-             * For ordered associative (map): O(log n) via member override
-             * For unordered associative (unordered_map): O(1) average via member override
+             * Complexity:
+             * - Random-access containers (vector, deque): O(1) via indexed access
+             * - Ordered associative (map): O(log n) via find()
+             * - Unordered associative (unordered_map): O(1) average via find()
              * 
              * @tparam G Graph type
              * @tparam VId Vertex ID type (typically vertex_id_t<G>)
@@ -324,6 +338,14 @@ namespace _cpo {
                     return std::forward<G>(g).find_vertex(uid);
                 } else if constexpr (_Choice<_G, _VId>._Strategy == _St::_adl) {
                     return find_vertex(std::forward<G>(g), uid);
+                } else if constexpr (_Choice<_G, _VId>._Strategy == _St::_associative) {
+                    // For associative containers, use find() directly
+                    // Construct vertex_descriptor_view iterator directly from map iterator
+                    auto map_iter = g.find(uid);
+                    using container_iterator = decltype(map_iter);
+                    using view_type = vertex_descriptor_view<container_iterator>;
+                    using view_iterator = typename view_type::iterator;
+                    return view_iterator{map_iter};
                 } else if constexpr (_Choice<_G, _VId>._Strategy == _St::_random_access) {
                     return std::ranges::next(std::ranges::begin(_vertices_cpo(std::forward<G>(g))), uid);
                 }

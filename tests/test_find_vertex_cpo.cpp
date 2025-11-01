@@ -132,53 +132,85 @@ TEST_CASE("find_vertex - ADL customization", "[graph_cpo][find_vertex][adl]") {
 // Associative Container Tests (Map-based graphs)
 // ============================================================================
 
-// Custom wrapper for map-based graphs with find_vertex member
-struct MapGraphWrapper {
-    std::map<int, std::vector<int>> data;
-    
-    // Custom find_vertex that uses map's efficient lookup
-    auto find_vertex(int uid) {
-        auto verts = graph::vertices(data);
-        auto map_iter = data.find(uid);
-        if (map_iter == data.end()) {
-            return std::ranges::end(verts);
-        }
-        // Convert map iterator to vertex_descriptor_view iterator
-        // by counting distance from begin
-        auto begin_iter = data.begin();
-        auto distance = std::distance(begin_iter, map_iter);
-        return std::ranges::next(std::ranges::begin(verts), distance);
-    }
-};
-
-TEST_CASE("find_vertex - map with member function", "[graph_cpo][find_vertex][map]") {
-    MapGraphWrapper g{{{10, {20, 30}}, {20, {10, 30}}, {30, {10, 20}}}};
+TEST_CASE("find_vertex - map default implementation", "[graph_cpo][find_vertex][map]") {
+    std::map<int, std::vector<int>> g = {{10, {20, 30}}, {20, {10, 30}}, {30, {10, 20}}};
     
     SECTION("Find existing vertex") {
         auto v_iter = find_vertex(g, 20);
-        auto verts = vertices(g.data);
+        auto verts = vertices(g);
         REQUIRE(v_iter != std::ranges::end(verts));
-        REQUIRE(vertex_id(g.data, *v_iter) == 20);
+        REQUIRE(vertex_id(g, *v_iter) == 20);
     }
     
     SECTION("Find first vertex") {
         auto v_iter = find_vertex(g, 10);
-        auto verts = vertices(g.data);
+        auto verts = vertices(g);
         REQUIRE(v_iter != std::ranges::end(verts));
-        REQUIRE(vertex_id(g.data, *v_iter) == 10);
+        REQUIRE(vertex_id(g, *v_iter) == 10);
     }
     
     SECTION("Find last vertex") {
         auto v_iter = find_vertex(g, 30);
-        auto verts = vertices(g.data);
+        auto verts = vertices(g);
         REQUIRE(v_iter != std::ranges::end(verts));
-        REQUIRE(vertex_id(g.data, *v_iter) == 30);
+        REQUIRE(vertex_id(g, *v_iter) == 30);
     }
     
     SECTION("Non-existent vertex returns end") {
         auto v_iter = find_vertex(g, 99);
-        auto verts = vertices(g.data);
+        auto verts = vertices(g);
         REQUIRE(v_iter == std::ranges::end(verts));
+    }
+}
+
+TEST_CASE("find_vertex - unordered_map default implementation", "[graph_cpo][find_vertex][map]") {
+    std::unordered_map<int, std::vector<int>> g = {{10, {20, 30}}, {20, {10, 30}}, {30, {10, 20}}};
+    
+    SECTION("Find existing vertices") {
+        auto v_iter = find_vertex(g, 20);
+        // Construct end iterator from g.end()
+        using iter_type = decltype(v_iter);
+        auto end_iter = iter_type{g.end()};
+        REQUIRE(v_iter != end_iter);
+        REQUIRE(vertex_id(g, *v_iter) == 20);
+        
+        v_iter = find_vertex(g, 10);
+        REQUIRE(v_iter != end_iter);
+        REQUIRE(vertex_id(g, *v_iter) == 10);
+    }
+    
+    SECTION("Non-existent vertex returns end") {
+        auto v_iter = find_vertex(g, 99);
+        using iter_type = decltype(v_iter);
+        auto end_iter = iter_type{g.end()};
+        REQUIRE(v_iter == end_iter);
+    }
+}
+
+// Custom wrapper for map-based graphs with custom find_vertex member (overrides default)
+struct MapGraphWrapper {
+    std::map<int, std::vector<int>> data;
+    
+    // Custom find_vertex that overrides the default
+    auto find_vertex(int uid) {
+        // Construct vertex_descriptor_view iterator directly from map iterator
+        auto map_iter = data.find(uid);
+        using container_iterator = decltype(map_iter);
+        using view_type = graph::vertex_descriptor_view<container_iterator>;
+        using view_iterator = typename view_type::iterator;
+        return view_iterator{map_iter};
+    }
+};
+
+TEST_CASE("find_vertex - map with custom member function override", "[graph_cpo][find_vertex][map]") {
+    MapGraphWrapper g{{{10, {20, 30}}, {20, {10, 30}}, {30, {10, 20}}}};
+    
+    SECTION("Custom member function is called") {
+        auto v_iter = find_vertex(g, 20);
+        using iter_type = decltype(v_iter);
+        auto end_iter = iter_type{g.data.end()};
+        REQUIRE(v_iter != end_iter);
+        REQUIRE(vertex_id(g.data, *v_iter) == 20);
     }
 }
 
@@ -190,13 +222,12 @@ namespace map_adl_ns {
     
     // ADL find_vertex for map-based graph
     auto find_vertex(MapGraph& g, int uid) {
-        auto verts = graph::vertices(g.adj_list);
+        // Construct vertex_descriptor_view iterator directly from map iterator
         auto map_iter = g.adj_list.find(uid);
-        if (map_iter == g.adj_list.end()) {
-            return std::ranges::end(verts);
-        }
-        auto distance = std::distance(g.adj_list.begin(), map_iter);
-        return std::ranges::next(std::ranges::begin(verts), distance);
+        using container_iterator = decltype(map_iter);
+        using view_type = graph::vertex_descriptor_view<container_iterator>;
+        using view_iterator = typename view_type::iterator;
+        return view_iterator{map_iter};
     }
 }
 
@@ -205,83 +236,74 @@ TEST_CASE("find_vertex - map with ADL", "[graph_cpo][find_vertex][map][adl]") {
     
     SECTION("Find vertex via ADL") {
         auto v_iter = find_vertex(g, 10);
-        auto verts = vertices(g.adj_list);
-        REQUIRE(v_iter != std::ranges::end(verts));
+        using iter_type = decltype(v_iter);
+        auto end_iter = iter_type{g.adj_list.end()};
+        REQUIRE(v_iter != end_iter);
         REQUIRE(vertex_id(g.adj_list, *v_iter) == 10);
     }
     
     SECTION("ADL handles non-existent keys") {
         auto v_iter = find_vertex(g, 100);
-        auto verts = vertices(g.adj_list);
-        REQUIRE(v_iter == std::ranges::end(verts));
+        using iter_type = decltype(v_iter);
+        auto end_iter = iter_type{g.adj_list.end()};
+        REQUIRE(v_iter == end_iter);
     }
 }
 
 TEST_CASE("find_vertex - map sparse vertex IDs", "[graph_cpo][find_vertex][map]") {
-    // Test with non-contiguous vertex IDs
-    MapGraphWrapper g{{{100, {200}}, {200, {300}}, {300, {100}}, {500, {}}}};
+    // Test with non-contiguous vertex IDs using default implementation
+    std::map<int, std::vector<int>> g = {{100, {200}}, {200, {300}}, {300, {100}}, {500, {}}};
     
     SECTION("Find sparse vertex IDs") {
         auto v_iter = find_vertex(g, 200);
-        REQUIRE(vertex_id(g.data, *v_iter) == 200);
+        REQUIRE(vertex_id(g, *v_iter) == 200);
         
         v_iter = find_vertex(g, 500);
-        REQUIRE(vertex_id(g.data, *v_iter) == 500);
+        REQUIRE(vertex_id(g, *v_iter) == 500);
     }
     
     SECTION("Gaps in ID space return end") {
         auto v_iter = find_vertex(g, 150);  // ID between 100 and 200
-        auto verts = vertices(g.data);
-        REQUIRE(v_iter == std::ranges::end(verts));
+        using iter_type = decltype(v_iter);
+        auto end_iter = iter_type{g.end()};
+        REQUIRE(v_iter == end_iter);
         
         v_iter = find_vertex(g, 400);  // ID between 300 and 500
-        REQUIRE(v_iter == std::ranges::end(verts));
+        REQUIRE(v_iter == end_iter);
     }
 }
 
 TEST_CASE("find_vertex - map integration with vertices", "[graph_cpo][find_vertex][map][integration]") {
-    MapGraphWrapper g{{{1, {2, 3}}, {2, {3}}, {3, {1}}}};
+    std::map<int, std::vector<int>> g = {{1, {2, 3}}, {2, {3}}, {3, {1}}};
     
     SECTION("Round-trip through all vertices") {
-        auto verts = vertices(g.data);
-        for (auto v : verts) {
-            auto vid = vertex_id(g.data, v);
-            auto found = find_vertex(g, vid);
-            REQUIRE(found != std::ranges::end(verts));
-            REQUIRE(vertex_id(g.data, *found) == vid);
+        // Iterate directly over the map container
+        for (const auto& [key, _] : g) {
+            auto found = find_vertex(g, key);
+            using iter_type = decltype(found);
+            auto end_iter = iter_type{g.end()};
+            REQUIRE(found != end_iter);
+            REQUIRE(vertex_id(g, *found) == key);
         }
     }
 }
 
 TEST_CASE("find_vertex - map with weighted edges", "[graph_cpo][find_vertex][map]") {
-    struct WeightedMapGraph {
-        std::map<int, std::vector<std::pair<int, double>>> data = {
-            {0, {{1, 1.5}, {2, 2.5}}},
-            {1, {{2, 3.5}}},
-            {2, {}}
-        };
-        
-        auto find_vertex(int uid) {
-            auto verts = graph::vertices(data);
-            auto map_iter = data.find(uid);
-            if (map_iter == data.end()) {
-                return std::ranges::end(verts);
-            }
-            auto distance = std::distance(data.begin(), map_iter);
-            return std::ranges::next(std::ranges::begin(verts), distance);
-        }
+    std::map<int, std::vector<std::pair<int, double>>> g = {
+        {0, {{1, 1.5}, {2, 2.5}}},
+        {1, {{2, 3.5}}},
+        {2, {}}
     };
     
-    WeightedMapGraph g;
-    
-    SECTION("Find vertices in weighted map graph") {
+    SECTION("Find vertices in weighted map graph using default implementation") {
         auto v_iter = find_vertex(g, 1);
-        auto verts = vertices(g.data);
-        REQUIRE(v_iter != std::ranges::end(verts));
-        REQUIRE(vertex_id(g.data, *v_iter) == 1);
+        using iter_type = decltype(v_iter);
+        auto end_iter = iter_type{g.end()};
+        REQUIRE(v_iter != end_iter);
+        REQUIRE(vertex_id(g, *v_iter) == 1);
         
         // Verify edges are accessible
-        auto edge_range = edges(g.data, *v_iter);
+        auto edge_range = edges(g, *v_iter);
         size_t edge_count = 0;
         for (auto e : edge_range) {
             (void)e;
@@ -292,28 +314,30 @@ TEST_CASE("find_vertex - map with weighted edges", "[graph_cpo][find_vertex][map
 }
 
 TEST_CASE("find_vertex - empty map", "[graph_cpo][find_vertex][map][edge_cases]") {
-    MapGraphWrapper g{{}};
+    std::map<int, std::vector<int>> g;
     
     SECTION("Finding in empty map returns end") {
         auto v_iter = find_vertex(g, 0);
-        auto verts = vertices(g.data);
-        REQUIRE(v_iter == std::ranges::end(verts));
+        using iter_type = decltype(v_iter);
+        auto end_iter = iter_type{g.end()};
+        REQUIRE(v_iter == end_iter);
     }
 }
 
 TEST_CASE("find_vertex - map single vertex", "[graph_cpo][find_vertex][map][edge_cases]") {
-    MapGraphWrapper g{{{42, {}}}};
+    std::map<int, std::vector<int>> g = {{42, {}}};
     
     SECTION("Find single vertex") {
         auto v_iter = find_vertex(g, 42);
-        auto verts = vertices(g.data);
-        REQUIRE(v_iter != std::ranges::end(verts));
-        REQUIRE(vertex_id(g.data, *v_iter) == 42);
+        using iter_type = decltype(v_iter);
+        auto end_iter = iter_type{g.end()};
+        REQUIRE(v_iter != end_iter);
+        REQUIRE(vertex_id(g, *v_iter) == 42);
     }
     
     SECTION("Wrong ID returns end") {
         auto v_iter = find_vertex(g, 43);
-        auto verts = vertices(g.data);
+        auto verts = vertices(g);
         REQUIRE(v_iter == std::ranges::end(verts));
     }
 }
