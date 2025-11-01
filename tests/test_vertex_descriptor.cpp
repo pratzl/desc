@@ -543,3 +543,136 @@ TEST_CASE("Type safety - vertex descriptors from different containers", "[vertex
         SUCCEED("Types are properly distinct");
     }
 }
+
+// =============================================================================
+// Const Semantics Tests
+// =============================================================================
+
+TEST_CASE("vertex_descriptor_view - const container with vector", "[vertex_descriptor_view][const]") {
+    const std::vector<int> data = {10, 20, 30};
+    
+    // Construct view from const container
+    vertex_descriptor_view view{data};
+    
+    // The view should deduce const_iterator
+    using ViewType = decltype(view);
+    using IterType = typename ViewType::vertex_desc::iterator_type;
+    static_assert(std::is_same_v<IterType, std::vector<int>::const_iterator>, 
+                  "Should deduce const_iterator for const container");
+    
+    // Iterate and verify we can access values
+    std::vector<int> ids;
+    for (auto v : view) {
+        ids.push_back(v.vertex_id());
+    }
+    
+    REQUIRE(ids.size() == 3);
+    REQUIRE(ids[0] == 0);
+    REQUIRE(ids[1] == 1);
+    REQUIRE(ids[2] == 2);
+    
+    // Verify we can call underlying_value with const container
+    auto v = *view.begin();
+    const auto& val = v.underlying_value(data);
+    REQUIRE(val == 10);
+    
+    // This should not compile (const correctness):
+    // auto& mutable_val = v.underlying_value(data); // Error: binding to const
+}
+
+TEST_CASE("vertex_descriptor_view - non-const container with vector", "[vertex_descriptor_view][const]") {
+    std::vector<int> data = {10, 20, 30};
+    
+    // Construct view from non-const container
+    vertex_descriptor_view view{data};
+    
+    // The view should deduce non-const iterator
+    using ViewType = decltype(view);
+    using IterType = typename ViewType::vertex_desc::iterator_type;
+    static_assert(std::is_same_v<IterType, std::vector<int>::iterator>, 
+                  "Should deduce iterator for non-const container");
+    
+    // Verify we can modify through the descriptor
+    auto v = *view.begin();
+    v.underlying_value(data) = 100;
+    
+    REQUIRE(data[0] == 100);
+}
+
+TEST_CASE("vertex_descriptor_view - const container with map", "[vertex_descriptor_view][const]") {
+    const std::map<int, std::string> data = {
+        {100, "A"},
+        {200, "B"},
+        {300, "C"}
+    };
+    
+    // Construct view from const container
+    vertex_descriptor_view view{data};
+    
+    // The view should deduce const_iterator
+    using ViewType = decltype(view);
+    using IterType = typename ViewType::vertex_desc::iterator_type;
+    static_assert(std::is_same_v<IterType, std::map<int, std::string>::const_iterator>, 
+                  "Should deduce const_iterator for const map");
+    
+    // Iterate and verify we can access keys
+    std::vector<int> ids;
+    for (auto v : view) {
+        ids.push_back(v.vertex_id());
+    }
+    
+    REQUIRE(ids.size() == 3);
+    REQUIRE(ids[0] == 100);
+    REQUIRE(ids[1] == 200);
+    REQUIRE(ids[2] == 300);
+    
+    // Verify we can call inner_value with const container
+    auto v = *view.begin();
+    const auto& val = v.inner_value(data);
+    REQUIRE(val == "A");
+}
+
+TEST_CASE("vertex_descriptor_view - non-const container with map", "[vertex_descriptor_view][const]") {
+    std::map<int, std::string> data = {
+        {100, "A"},
+        {200, "B"},
+        {300, "C"}
+    };
+    
+    // Construct view from non-const container
+    vertex_descriptor_view view{data};
+    
+    // The view should deduce non-const iterator
+    using ViewType = decltype(view);
+    using IterType = typename ViewType::vertex_desc::iterator_type;
+    static_assert(std::is_same_v<IterType, std::map<int, std::string>::iterator>, 
+                  "Should deduce iterator for non-const map");
+    
+    // Verify we can modify through the descriptor
+    auto v = *view.begin();
+    v.inner_value(data) = "Modified";
+    
+    REQUIRE(data[100] == "Modified");
+}
+
+TEST_CASE("vertex_descriptor_view - const vs non-const distinction", "[vertex_descriptor_view][const]") {
+    std::vector<int> mutable_data = {1, 2, 3};
+    const std::vector<int> const_data = {4, 5, 6};
+    
+    vertex_descriptor_view mutable_view{mutable_data};
+    vertex_descriptor_view const_view{const_data};
+    
+    // These should be different types
+    using MutableViewType = decltype(mutable_view);
+    using ConstViewType = decltype(const_view);
+    
+    static_assert(!std::is_same_v<MutableViewType, ConstViewType>,
+                  "Views from const and non-const containers should be different types");
+    
+    // Verify iterator types are different
+    using MutableIter = typename MutableViewType::vertex_desc::iterator_type;
+    using ConstIter = typename ConstViewType::vertex_desc::iterator_type;
+    
+    static_assert(std::is_same_v<MutableIter, std::vector<int>::iterator>);
+    static_assert(std::is_same_v<ConstIter, std::vector<int>::const_iterator>);
+}

@@ -216,23 +216,32 @@ Implement core graph operation CPOs in `graph_cpo.hpp` following the canonical o
   - **Automatic support** for any sized_range (vector, deque, map, unordered_map, etc.)
 - [ ] `num_edges(g)` - Count total edges in graph
 - [ ] `target(g, uv)` - Get target vertex descriptor from edge
+- [ ] `edges(g, uid)` - Get outgoing edges from vertex by ID (convenience wrapper)
+  - Resolution order:
+    1. `g.edges(uid)` - Member function (highest priority)
+    2. `edges(g, uid)` - ADL (medium priority)
+    3. `edges(g, *find_vertex(g, uid))` - Default using find_vertex (lowest priority)
+  - **Note**: Convenience function that combines find_vertex + edges(g,u)
 - [ ] `degree(g, u)` - Get degree of vertex
+- [ ] `degree(g, uid)` - Get degree of vertex by ID
 
 **Phase 3: Edge Queries (Medium Priority)**
+- [ ] `find_vertex_edge(g, u, v)` - Find edge from u to v
 - [ ] `find_vertex_edge(g, u, vid)` - Find edge from u to vid
+- [ ] `contains_edge(g, u, v)` - Check if edge exists
 - [ ] `contains_edge(g, uid, vid)` - Check if edge exists
+- [ ] `has_edge(g)` - Check if graph has any edges
 
-**Phase 4: Optional Features**
+**Phase 4: Value Access (Optional)**
+- [ ] `vertex_value(g, u)` - Get user-defined vertex value
+- [ ] `edge_value(g, uv)` - Get user-defined edge value
+- [ ] `graph_value(g)` - Get user-defined graph value
+
+**Phase 5: Optional Features**
 - [ ] `source_id(g, uv)` - Get source vertex ID (for sourced edges)
 - [ ] `source(g, uv)` - Get source vertex descriptor (for sourced edges)
 - [ ] `partition_id(g, u)` - Get partition ID (for multipartite graphs)
 - [ ] `num_partitions(g)` - Get number of partitions
-- [ ] `has_edge(g)` - Check if graph has any edges
-
-**Phase 5: Value Access (Optional)**
-- [ ] `vertex_value(g, u)` - Get user-defined vertex value
-- [ ] `edge_value(g, uv)` - Get user-defined edge value
-- [ ] `graph_value(g)` - Get user-defined graph value
 
 Unit tests and documentation for each CPO to be added incrementally.
 

@@ -83,7 +83,7 @@ public:
         : begin_(begin_val), end_(end_val) {}
     
     /**
-     * @brief Construct view from container with begin/end methods
+     * @brief Construct view from non-const container with begin/end methods
      * @param container The underlying container
      */
     template<typename Container>
@@ -92,6 +92,28 @@ public:
             { c.end() } -> std::convertible_to<VertexIter>;
         }
     constexpr explicit vertex_descriptor_view(Container& container) noexcept {
+        if constexpr (std::random_access_iterator<VertexIter>) {
+            begin_ = 0;
+            end_ = static_cast<storage_type>(container.size());
+        } else {
+            begin_ = container.begin();
+            end_ = container.end();
+        }
+    }
+    
+    /**
+     * @brief Construct view from const container with begin/end methods
+     * @param container The underlying const container
+     * 
+     * When constructed from a const container, the view will yield descriptors
+     * that preserve const semantics through their underlying_value() and inner_value() methods.
+     */
+    template<typename Container>
+        requires requires(const Container& c) {
+            { c.begin() } -> std::convertible_to<VertexIter>;
+            { c.end() } -> std::convertible_to<VertexIter>;
+        }
+    constexpr explicit vertex_descriptor_view(const Container& container) noexcept {
         if constexpr (std::random_access_iterator<VertexIter>) {
             begin_ = 0;
             end_ = static_cast<storage_type>(container.size());
@@ -129,9 +151,12 @@ private:
     storage_type end_{};
 };
 
-// Deduction guide
+// Deduction guides
 template<typename Container>
 vertex_descriptor_view(Container&) -> vertex_descriptor_view<typename Container::iterator>;
+
+template<typename Container>
+vertex_descriptor_view(const Container&) -> vertex_descriptor_view<typename Container::const_iterator>;
 
 } // namespace graph
 
