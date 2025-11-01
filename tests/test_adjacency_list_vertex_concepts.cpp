@@ -18,9 +18,8 @@ using namespace graph;
 
 TEST_CASE("vertex_range concept - vector<vector<int>>", "[adjacency_list][concepts][vertex_range]") {
     using Graph = std::vector<std::vector<int>>;
-    using VertexRange = decltype(vertices(std::declval<Graph&>()));
     
-    STATIC_REQUIRE(vertex_range<VertexRange, Graph>);
+    STATIC_REQUIRE(vertex_range<Graph>);
     
     Graph g = {{1, 2}, {2, 3}, {0}};
     auto verts = vertices(g);
@@ -46,9 +45,8 @@ TEST_CASE("vertex_range concept - vector<vector<int>>", "[adjacency_list][concep
 
 TEST_CASE("vertex_range concept - map<int, vector<int>>", "[adjacency_list][concepts][vertex_range]") {
     using Graph = std::map<int, std::vector<int>>;
-    using VertexRange = decltype(vertices(std::declval<Graph&>()));
     
-    STATIC_REQUIRE(vertex_range<VertexRange, Graph>);
+    STATIC_REQUIRE(vertex_range<Graph>);
     
     Graph g = {{0, {1, 2}}, {1, {2}}, {2, {}}};
     auto verts = vertices(g);
@@ -66,9 +64,8 @@ TEST_CASE("vertex_range concept - map<int, vector<int>>", "[adjacency_list][conc
 
 TEST_CASE("vertex_range concept - deque<deque<int>>", "[adjacency_list][concepts][vertex_range]") {
     using Graph = std::deque<std::deque<int>>;
-    using VertexRange = decltype(vertices(std::declval<Graph&>()));
     
-    STATIC_REQUIRE(vertex_range<VertexRange, Graph>);
+    STATIC_REQUIRE(vertex_range<Graph>);
     
     Graph g = {{1, 2}, {0, 2}, {0, 1}};
     auto verts = vertices(g);
@@ -91,15 +88,14 @@ TEST_CASE("vertex_range concept - empty graph", "[adjacency_list][concepts][vert
 
 TEST_CASE("index_vertex_range concept - vector<vector<int>>", "[adjacency_list][concepts][index_vertex_range]") {
     using Graph = std::vector<std::vector<int>>;
-    using VertexRange = decltype(vertices(std::declval<Graph&>()));
     
     // Vector's underlying storage is random access, but vertex_descriptor_view 
     // only provides forward iteration (descriptors are synthesized on-the-fly)
-    STATIC_REQUIRE_FALSE(index_vertex_range<VertexRange, Graph>);
-    STATIC_REQUIRE_FALSE(std::ranges::random_access_range<VertexRange>);
+    STATIC_REQUIRE_FALSE(index_vertex_range<Graph>);
+    STATIC_REQUIRE_FALSE(std::ranges::random_access_range<vertex_range_t<Graph>>);
     
     // But it does satisfy vertex_range
-    STATIC_REQUIRE(vertex_range<VertexRange, Graph>);
+    STATIC_REQUIRE(vertex_range<Graph>);
     
     Graph g = {{1, 2}, {2, 3}, {0}};
     auto verts = vertices(g);
@@ -115,26 +111,24 @@ TEST_CASE("index_vertex_range concept - vector<vector<int>>", "[adjacency_list][
 
 TEST_CASE("index_vertex_range concept - deque<deque<int>>", "[adjacency_list][concepts][index_vertex_range]") {
     using Graph = std::deque<std::deque<int>>;
-    using VertexRange = decltype(vertices(std::declval<Graph&>()));
     
     // Deque's iterator is random access, but vertex_descriptor_view only provides forward iteration
-    STATIC_REQUIRE_FALSE(index_vertex_range<VertexRange, Graph>);
-    STATIC_REQUIRE_FALSE(std::ranges::random_access_range<VertexRange>);
+    STATIC_REQUIRE_FALSE(index_vertex_range<Graph>);
+    STATIC_REQUIRE_FALSE(std::ranges::random_access_range<vertex_range_t<Graph>>);
     
     // But it does satisfy the basic vertex_range
-    STATIC_REQUIRE(vertex_range<VertexRange, Graph>);
+    STATIC_REQUIRE(vertex_range<Graph>);
 }
 
 TEST_CASE("index_vertex_range concept - map does NOT satisfy", "[adjacency_list][concepts][index_vertex_range]") {
     using Graph = std::map<int, std::vector<int>>;
-    using VertexRange = decltype(vertices(std::declval<Graph&>()));
     
     // Map only supports bidirectional, not random access
-    STATIC_REQUIRE_FALSE(index_vertex_range<Graph, VertexRange>);
-    STATIC_REQUIRE_FALSE(std::ranges::random_access_range<VertexRange>);
+    STATIC_REQUIRE_FALSE(index_vertex_range<Graph>);
+    STATIC_REQUIRE_FALSE(std::ranges::random_access_range<vertex_range_t<Graph>>);
     
     // But it does satisfy vertex_range
-    STATIC_REQUIRE(vertex_range<VertexRange, Graph>);
+    STATIC_REQUIRE(vertex_range<Graph>);
 }
 
 // =============================================================================
@@ -270,17 +264,15 @@ TEST_CASE("Concept hierarchy - index_vertex_range implies vertex_range", "[adjac
     using Graph1 = std::vector<std::vector<int>>;
     using Graph2 = std::map<int, std::vector<int>>;
     
-    using VertexRange1 = decltype(vertices(std::declval<Graph1&>()));
-    using VertexRange2 = decltype(vertices(std::declval<Graph2&>()));
     
     // Currently, vertex_descriptor_view only provides forward iteration
     // So even vector-based graphs don't satisfy index_vertex_range
-    STATIC_REQUIRE_FALSE(index_vertex_range<VertexRange1, Graph1>);
-    STATIC_REQUIRE(vertex_range<VertexRange1, Graph1>);
+    STATIC_REQUIRE_FALSE(index_vertex_range<Graph1>);
+    STATIC_REQUIRE(vertex_range<Graph1>);
     
     // But not all vertex_ranges are index_vertex_ranges
-    STATIC_REQUIRE(vertex_range<VertexRange2, Graph2>);
-    STATIC_REQUIRE_FALSE(index_vertex_range<VertexRange2, Graph2>);
+    STATIC_REQUIRE(vertex_range<Graph2>);
+    STATIC_REQUIRE_FALSE(index_vertex_range<Graph2>);
 }
 
 // =============================================================================

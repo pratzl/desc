@@ -150,13 +150,13 @@ concept sourced_targeted_edge_range =
 // =============================================================================
 
 /**
- * @brief Concept for a forward range of vertices
+ * @brief Concept for a graph with a forward range of vertices
  * 
- * A vertex_range is a range where each element is a vertex descriptor.
- * This is the basic concept for iterating over all vertices in a graph.
+ * A vertex_range is a graph where vertices can be iterated as a forward range,
+ * with each element being a vertex descriptor.
  * 
  * Requirements:
- * - Must be a std::ranges::forward_range (can iterate multiple times)
+ * - vertices(g) must return a std::ranges::forward_range
  * - Range value type must be a vertex_descriptor
  * 
  * Note: sized_range requirement removed since some vertex ranges (e.g., over
@@ -171,23 +171,22 @@ concept sourced_targeted_edge_range =
  * - vertex_descriptor_view over std::map<K, V>
  * - vertex_descriptor_view over std::deque<T>
  * 
- * @tparam R Range type
  * @tparam G Graph type
  */
-template<typename R, typename G = void>
+template<typename G>
 concept vertex_range = 
-    std::ranges::forward_range<R> &&
-    is_vertex_descriptor_v<std::remove_cvref_t<std::ranges::range_value_t<R>>>;
+    std::ranges::forward_range<vertex_range_t<G>> &&
+    is_vertex_descriptor_v<std::remove_cvref_t<std::ranges::range_value_t<vertex_range_t<G>>>>;
 
 /**
- * @brief Concept for a random access range of vertices with vertex IDs
+ * @brief Concept for a graph with random access range of vertices
  * 
- * An index_vertex_range is a vertex_range that additionally supports
+ * An index_vertex_range is a vertex_range where vertices additionally support
  * random access, allowing O(1) access to any vertex by index.
  * 
  * Requirements:
  * - Must satisfy vertex_range
- * - Must be a std::ranges::random_access_range
+ * - vertices(g) must return a std::ranges::random_access_range
  * - Supports operator[] or equivalent for O(1) access
  * 
  * Examples:
@@ -197,13 +196,12 @@ concept vertex_range =
  * Note: std::map-based graphs do NOT satisfy this concept as they
  * only provide bidirectional iteration, not random access.
  * 
- * @tparam R Range type
  * @tparam G Graph type
  */
-template<typename R, typename G = void>
+template<typename G>
 concept index_vertex_range = 
-    vertex_range<R, G> &&
-    std::ranges::random_access_range<R>;
+    vertex_range<G> &&
+    std::ranges::random_access_range<vertex_range_t<G>>;
 
 // =============================================================================
 // Adjacency List Concepts
@@ -230,13 +228,11 @@ concept index_vertex_range =
  * @tparam G Graph type
  */
 template<typename G>
-concept adjacency_list = requires(G& g) {
-    { vertices(g) } -> vertex_range<G>;
-    // Check edges with generic vertex descriptor - actual type checking happens at use
-    requires requires(vertex_t<G> u) {
+concept adjacency_list = 
+    vertex_range<G> &&
+    requires(G& g, vertex_t<G> u) {
         { edges(g, u) } -> targeted_edge_range<G>;
     };
-};
 
 /**
  * @brief Concept for graphs with index-based adjacency list structure
@@ -259,9 +255,7 @@ concept adjacency_list = requires(G& g) {
 template<typename G>
 concept index_adjacency_list = 
     adjacency_list<G> &&
-    requires(G& g) {
-        { vertices(g) } -> index_vertex_range<G>;
-    };
+    index_vertex_range<G>;
 
 /**
  * @brief Concept for graphs with sourced adjacency list structure
