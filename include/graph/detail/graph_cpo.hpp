@@ -527,6 +527,86 @@ namespace _cpo {
         };
     } // namespace _target_id
 
+    // =========================================================================
+    // num_vertices(g) CPO
+    // =========================================================================
+    
+    namespace _num_vertices {
+        enum class _St { _none, _member, _adl, _ranges };
+        
+        // Check for g.num_vertices() member function
+        template<typename G>
+        concept _has_member = 
+            requires(const G& g) {
+                { g.num_vertices() } -> std::integral;
+            };
+        
+        // Check for ADL num_vertices(g)
+        template<typename G>
+        concept _has_adl = 
+            requires(const G& g) {
+                { num_vertices(g) } -> std::integral;
+            };
+        
+        // Check if graph is a sized_range (default)
+        template<typename G>
+        concept _has_ranges = std::ranges::sized_range<G>;
+        
+        template<typename G>
+        [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
+            if constexpr (_has_member<G>) {
+                return {_St::_member, 
+                        noexcept(std::declval<const G&>().num_vertices())};
+            } else if constexpr (_has_adl<G>) {
+                return {_St::_adl, 
+                        noexcept(num_vertices(std::declval<const G&>()))};
+            } else if constexpr (_has_ranges<G>) {
+                return {_St::_ranges, 
+                        noexcept(std::ranges::size(std::declval<const G&>()))};
+            } else {
+                return {_St::_none, false};
+            }
+        }
+        
+        class _fn {
+        private:
+            template<typename G>
+            static constexpr _Choice_t<_St> _Choice = _Choose<std::remove_cvref_t<G>>();
+            
+        public:
+            /**
+             * @brief Get the number of vertices in the graph
+             * 
+             * Resolution order (three-tier approach):
+             * 1. g.num_vertices() - Member function (highest priority)
+             * 2. num_vertices(g) - ADL (medium priority)
+             * 3. std::ranges::size(g) - Ranges default (lowest priority)
+             * 
+             * The default implementation works for any sized_range (vector, deque, map, etc.)
+             * Custom graph types can override by providing a member function or ADL function.
+             * 
+             * @tparam G Graph type
+             * @param g Graph container
+             * @return Number of vertices in the graph
+             */
+            template<typename G>
+            [[nodiscard]] constexpr auto operator()(const G& g) const
+                noexcept(_Choice<std::remove_cvref_t<G>>._No_throw)
+                requires (_Choice<std::remove_cvref_t<G>>._Strategy != _St::_none)
+            {
+                using _G = std::remove_cvref_t<G>;
+                
+                if constexpr (_Choice<_G>._Strategy == _St::_member) {
+                    return g.num_vertices();
+                } else if constexpr (_Choice<_G>._Strategy == _St::_adl) {
+                    return num_vertices(g);
+                } else if constexpr (_Choice<_G>._Strategy == _St::_ranges) {
+                    return std::ranges::size(g);
+                }
+            }
+        };
+    } // namespace _num_vertices
+
 } // namespace _cpo
 
 // Public CPO instances
@@ -575,6 +655,15 @@ inline namespace _cpos {
      * Returns: Vertex ID of the target vertex
      */
     inline constexpr _cpo::_target_id::_fn target_id{};
+    
+    /**
+     * @brief CPO for getting the number of vertices in the graph
+     * 
+     * Usage: auto count = graph::num_vertices(my_graph);
+     * 
+     * Returns: Number of vertices (size_t or similar integral type)
+     */
+    inline constexpr _cpo::_num_vertices::_fn num_vertices{};
 }
 
 // ============================================================================
