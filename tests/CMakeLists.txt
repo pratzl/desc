@@ -37,6 +37,7 @@ add_executable(descriptor_tests
     test_partition_id_cpo.cpp
     test_num_partitions_cpo.cpp
     test_type_aliases.cpp
+    test_adjacency_list_edge_concepts.cpp
 )
 
 target_link_libraries(descriptor_tests
