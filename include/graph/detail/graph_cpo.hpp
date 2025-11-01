@@ -322,8 +322,8 @@ namespace _cpo_impls {
     namespace _find_vertex {
         enum class _St { _none, _member, _adl, _associative, _random_access };
         
-        // Use the vertices CPO directly from _vertices namespace
-        inline constexpr _vertices::_fn _vertices_cpo{};
+        // Use the public vertices CPO (already declared above)
+        using graph::vertices;
         
         // Check for g.find_vertex(uid) member function
         template<typename G, typename VId>
@@ -348,9 +348,9 @@ namespace _cpo_impls {
         // Check if vertices(g) is sized (which implies we can use std::ranges::next with offset)
         template<typename G, typename VId>
         concept _has_random_access = 
-            std::ranges::sized_range<decltype(_vertices_cpo(std::declval<G&>()))> &&
+            std::ranges::sized_range<decltype(vertices(std::declval<G&>()))> &&
             requires(VId uid) {
-                std::ranges::next(std::ranges::begin(_vertices_cpo(std::declval<G&>())), uid);
+                std::ranges::next(std::ranges::begin(vertices(std::declval<G&>())), uid);
             };
         
         template<typename G, typename VId>
@@ -366,9 +366,9 @@ namespace _cpo_impls {
                 // Note: We directly construct iterator from map iterator
                 return {_St::_associative, no_throw_find};
             } else if constexpr (_has_random_access<G, VId>) {
-                constexpr bool no_throw_vertices = noexcept(_vertices_cpo(std::declval<G&>()));
-                constexpr bool no_throw_begin = noexcept(std::ranges::begin(_vertices_cpo(std::declval<G&>())));
-                constexpr bool no_throw_next = noexcept(std::ranges::next(std::ranges::begin(_vertices_cpo(std::declval<G&>())), std::declval<const VId&>()));
+                constexpr bool no_throw_vertices = noexcept(vertices(std::declval<G&>()));
+                constexpr bool no_throw_begin = noexcept(std::ranges::begin(vertices(std::declval<G&>())));
+                constexpr bool no_throw_next = noexcept(std::ranges::next(std::ranges::begin(vertices(std::declval<G&>())), std::declval<const VId&>()));
                 return {_St::_random_access, no_throw_vertices && no_throw_begin && no_throw_next};
             } else {
                 return {_St::_none, false};
@@ -422,7 +422,7 @@ namespace _cpo_impls {
                     using view_iterator = typename view_type::iterator;
                     return view_iterator{map_iter};
                 } else if constexpr (_Choice<_G, _VId>._Strategy == _St::_random_access) {
-                    return std::ranges::next(std::ranges::begin(_vertices_cpo(std::forward<G>(g))), uid);
+                    return std::ranges::next(std::ranges::begin(vertices(std::forward<G>(g))), uid);
                 }
             }
         };
@@ -715,9 +715,9 @@ namespace _cpo_impls {
     namespace _target {
         enum class _St { _none, _member, _adl, _default };
         
-        // Forward declare find_vertex and target_id CPOs for use in default implementation
-        inline constexpr _find_vertex::_fn _find_vertex_cpo{};
-        inline constexpr _target_id::_fn _target_id_cpo{};
+        // Use the public CPO instances (already declared above)
+        using graph::find_vertex;
+        using graph::target_id;
         
         // Check for g.target(uv) member function
         template<typename G, typename E>
@@ -740,8 +740,8 @@ namespace _cpo_impls {
         concept _has_default = 
             is_edge_descriptor_v<std::remove_cvref_t<E>> &&
             requires(G& g, const E& uv) {
-                { _target_id_cpo(g, uv) };
-                { _find_vertex_cpo(g, _target_id_cpo(g, uv)) };
+                { target_id(g, uv) };
+                { find_vertex(g, target_id(g, uv)) };
             };
         
         template<typename G, typename E>
@@ -828,7 +828,7 @@ namespace _cpo_impls {
                     return _to_vertex_descriptor(target(g, uv));
                 } else if constexpr (_Choice<_G, _E>._Strategy == _St::_default) {
                     // Default: find_vertex returns an iterator, dereference to get vertex_descriptor
-                    return *_find_vertex_cpo(std::forward<G>(g), _target_id_cpo(g, uv));
+                    return *find_vertex(std::forward<G>(g), target_id(g, uv));
                 }
             }
         };
