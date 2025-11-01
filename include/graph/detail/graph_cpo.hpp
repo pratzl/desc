@@ -761,16 +761,24 @@ namespace _cpo_impls {
         }
         
         // Helper to convert result to vertex descriptor if needed
-        // If result is already a vertex_descriptor, return as-is
-        // If result is an iterator (to vertices), dereference to get vertex_descriptor
-        template<typename Result>
-        [[nodiscard]] constexpr auto _to_vertex_descriptor(Result&& result) noexcept {
+        // Supports two cases:
+        // 1. Result is already a vertex_descriptor -> return as-is
+        // 2. Result is an iterator (to vertex_descriptor_view) -> dereference to get vertex_descriptor
+        //
+        // Note: Custom implementations should return either:
+        // - A vertex_descriptor directly (vertex_t<G>)
+        // - An iterator from vertices(g) (vertex_iterator_t<G>)
+        //
+        // This checks if dereferencing the result yields a vertex_descriptor to handle both cases.
+        template<typename G, typename Result>
+        [[nodiscard]] constexpr auto _to_vertex_descriptor(G&&, Result&& result) noexcept {
             using ResultType = std::remove_cvref_t<Result>;
             if constexpr (is_vertex_descriptor_v<ResultType>) {
                 // Already a vertex_descriptor, return as-is
                 return std::forward<Result>(result);
             } else {
-                // Assume it's an iterator to vertices, dereference to get vertex_descriptor
+                // Assume it's an iterator - dereference to get vertex_descriptor
+                // This works for vertex_descriptor_view::iterator which yields vertex_descriptor when dereferenced
                 return *std::forward<Result>(result);
             }
         }
@@ -822,10 +830,10 @@ namespace _cpo_impls {
                 
                 if constexpr (_Choice<_G, _E>._Strategy == _St::_member) {
                     // Member function may return vertex_descriptor or iterator
-                    return _to_vertex_descriptor(g.target(uv));
+                    return _to_vertex_descriptor(g, g.target(uv));
                 } else if constexpr (_Choice<_G, _E>._Strategy == _St::_adl) {
                     // ADL may return vertex_descriptor or iterator
-                    return _to_vertex_descriptor(target(g, uv));
+                    return _to_vertex_descriptor(g, target(g, uv));
                 } else if constexpr (_Choice<_G, _E>._Strategy == _St::_default) {
                     // Default: find_vertex returns an iterator, dereference to get vertex_descriptor
                     return *find_vertex(std::forward<G>(g), target_id(g, uv));
