@@ -275,8 +275,19 @@ Implement core graph operation CPOs in `graph_cpo.hpp` following the canonical o
     2. `find_vertex_edge(g, uid, vid)` - ADL (medium priority)
     3. `find_vertex_edge(g, *find_vertex(g, uid), vid)` - Default using find_vertex (lowest priority)
   - **Note**: Convenience function for ID-based edge queries
-- [ ] `contains_edge(g, u, v)` - Check if edge exists
-- [ ] `contains_edge(g, uid, vid)` - Check if edge exists
+- [x] `contains_edge(g, u, v)` - Check if edge exists ✅ **COMPLETE** - Included in 21 tests
+  - Resolution order:
+    1. `g.contains_edge(u, v)` - Member function (highest priority)
+    2. `contains_edge(g, u, v)` - ADL (medium priority)
+    3. Iterates `edges(g, u)` comparing `target_id(g, e)` with `vertex_id(g, v)` (lowest priority)
+  - **Return type**: `bool` - true if edge exists, false otherwise
+  - **Note**: More efficient than find_vertex_edge for existence checks
+- [x] `contains_edge(g, uid, vid)` - Check if edge exists ✅ **COMPLETE** - Included in 21 tests
+  - Resolution order:
+    1. `g.contains_edge(uid, vid)` - Member function (highest priority)
+    2. `contains_edge(g, uid, vid)` - ADL (medium priority)
+    3. `find_vertex(g, uid)` then iterate `edges(g, u)` comparing `target_id(g, e) == vid` (lowest priority)
+  - **Dual overload pattern**: Uses `requires (!vertex_descriptor_type<UId> && !vertex_descriptor_type<VId>)` to differentiate
 - [ ] `has_edge(g)` - Check if graph has any edges
 
 **Phase 4: Value Access (Optional)**
@@ -519,7 +530,7 @@ cmake --build build
 
 ## Testing
 
-The project includes 310 unit tests covering descriptor functionality, CPO implementations, and type aliases:
+The project includes 331 unit tests covering descriptor functionality, CPO implementations, and type aliases:
 
 ```bash
 # Run all tests
@@ -588,6 +599,6 @@ This library follows the design principles and specifications from:
 
 ---
 
-**Status**: Phase 1 Complete ✅ | Phase 2 In Progress 🔄 | 310/310 Tests Passing ✅ | vertices(g) + vertex_id(g,u) + find_vertex(g,uid) + edges(g,u) + edges(g,uid) + target_id(g,uv) + target(g,uv) + num_vertices(g) + num_edges(g) + degree(g,u) + degree(g,uid) + find_vertex_edge(g,u,v/vid) + find_vertex_edge(g,uid,vid) + Type Aliases Complete ✅
+**Status**: Phase 1 Complete ✅ | Phase 2 In Progress 🔄 | 331/331 Tests Passing ✅ | vertices(g) + vertex_id(g,u) + find_vertex(g,uid) + edges(g,u) + edges(g,uid) + target_id(g,uv) + target(g,uv) + num_vertices(g) + num_edges(g) + degree(g,u) + degree(g,uid) + find_vertex_edge(g,u,v/vid) + find_vertex_edge(g,uid,vid) + contains_edge(g,u,v) + contains_edge(g,uid,vid) + Type Aliases Complete ✅
 
 ````
