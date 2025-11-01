@@ -330,39 +330,6 @@ Implement core graph operation CPOs in `graph_cpo.hpp` following the canonical o
   - **Note**: Provides access to user-defined graph-level properties/metadata (e.g., name, version, statistics)
   - **Use cases**: Graph metadata, version tracking, global parameters (weight multipliers), statistics
 
-- [ ] Define adjacency list concepts in `graph/adjacency_list_concepts.hpp`:
-  - Edge concepts:
-    * `targeted_edge` - Target and Target IDs only
-    * `sourced_edge` - Source and Source IDs only
-    * `sourced_targeted_edge` - Target IDs and Source IDs
-    * `targeted_edge_range` - Forward range of targeted_edges
-    * `sourced_targeted_edge_range` - Forward range of edges that support sourced_edge and targeted_edge concepts
-  - Vertex concepts:
-    * `vertex_range` - Sized, forward range of vertices with Vertex ID
-    * `index_vertex_range` - Random access range of vertices with Vertex ID
-  - Adjacency list concepts:
-    - `adjacency_list` - Concept for graphs with adjacency list structure using vertex_range and targeted_edge_range.
-    - `index_adjacency_list` - Concept for graphs with adjacency list structure using index_vertex_range and targeted_edge_range.
-    - `sourced_adjacency_list` - Concept for graphs with adjacency list structure using vertex_range and sourced_targeted_edge_range.
-    - `index_sourced_adjacency_list` - Concept for graphs with adjacency list structure using index_vertex_range and sourced_targeted_edge_range.
-  - Requirements:
-    * Container type traits (vertex/edge container types)
-    * Iterator requirements
-    * Size/capacity operations
-    * Modification operations (add/remove vertices/edges)
-- [ ] Define adjacency list traits in `graph/adjacency_list_traits.hpp`:
-  - `has_degree<G>` - A graph supports the degree(g,u) and degree(g,uid) functions
-  - `has_find_vertex<G>` - A graph supports find_vertex(g,uid)
-  - `has_find_vertex_edge<G>` - A graph supports find_vertex_edge(g,u,v), find_vertex_edge(g,u,vid) and find_vertex_edge(g,uid,vid)
-  - `has_contains_edge<G, V>` - A graph supports contains_edge(g,u,v) and contains_edge(g,uid,vid)
-  - `define_unordered_edge<G>` - Overridable trait on a graph that defaults to false. When true, logic in views must guarantee that the target vertex or vertex id is not the same where it came from (the source) when traversing the graph.
-  - Helper metafunctions for compile-time queries
-- [ ] Unit tests for concepts and traits:
-  - Concept satisfaction with various container types
-  - Trait extraction and correctness
-  - SFINAE-friendly design verification
-  - Integration with existing descriptor framework
-
 **Phase 5: Optional Features (Sourced Edges & Partitioning)**
 - [x] `source_id(g, uv)` - Get source vertex ID (for sourced edges) ✅ **COMPLETE** - No tests (CPO only)
   - Resolution order:
@@ -404,12 +371,38 @@ Implement core graph operation CPOs in `graph_cpo.hpp` following the canonical o
 Unit tests and documentation for each CPO added.
 
 ### 📋 Phase 6: Adjacency List Concepts & Traits (PLANNED)
-- [ ] `adjacency_list.hpp` in `include/graph/container/`:
-  - Dynamic adjacency list representation
-  - Uses descriptors for vertices and edges
-  - CPO customizations
-  - Comprehensive unit tests
-  - Usage examples
+- [ ] Define adjacency list concepts in `graph/adjacency_list_concepts.hpp`:
+  - Edge concepts:
+    * `targeted_edge` - Target and Target IDs only
+    * `sourced_edge` - Source and Source IDs only
+    * `sourced_targeted_edge` - Target IDs and Source IDs
+    * `targeted_edge_range` - Forward range of targeted_edges
+    * `sourced_targeted_edge_range` - Forward range of edges that support sourced_edge and targeted_edge concepts
+  - Vertex concepts:
+    * `vertex_range` - Sized, forward range of vertices with Vertex ID
+    * `index_vertex_range` - Random access range of vertices with Vertex ID
+  - Adjacency list concepts:
+    - `adjacency_list` - Concept for graphs with adjacency list structure using vertex_range and targeted_edge_range.
+    - `index_adjacency_list` - Concept for graphs with adjacency list structure using index_vertex_range and targeted_edge_range.
+    - `sourced_adjacency_list` - Concept for graphs with adjacency list structure using vertex_range and sourced_targeted_edge_range.
+    - `index_sourced_adjacency_list` - Concept for graphs with adjacency list structure using index_vertex_range and sourced_targeted_edge_range.
+  - Requirements:
+    * Container type traits (vertex/edge container types)
+    * Iterator requirements
+    * Size/capacity operations
+    * Modification operations (add/remove vertices/edges)
+- [ ] Define adjacency list traits in `graph/adjacency_list_traits.hpp`:
+  - `has_degree<G>` - A graph supports the degree(g,u) and degree(g,uid) functions
+  - `has_find_vertex<G>` - A graph supports find_vertex(g,uid)
+  - `has_find_vertex_edge<G>` - A graph supports find_vertex_edge(g,u,v), find_vertex_edge(g,u,vid) and find_vertex_edge(g,uid,vid)
+  - `has_contains_edge<G, V>` - A graph supports contains_edge(g,u,v) and contains_edge(g,uid,vid)
+  - `define_unordered_edge<G>` - Overridable trait on a graph that defaults to false. When true, logic in views must guarantee that the target vertex or vertex id is not the same where it came from (the source) when traversing the graph.
+  - Helper metafunctions for compile-time queries
+- [ ] Unit tests for concepts and traits:
+  - Concept satisfaction with various container types
+  - Trait extraction and correctness
+  - SFINAE-friendly design verification
+  - Integration with existing descriptor framework
 
 ### 📋 Phase 7: First Container Implementation (PLANNED)
 ### 📋 Phase 8: Basic Algorithms (PLANNED)
