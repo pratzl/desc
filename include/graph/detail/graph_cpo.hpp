@@ -788,6 +788,25 @@ namespace _cpo_impls {
         };
     } // namespace _num_vertices
 
+} // namespace _cpo_impls
+
+// =============================================================================
+// num_vertices(g) - Public CPO instance
+// =============================================================================
+
+inline namespace _cpo_instances {
+    /**
+     * @brief CPO for getting the number of vertices in the graph
+     * 
+     * Usage: auto count = graph::num_vertices(my_graph);
+     * 
+     * Returns: Number of vertices (size_t or similar integral type)
+     */
+    inline constexpr _cpo_impls::_num_vertices::_fn num_vertices{};
+} // namespace _cpo_instances
+
+namespace _cpo_impls {
+
     // =========================================================================
     // num_edges(g) CPO
     // =========================================================================
@@ -897,19 +916,10 @@ namespace _cpo_impls {
 } // namespace _cpo_impls
 
 // =============================================================================
-// num_vertices(g) - Public CPO instance
+// num_edges(g) - Public CPO instance
 // =============================================================================
 
 inline namespace _cpo_instances {
-    /**
-     * @brief CPO for getting the number of vertices in the graph
-     * 
-     * Usage: auto count = graph::num_vertices(my_graph);
-     * 
-     * Returns: Number of vertices (size_t or similar integral type)
-     */
-    inline constexpr _cpo_impls::_num_vertices::_fn num_vertices{};
-    
     /**
      * @brief CPO for getting the total number of edges in the graph
      * 
