@@ -2251,4 +2251,150 @@ inline namespace _cpo_instances {
     inline constexpr _cpo_impls::_source_id::_fn source_id{};
 } // namespace _cpo_instances
 
+namespace _cpo_impls {
+
+    // =========================================================================
+    // source(g, uv) CPO - Get source vertex descriptor from an edge
+    // =========================================================================
+    
+    namespace _source {
+        enum class _St { _none, _member, _adl };
+        
+        // Use the public CPO instances (already declared above)
+        using graph::find_vertex;
+        using graph::source_id;
+        
+        // Check for g.source(uv) member function
+        // Accepts either edge_descriptor or underlying edge value type
+        template<typename G, typename E>
+        concept _has_member = 
+            requires(G& g, const E& uv) {
+                { g.source(uv) };
+            };
+        
+        // Check for ADL source(g, uv)
+        // Accepts either edge_descriptor or underlying edge value type
+        template<typename G, typename E>
+        concept _has_adl = 
+            requires(G& g, const E& uv) {
+                { source(g, uv) };
+            };
+        
+        // No default implementation for source(g, uv)
+        // Unlike target(g, uv) which works for standard adjacency lists,
+        // source requires explicit implementation for each graph type
+        // (e.g., bidirectional graphs, edge lists)
+        
+        template<typename G, typename E>
+        [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
+            if constexpr (_has_member<G, E>) {
+                return {_St::_member, 
+                        noexcept(std::declval<G&>().source(std::declval<const E&>()))};
+            } else if constexpr (_has_adl<G, E>) {
+                return {_St::_adl, 
+                        noexcept(source(std::declval<G&>(), std::declval<const E&>()))};
+            } else {
+                return {_St::_none, false};
+            }
+        }
+        
+        // Helper to convert result to vertex descriptor if needed
+        // Supports two cases:
+        // 1. Result is already a vertex_descriptor -> return as-is
+        // 2. Result is an iterator (to vertex_descriptor_view) -> dereference to get vertex_descriptor
+        //
+        // Note: Custom implementations should return either:
+        // - A vertex_descriptor directly (vertex_t<G>)
+        // - An iterator from vertices(g) (vertex_iterator_t<G>)
+        //
+        // This checks if dereferencing the result yields a vertex_descriptor to handle both cases.
+        template<typename G, typename Result>
+        [[nodiscard]] constexpr auto _to_vertex_descriptor(G&&, Result&& result) noexcept {
+            using ResultType = std::remove_cvref_t<Result>;
+            if constexpr (is_vertex_descriptor_v<ResultType>) {
+                // Already a vertex_descriptor, return as-is
+                return std::forward<Result>(result);
+            } else {
+                // Assume it's an iterator - dereference to get vertex_descriptor
+                // This works for vertex_descriptor_view::iterator which yields vertex_descriptor when dereferenced
+                return *std::forward<Result>(result);
+            }
+        }
+        
+        class _fn {
+        private:
+            template<typename G, typename E>
+            static constexpr _Choice_t<_St> _Choice = _Choose<std::remove_cvref_t<G>, std::remove_cvref_t<E>>();
+            
+        public:
+            /**
+             * @brief Get source vertex descriptor from an edge
+             * 
+             * Resolution order:
+             * 1. g.source(uv) - Member function (highest priority)
+             *    - May return either vertex_descriptor or vertex_iterator (auto-converted)
+             * 2. source(g, uv) - ADL (medium priority)
+             *    - May return either vertex_descriptor or vertex_iterator (auto-converted)
+             * 
+             * NO DEFAULT IMPLEMENTATION
+             * Unlike target(g, uv), there is no default implementation for source(g, uv).
+             * Standard adjacency list graphs have implicit source (the vertex whose edge list
+             * contains the edge), so source must be explicitly provided by graph implementations
+             * that support sourced edges (e.g., bidirectional graphs, edge lists).
+             * 
+             * Custom implementations (member/ADL) can return:
+             * - vertex_descriptor directly (vertex_t<G>) - used as-is
+             * - vertex_iterator (iterator to vertices) - dereferenced to get descriptor
+             * 
+             * Use cases:
+             * - Bidirectional graphs where edges know both endpoints
+             * - Edge list graphs where edges are stored independently
+             * - Any graph structure supporting efficient source vertex lookup
+             * 
+             * @tparam G Graph type
+             * @tparam E Edge descriptor type (constrained to be an edge_descriptor_type)
+             * @param g Graph container
+             * @param uv Edge descriptor (must be edge_t<G> - the edge descriptor type for the graph)
+             * @return Vertex descriptor for the source vertex (vertex_t<G>)
+             */
+            template<typename G, edge_descriptor_type E>
+            [[nodiscard]] constexpr auto operator()(G&& g, const E& uv) const
+                noexcept(_Choice<std::remove_cvref_t<G>, std::remove_cvref_t<E>>._No_throw)
+                -> decltype(auto)
+                requires (_Choice<std::remove_cvref_t<G>, std::remove_cvref_t<E>>._Strategy != _St::_none)
+            {
+                using _G = std::remove_cvref_t<G>;
+                using _E = std::remove_cvref_t<E>;
+                
+                if constexpr (_Choice<_G, _E>._Strategy == _St::_member) {
+                    // Member function may return vertex_descriptor or iterator
+                    return _to_vertex_descriptor(g, g.source(uv));
+                } else if constexpr (_Choice<_G, _E>._Strategy == _St::_adl) {
+                    // ADL may return vertex_descriptor or iterator
+                    return _to_vertex_descriptor(g, source(g, uv));
+                }
+            }
+        };
+    } // namespace _source
+
+} // namespace _cpo_impls
+
+// =============================================================================
+// source(g, uv) - Public CPO instance
+// =============================================================================
+
+inline namespace _cpo_instances {
+    /**
+     * @brief CPO for getting source vertex descriptor from an edge
+     * 
+     * Usage: auto source_vertex = graph::source(my_graph, edge_descriptor);
+     * 
+     * Returns: Vertex descriptor (vertex_iterator_t<G>) for the source vertex
+     * 
+     * Note: No default implementation. Must be provided by graph types that support
+     *       sourced edges (e.g., bidirectional graphs, edge lists).
+     */
+    inline constexpr _cpo_impls::_source::_fn source{};
+} // namespace _cpo_instances
+
 } // namespace graph
