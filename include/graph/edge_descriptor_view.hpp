@@ -87,7 +87,7 @@ public:
         : begin_(begin_val), end_(end_val), source_(source) {}
     
     /**
-     * @brief Construct view from edge container and source vertex (per-vertex adjacency)
+     * @brief Construct view from non-const edge container and source vertex (per-vertex adjacency)
      * @param container The underlying edge container
      * @param source The source vertex for all edges in this container
      */
@@ -97,6 +97,30 @@ public:
             { c.end() } -> std::convertible_to<EdgeIter>;
         }
     constexpr edge_descriptor_view(Container& container, vertex_desc source) noexcept
+        : source_(source) {
+        if constexpr (std::random_access_iterator<EdgeIter>) {
+            begin_ = 0;
+            end_ = static_cast<edge_storage_type>(container.size());
+        } else {
+            begin_ = container.begin();
+            end_ = container.end();
+        }
+    }
+    
+    /**
+     * @brief Construct view from const edge container and source vertex (per-vertex adjacency)
+     * @param container The underlying const edge container
+     * @param source The source vertex for all edges in this container
+     * 
+     * When constructed from a const container, the view will yield edge descriptors
+     * that preserve const semantics through their underlying_value() and inner_value() methods.
+     */
+    template<typename Container>
+        requires requires(const Container& c) {
+            { c.begin() } -> std::convertible_to<EdgeIter>;
+            { c.end() } -> std::convertible_to<EdgeIter>;
+        }
+    constexpr edge_descriptor_view(const Container& container, vertex_desc source) noexcept
         : source_(source) {
         if constexpr (std::random_access_iterator<EdgeIter>) {
             begin_ = 0;
@@ -141,10 +165,14 @@ private:
     vertex_desc source_{};
 };
 
-// Deduction guide for per-vertex adjacency
+// Deduction guides for per-vertex adjacency
 template<typename Container, typename VertexDesc>
 edge_descriptor_view(Container&, VertexDesc) 
     -> edge_descriptor_view<typename Container::iterator, typename VertexDesc::iterator_type>;
+
+template<typename Container, typename VertexDesc>
+edge_descriptor_view(const Container&, VertexDesc) 
+    -> edge_descriptor_view<typename Container::const_iterator, typename VertexDesc::iterator_type>;
 
 } // namespace graph
 

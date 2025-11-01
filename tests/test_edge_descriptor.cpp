@@ -918,3 +918,201 @@ TEST_CASE("edge_descriptor::inner_value() with list iterator", "[edge_descriptor
         REQUIRE(ed.inner_value(edges) == 2.0);
     }
 }
+
+// =============================================================================
+// Const Semantics Tests
+// =============================================================================
+
+TEST_CASE("edge_descriptor_view - const container with vector", "[edge_descriptor_view][const]") {
+    const std::vector<int> edges = {10, 20, 30, 40};
+    std::vector<int> vertices = {100, 200, 300};
+    
+    using VertexIter = std::vector<int>::iterator;
+    using VD = vertex_descriptor<VertexIter>;
+    
+    VD source{0};
+    
+    // Construct view from const container
+    edge_descriptor_view view{edges, source};
+    
+    // The view should deduce const_iterator
+    using ViewType = decltype(view);
+    using IterType = typename ViewType::edge_desc::edge_iterator_type;
+    static_assert(std::is_same_v<IterType, std::vector<int>::const_iterator>, 
+                  "Should deduce const_iterator for const container");
+    
+    // Iterate and verify we can access values
+    std::vector<int> target_ids;
+    for (auto e : view) {
+        target_ids.push_back(e.target_id(edges));
+        REQUIRE(e.source().value() == 0);
+    }
+    
+    REQUIRE(target_ids.size() == 4);
+    REQUIRE(target_ids[0] == 10);
+    REQUIRE(target_ids[1] == 20);
+    REQUIRE(target_ids[2] == 30);
+    REQUIRE(target_ids[3] == 40);
+    
+    // Verify we can call underlying_value with const container
+    auto e = *view.begin();
+    const auto& val = e.underlying_value(edges);
+    REQUIRE(val == 10);
+}
+
+TEST_CASE("edge_descriptor_view - non-const container with vector", "[edge_descriptor_view][const]") {
+    std::vector<int> edges = {10, 20, 30, 40};
+    std::vector<int> vertices = {100, 200, 300};
+    
+    using VertexIter = std::vector<int>::iterator;
+    using VD = vertex_descriptor<VertexIter>;
+    
+    VD source{0};
+    
+    // Construct view from non-const container
+    edge_descriptor_view view{edges, source};
+    
+    // The view should deduce non-const iterator
+    using ViewType = decltype(view);
+    using IterType = typename ViewType::edge_desc::edge_iterator_type;
+    static_assert(std::is_same_v<IterType, std::vector<int>::iterator>, 
+                  "Should deduce iterator for non-const container");
+    
+    // Verify we can modify through the descriptor
+    auto e = *view.begin();
+    e.underlying_value(edges) = 999;
+    
+    REQUIRE(edges[0] == 999);
+}
+
+TEST_CASE("edge_descriptor_view - const container with pairs", "[edge_descriptor_view][const]") {
+    const std::vector<std::pair<int, double>> edges = {
+        {10, 1.5},
+        {20, 2.5},
+        {30, 3.5}
+    };
+    std::vector<int> vertices = {100, 200, 300};
+    
+    using VertexIter = std::vector<int>::iterator;
+    using VD = vertex_descriptor<VertexIter>;
+    
+    VD source{1};
+    
+    // Construct view from const container
+    edge_descriptor_view view{edges, source};
+    
+    // The view should deduce const_iterator
+    using ViewType = decltype(view);
+    using IterType = typename ViewType::edge_desc::edge_iterator_type;
+    static_assert(std::is_same_v<IterType, std::vector<std::pair<int, double>>::const_iterator>, 
+                  "Should deduce const_iterator for const container");
+    
+    // Iterate and verify we can access target IDs
+    std::vector<int> target_ids;
+    for (auto e : view) {
+        target_ids.push_back(e.target_id(edges));
+    }
+    
+    REQUIRE(target_ids.size() == 3);
+    REQUIRE(target_ids[0] == 10);
+    REQUIRE(target_ids[1] == 20);
+    REQUIRE(target_ids[2] == 30);
+    
+    // Verify we can call inner_value with const container
+    auto e = *view.begin();
+    const auto& weight = e.inner_value(edges);
+    REQUIRE(weight == 1.5);
+}
+
+TEST_CASE("edge_descriptor_view - non-const container with pairs", "[edge_descriptor_view][const]") {
+    std::vector<std::pair<int, double>> edges = {
+        {10, 1.5},
+        {20, 2.5},
+        {30, 3.5}
+    };
+    std::vector<int> vertices = {100, 200, 300};
+    
+    using VertexIter = std::vector<int>::iterator;
+    using VD = vertex_descriptor<VertexIter>;
+    
+    VD source{2};
+    
+    // Construct view from non-const container
+    edge_descriptor_view view{edges, source};
+    
+    // The view should deduce non-const iterator
+    using ViewType = decltype(view);
+    using IterType = typename ViewType::edge_desc::edge_iterator_type;
+    static_assert(std::is_same_v<IterType, std::vector<std::pair<int, double>>::iterator>, 
+                  "Should deduce iterator for non-const container");
+    
+    // Verify we can modify through the descriptor
+    auto e = *view.begin();
+    e.inner_value(edges) = 9.9;  // Modify the weight (second element of pair)
+    
+    REQUIRE(edges[0].second == 9.9);
+}
+
+TEST_CASE("edge_descriptor_view - const vs non-const distinction", "[edge_descriptor_view][const]") {
+    std::vector<int> mutable_edges = {1, 2, 3};
+    const std::vector<int> const_edges = {4, 5, 6};
+    std::vector<int> vertices = {100, 200};
+    
+    using VertexIter = std::vector<int>::iterator;
+    using VD = vertex_descriptor<VertexIter>;
+    
+    VD source{0};
+    
+    edge_descriptor_view mutable_view{mutable_edges, source};
+    edge_descriptor_view const_view{const_edges, source};
+    
+    // These should be different types
+    using MutableViewType = decltype(mutable_view);
+    using ConstViewType = decltype(const_view);
+    
+    static_assert(!std::is_same_v<MutableViewType, ConstViewType>,
+                  "Views from const and non-const containers should be different types");
+    
+    // Verify iterator types are different
+    using MutableIter = typename MutableViewType::edge_desc::edge_iterator_type;
+    using ConstIter = typename ConstViewType::edge_desc::edge_iterator_type;
+    
+    static_assert(std::is_same_v<MutableIter, std::vector<int>::iterator>);
+    static_assert(std::is_same_v<ConstIter, std::vector<int>::const_iterator>);
+}
+
+TEST_CASE("edge_descriptor_view - const with list container", "[edge_descriptor_view][const]") {
+    const std::list<std::pair<int, double>> edges = {
+        {5, 1.1},
+        {10, 2.2},
+        {15, 3.3}
+    };
+    std::vector<int> vertices = {100, 200, 300};
+    
+    using VertexIter = std::vector<int>::iterator;
+    using VD = vertex_descriptor<VertexIter>;
+    
+    VD source{0};
+    
+    // Construct view from const list
+    edge_descriptor_view view{edges, source};
+    
+    // Should deduce const_iterator for list
+    using ViewType = decltype(view);
+    using IterType = typename ViewType::edge_desc::edge_iterator_type;
+    static_assert(std::is_same_v<IterType, std::list<std::pair<int, double>>::const_iterator>,
+                  "Should deduce const_iterator for const list");
+    
+    // Verify iteration works
+    int count = 0;
+    for (auto e : view) {
+        REQUIRE(e.source().value() == 0);
+        count++;
+    }
+    REQUIRE(count == 3);
+    
+    // Verify we can access but not modify
+    auto e = *view.begin();
+    const auto& weight = e.inner_value(edges);
+    REQUIRE(weight == 1.1);
+}
