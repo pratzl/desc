@@ -35,6 +35,7 @@ add_executable(descriptor_tests
     test_edge_value_cpo.cpp
     test_graph_value_cpo.cpp
     test_partition_id_cpo.cpp
+    test_num_partitions_cpo.cpp
     test_type_aliases.cpp
 )
 

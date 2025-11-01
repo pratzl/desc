@@ -2511,4 +2511,117 @@ inline namespace _cpo_instances {
     inline constexpr _cpo_impls::_partition_id::_fn partition_id{};
 } // namespace _cpo_instances
 
+namespace _cpo_impls {
+
+    // =========================================================================
+    // num_partitions(g) CPO - Get number of partitions in the graph
+    // =========================================================================
+    
+    namespace _num_partitions {
+        enum class _St { _none, _member, _adl, _default };
+        
+        // Check for g.num_partitions() member function
+        template<typename G>
+        concept _has_member = 
+            requires(const G& g) {
+                { g.num_partitions() } -> std::integral;
+            };
+        
+        // Check for ADL num_partitions(g)
+        template<typename G>
+        concept _has_adl = 
+            requires(const G& g) {
+                { num_partitions(g) } -> std::integral;
+            };
+        
+        // Default always available - returns 1 (single partition)
+        template<typename G>
+        concept _has_default = true;
+        
+        template<typename G>
+        [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
+            if constexpr (_has_member<G>) {
+                return {_St::_member, 
+                        noexcept(std::declval<const G&>().num_partitions())};
+            } else if constexpr (_has_adl<G>) {
+                return {_St::_adl, 
+                        noexcept(num_partitions(std::declval<const G&>()))};
+            } else if constexpr (_has_default<G>) {
+                return {_St::_default, true}; // Default is noexcept
+            } else {
+                return {_St::_none, false};
+            }
+        }
+        
+        class _fn {
+        private:
+            template<typename G>
+            static constexpr _Choice_t<_St> _Choice = _Choose<std::remove_cvref_t<G>>();
+            
+        public:
+            /**
+             * @brief Get the number of partitions in the graph
+             * 
+             * Resolution order:
+             * 1. g.num_partitions() - Member function (highest priority)
+             * 2. num_partitions(g) - ADL (medium priority)
+             * 3. Default: returns 1 (lowest priority)
+             * 
+             * The default implementation assumes a single partition where all vertices
+             * belong to partition 0. This is suitable for:
+             * - Non-partitioned graphs
+             * - Graphs without explicit partition information
+             * - Single-process/single-node graph algorithms
+             * 
+             * Custom implementations can provide:
+             * - Multi-partition support for distributed graphs
+             * - Dynamic partition count based on graph structure
+             * - Graph coloring results
+             * - NUMA-aware partition counts
+             * 
+             * Relationship to partition_id(g, u):
+             * - partition_id returns 0 by default (single partition)
+             * - num_partitions returns 1 by default (one partition exists)
+             * - For multi-partition graphs: partition_id values should be in range [0, num_partitions)
+             * 
+             * @tparam G Graph type
+             * @param g Graph container
+             * @return Number of partitions in the graph (integral type, default 1)
+             */
+            template<typename G>
+            [[nodiscard]] constexpr auto operator()(const G& g) const
+                noexcept(_Choice<std::remove_cvref_t<G>>._No_throw)
+                requires (_Choice<std::remove_cvref_t<G>>._Strategy != _St::_none)
+            {
+                using _G = std::remove_cvref_t<G>;
+                
+                if constexpr (_Choice<_G>._Strategy == _St::_member) {
+                    return g.num_partitions();
+                } else if constexpr (_Choice<_G>._Strategy == _St::_adl) {
+                    return num_partitions(g);
+                } else if constexpr (_Choice<_G>._Strategy == _St::_default) {
+                    // Default: single partition
+                    return 1;
+                }
+            }
+        };
+    } // namespace _num_partitions
+
+} // namespace _cpo_impls
+
+// =============================================================================
+// num_partitions(g) - Public CPO instance
+// =============================================================================
+
+inline namespace _cpo_instances {
+    /**
+     * @brief CPO for getting the number of partitions in the graph
+     * 
+     * Usage: auto count = graph::num_partitions(my_graph);
+     * 
+     * Returns: Number of partitions (default 1 for single-partition graphs)
+     */
+    inline constexpr _cpo_impls::_num_partitions::_fn num_partitions{};
+} // namespace _cpo_instances
+
 } // namespace graph
