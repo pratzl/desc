@@ -33,6 +33,7 @@ add_executable(descriptor_tests
     test_has_edge_cpo.cpp
     test_vertex_value_cpo.cpp
     test_edge_value_cpo.cpp
+    test_graph_value_cpo.cpp
     test_type_aliases.cpp
 )
 

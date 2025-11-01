@@ -2054,4 +2054,99 @@ inline namespace _cpo_instances {
     inline constexpr _cpo_impls::_edge_value::_fn edge_value{};
 } // namespace _cpo_instances
 
+namespace _cpo_impls {
+
+    // =========================================================================
+    // graph_value(g) CPO
+    // =========================================================================
+    
+    namespace _graph_value {
+        enum class _St { _none, _member, _adl };
+        
+        // Check for g.graph_value() member function
+        // Note: Uses G (not G&) to preserve const qualification
+        template<typename G>
+        concept _has_member = requires(G g) {
+            { g.graph_value() };
+        };
+        
+        // Check for ADL graph_value(g)
+        // Note: Uses G (not G&) to preserve const qualification
+        template<typename G>
+        concept _has_adl = requires(G g) {
+            { graph_value(g) };
+        };
+        
+        template<typename G>
+        [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
+            if constexpr (_has_member<G>) {
+                return {_St::_member, 
+                        noexcept(std::declval<G>().graph_value())};
+            } else if constexpr (_has_adl<G>) {
+                return {_St::_adl, 
+                        noexcept(graph_value(std::declval<G>()))};
+            } else {
+                return {_St::_none, false};
+            }
+        }
+        
+        class _fn {
+        private:
+            template<typename G>
+            static constexpr _Choice_t<_St> _Choice = _Choose<std::remove_cvref_t<G>>();
+            
+        public:
+            /**
+             * @brief Get the user-defined value associated with the graph
+             * 
+             * Resolution order:
+             * 1. g.graph_value() - Member function (highest priority)
+             * 2. graph_value(g) - ADL (lowest priority)
+             * 
+             * There is no default implementation. If neither member nor ADL is found,
+             * a compile-time error will occur due to the requires constraint.
+             * 
+             * This provides access to user-defined graph-level properties/metadata
+             * stored in the graph container (e.g., name, creation date, statistics).
+             * 
+             * @tparam G Graph type
+             * @param g Graph container
+             * @return Reference to the graph value/properties (or by-value if custom implementation returns by-value)
+             */
+            template<typename G>
+            [[nodiscard]] constexpr decltype(auto) operator()(G&& g) const
+                noexcept(_Choice<std::remove_cvref_t<G>>._No_throw)
+                requires (_Choice<std::remove_cvref_t<G>>._Strategy != _St::_none)
+            {
+                using _G = std::remove_cvref_t<G>;
+                
+                if constexpr (_Choice<_G>._Strategy == _St::_member) {
+                    return std::forward<G>(g).graph_value();
+                } else if constexpr (_Choice<_G>._Strategy == _St::_adl) {
+                    return graph_value(std::forward<G>(g));
+                }
+            }
+        };
+    } // namespace _graph_value
+
+} // namespace _cpo_impls
+
+// =============================================================================
+// graph_value(g) - Public CPO instance
+// =============================================================================
+
+inline namespace _cpo_instances {
+    /**
+     * @brief CPO for getting the user-defined value associated with the graph
+     * 
+     * Usage: 
+     *   auto& value = graph::graph_value(my_graph);
+     * 
+     * Returns: Reference to the graph value/metadata (or by-value if custom)
+     * 
+     * Note: No default implementation - requires either member function or ADL
+     */
+    inline constexpr _cpo_impls::_graph_value::_fn graph_value{};
+} // namespace _cpo_instances
+
 } // namespace graph

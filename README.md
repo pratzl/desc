@@ -321,7 +321,14 @@ Implement core graph operation CPOs in `graph_cpo.hpp` following the canonical o
     * Tuple (target, prop1, prop2, ...): returns tuple of elements [1, N) (all properties except target)
     * Custom struct: returns the whole value (user manages property access)
   - **Note**: Honors const-correctness - returns const reference when graph is const, mutable reference when graph is mutable
-- [ ] `graph_value(g)` - Get user-defined graph value
+- [x] `graph_value(g)` - Get user-defined graph value ✅ **COMPLETE** - 27 tests passing
+  - Resolution order:
+    1. `g.graph_value()` - Member function (highest priority)
+    2. `graph_value(g)` - ADL (lowest priority)
+  - **Return type**: `decltype(auto)` - Perfect forwarding of references (supports both by-value and by-reference returns)
+  - **No default implementation**: Compile-time error if neither member nor ADL is found
+  - **Note**: Provides access to user-defined graph-level properties/metadata (e.g., name, version, statistics)
+  - **Use cases**: Graph metadata, version tracking, global parameters (weight multipliers), statistics
 
 **Phase 5: Optional Features**
 - [ ] `source_id(g, uv)` - Get source vertex ID (for sourced edges)
@@ -627,6 +634,6 @@ This library follows the design principles and specifications from:
 
 ---
 
-**Status**: Phase 1 Complete ✅ | Phase 2 & 3 Complete ✅ | Phase 4 In Progress 🔄 | 420/420 Tests Passing ✅ | vertices(g) + vertex_id(g,u) + find_vertex(g,uid) + edges(g,u) + edges(g,uid) + target_id(g,uv) + target(g,uv) + num_vertices(g) + num_edges(g) + degree(g,u) + degree(g,uid) + find_vertex_edge(g,u,v/vid) + find_vertex_edge(g,uid,vid) + contains_edge(g,u,v) + contains_edge(g,uid,vid) + has_edge(g) + vertex_value(g,u) + edge_value(g,uv) + Type Aliases Complete ✅
+**Status**: Phase 1 Complete ✅ | Phase 2 & 3 Complete ✅ | Phase 4 Complete ✅ | 447/447 Tests Passing ✅ | vertices(g) + vertex_id(g,u) + find_vertex(g,uid) + edges(g,u) + edges(g,uid) + target_id(g,uv) + target(g,uv) + num_vertices(g) + num_edges(g) + degree(g,u) + degree(g,uid) + find_vertex_edge(g,u,v/vid) + find_vertex_edge(g,uid,vid) + contains_edge(g,u,v) + contains_edge(g,uid,vid) + has_edge(g) + vertex_value(g,u) + edge_value(g,uv) + graph_value(g) + Type Aliases Complete ✅
 
 ````
