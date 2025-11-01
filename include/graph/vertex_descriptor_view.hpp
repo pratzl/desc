@@ -134,3 +134,7 @@ template<typename Container>
 vertex_descriptor_view(Container&) -> vertex_descriptor_view<typename Container::iterator>;
 
 } // namespace graph
+
+// Enable borrowed_range for vertex_descriptor_view since it doesn't own the data
+template<typename VertexIter>
+inline constexpr bool std::ranges::enable_borrowed_range<graph::vertex_descriptor_view<VertexIter>> = true;

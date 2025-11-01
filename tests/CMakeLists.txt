@@ -20,6 +20,7 @@ add_executable(descriptor_tests
     test_vertex_concepts.cpp
     test_vertices_cpo.cpp
     test_vertex_id_cpo.cpp
+    test_find_vertex_cpo.cpp
     test_type_aliases.cpp
 )
 

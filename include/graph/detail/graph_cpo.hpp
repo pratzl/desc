@@ -239,6 +239,97 @@ namespace _cpo {
         };
     } // namespace _vertex_id
 
+    // =========================================================================
+    // find_vertex(g, uid) CPO
+    // =========================================================================
+    
+    namespace _find_vertex {
+        enum class _St { _none, _member, _adl, _random_access };
+        
+        // Use the vertices CPO directly from _vertices namespace
+        inline constexpr _vertices::_fn _vertices_cpo{};
+        
+        // Check for g.find_vertex(uid) member function
+        template<typename G, typename VId>
+        concept _has_member = requires(G& g, const VId& uid) {
+            { g.find_vertex(uid) };
+        };
+        
+        // Check for ADL find_vertex(g, uid)
+        template<typename G, typename VId>
+        concept _has_adl = requires(G& g, const VId& uid) {
+            { find_vertex(g, uid) };
+        };
+        
+        // Check if vertices(g) is sized (which implies we can use std::ranges::next with offset)
+        template<typename G, typename VId>
+        concept _has_random_access = 
+            std::ranges::sized_range<decltype(_vertices_cpo(std::declval<G&>()))> &&
+            requires(VId uid) {
+                std::ranges::next(std::ranges::begin(_vertices_cpo(std::declval<G&>())), uid);
+            };
+        
+        template<typename G, typename VId>
+        [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
+            if constexpr (_has_member<G, VId>) {
+                return {_St::_member, 
+                        noexcept(std::declval<G&>().find_vertex(std::declval<const VId&>()))};
+            } else if constexpr (_has_adl<G, VId>) {
+                return {_St::_adl, 
+                        noexcept(find_vertex(std::declval<G&>(), std::declval<const VId&>()))};
+            } else if constexpr (_has_random_access<G, VId>) {
+                constexpr bool no_throw_vertices = noexcept(_vertices_cpo(std::declval<G&>()));
+                constexpr bool no_throw_begin = noexcept(std::ranges::begin(_vertices_cpo(std::declval<G&>())));
+                constexpr bool no_throw_next = noexcept(std::ranges::next(std::ranges::begin(_vertices_cpo(std::declval<G&>())), std::declval<const VId&>()));
+                return {_St::_random_access, no_throw_vertices && no_throw_begin && no_throw_next};
+            } else {
+                return {_St::_none, false};
+            }
+        }
+        
+        class _fn {
+        private:
+            template<typename G, typename VId>
+            static constexpr _Choice_t<_St> _Choice = _Choose<std::remove_cvref_t<G>, std::remove_cvref_t<VId>>();
+            
+        public:
+            /**
+             * @brief Find vertex by ID
+             * 
+             * Resolution order:
+             * 1. g.find_vertex(uid) - member function (highest priority)
+             * 2. find_vertex(g, uid) - ADL
+             * 3. std::ranges::next(begin(vertices(g)), uid) - default for sized ranges (lowest priority)
+             * 
+             * For random-access containers (vector, deque): O(1) via indexed access
+             * For ordered associative (map): O(log n) via member override
+             * For unordered associative (unordered_map): O(1) average via member override
+             * 
+             * @tparam G Graph type
+             * @tparam VId Vertex ID type (typically vertex_id_t<G>)
+             * @param g Graph container
+             * @param uid Vertex ID to find
+             * @return Iterator to the vertex (vertex_iterator_t<G>)
+             */
+            template<typename G, typename VId>
+            [[nodiscard]] constexpr auto operator()(G&& g, const VId& uid) const
+                noexcept(_Choice<std::remove_cvref_t<G>, std::remove_cvref_t<VId>>._No_throw)
+                -> decltype(auto)
+                requires (_Choice<std::remove_cvref_t<G>, std::remove_cvref_t<VId>>._Strategy != _St::_none)
+            {
+                using _G = std::remove_cvref_t<G>;
+                using _VId = std::remove_cvref_t<VId>;
+                if constexpr (_Choice<_G, _VId>._Strategy == _St::_member) {
+                    return std::forward<G>(g).find_vertex(uid);
+                } else if constexpr (_Choice<_G, _VId>._Strategy == _St::_adl) {
+                    return find_vertex(std::forward<G>(g), uid);
+                } else if constexpr (_Choice<_G, _VId>._Strategy == _St::_random_access) {
+                    return std::ranges::next(std::ranges::begin(_vertices_cpo(std::forward<G>(g))), uid);
+                }
+            }
+        };
+    } // namespace _find_vertex
+
 } // namespace _cpo
 
 // Public CPO instances
@@ -260,6 +351,15 @@ inline namespace _cpos {
      * Returns: Vertex ID (index for vector, key for map, etc.)
      */
     inline constexpr _cpo::_vertex_id::_fn vertex_id{};
+    
+    /**
+     * @brief CPO for finding a vertex by its ID
+     * 
+     * Usage: auto v_iter = graph::find_vertex(my_graph, vertex_id);
+     * 
+     * Returns: Iterator to the vertex (vertex_iterator_t<G>)
+     */
+    inline constexpr _cpo::_find_vertex::_fn find_vertex{};
 }
 
 // ============================================================================
