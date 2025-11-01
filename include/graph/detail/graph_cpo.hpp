@@ -788,6 +788,112 @@ namespace _cpo_impls {
         };
     } // namespace _num_vertices
 
+    // =========================================================================
+    // num_edges(g) CPO
+    // =========================================================================
+    
+    namespace _num_edges {
+        enum class _St { _none, _member, _adl, _default };
+        
+        // Check for g.num_edges() member function
+        template<typename G>
+        concept _has_member = 
+            requires(const G& g) {
+                { g.num_edges() } -> std::integral;
+            };
+        
+        // Check for ADL num_edges(g)
+        template<typename G>
+        concept _has_adl = 
+            requires(const G& g) {
+                { num_edges(g) } -> std::integral;
+            };
+        
+        // Check if we can iterate vertices and their edges
+        template<typename G>
+        concept _has_default = requires(G& g) {
+            { vertices(g) };
+            requires std::ranges::forward_range<decltype(vertices(g))>;
+        };
+        
+        template<typename G>
+        [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
+            if constexpr (_has_member<G>) {
+                return {_St::_member, 
+                        noexcept(std::declval<const G&>().num_edges())};
+            } else if constexpr (_has_adl<G>) {
+                return {_St::_adl, 
+                        noexcept(num_edges(std::declval<const G&>()))};
+            } else if constexpr (_has_default<G>) {
+                // Default implementation is not noexcept as it may allocate
+                return {_St::_default, false};
+            } else {
+                return {_St::_none, false};
+            }
+        }
+        
+        class _fn {
+        private:
+            template<typename G>
+            static constexpr _Choice_t<_St> _Choice = _Choose<std::remove_cvref_t<G>>();
+            
+        public:
+            /**
+             * @brief Get the total number of edges in the graph
+             * 
+             * Resolution order:
+             * 1. g.num_edges() - Member function (highest priority)
+             * 2. num_edges(g) - ADL (medium priority)
+             * 3. Default implementation (lowest priority) - Iterates through all vertices
+             *    and sums the number of edges for each vertex
+             * 
+             * The default implementation:
+             * - Iterates through all vertices using vertices(g)
+             * - For each vertex u, gets edges(g, u)
+             * - If the edges range is sized, uses std::ranges::size()
+             * - Otherwise, uses std::ranges::distance() on the underlying range
+             * 
+             * For directed graphs, this counts each edge once.
+             * For undirected graphs, this counts each edge twice (once per endpoint).
+             * 
+             * @tparam G Graph type
+             * @param g Graph container
+             * @return Total number of edges in the graph
+             */
+            template<typename G>
+            [[nodiscard]] constexpr auto operator()(G&& g) const
+                noexcept(_Choice<std::remove_cvref_t<G>>._No_throw)
+                requires (_Choice<std::remove_cvref_t<G>>._Strategy != _St::_none)
+            {
+                using _G = std::remove_cvref_t<G>;
+                
+                if constexpr (_Choice<_G>._Strategy == _St::_member) {
+                    return g.num_edges();
+                } else if constexpr (_Choice<_G>._Strategy == _St::_adl) {
+                    return num_edges(g);
+                } else if constexpr (_Choice<_G>._Strategy == _St::_default) {
+                    // Default implementation: iterate through vertices and sum edge counts
+                    std::size_t count = 0;
+                    
+                    for (auto u : vertices(g)) {
+                        auto edge_range = edges(g, u);
+                        
+                        // Try to use sized_range if available, otherwise use distance
+                        if constexpr (std::ranges::sized_range<decltype(edge_range)>) {
+                            count += std::ranges::size(edge_range);
+                        } else {
+                            // Use the underlying range for distance calculation
+                            // edge_descriptor_view exposes the underlying container via begin()/end()
+                            count += std::ranges::distance(edge_range.begin(), edge_range.end());
+                        }
+                    }
+                    
+                    return count;
+                }
+            }
+        };
+    } // namespace _num_edges
+
 } // namespace _cpo_impls
 
 // =============================================================================
@@ -803,6 +909,15 @@ inline namespace _cpo_instances {
      * Returns: Number of vertices (size_t or similar integral type)
      */
     inline constexpr _cpo_impls::_num_vertices::_fn num_vertices{};
+    
+    /**
+     * @brief CPO for getting the total number of edges in the graph
+     * 
+     * Usage: auto count = graph::num_edges(my_graph);
+     * 
+     * Returns: Total number of edges (size_t)
+     */
+    inline constexpr _cpo_impls::_num_edges::_fn num_edges{};
 } // namespace _cpo_instances
 
 } // namespace graph
