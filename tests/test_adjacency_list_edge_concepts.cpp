@@ -90,7 +90,7 @@ TEST_CASE("targeted_edge_range concept - edge_descriptor_view from vector<vector
     using EdgeIter = typename std::vector<int>::iterator;
     using EdgeDescView = edge_descriptor_view<EdgeIter, VertexIter>;
     
-    STATIC_REQUIRE(targeted_edge_range<Graph, EdgeDescView>);
+    STATIC_REQUIRE(targeted_edge_range<EdgeDescView, Graph>);
     
     Graph g = {{1, 2, 3}, {0, 2}, {0, 1}};
     auto verts = vertices(g);
@@ -115,7 +115,7 @@ TEST_CASE("targeted_edge_range concept - edge_descriptor_view from vector<vector
     using EdgeIter = typename std::vector<std::pair<int, double>>::iterator;
     using EdgeDescView = edge_descriptor_view<EdgeIter, VertexIter>;
     
-    STATIC_REQUIRE(targeted_edge_range<Graph, EdgeDescView>);
+    STATIC_REQUIRE(targeted_edge_range<EdgeDescView, Graph>);
     
     Graph g = {{{1, 1.5}, {2, 2.5}}, {{0, 0.5}}, {}};
     auto verts = vertices(g);
@@ -139,7 +139,7 @@ TEST_CASE("targeted_edge_range concept - multiple vertices", "[adjacency_list][c
     using EdgeIter = typename std::vector<int>::iterator;
     using EdgeDescView = edge_descriptor_view<EdgeIter, VertexIter>;
     
-    STATIC_REQUIRE(targeted_edge_range<Graph, EdgeDescView>);
+    STATIC_REQUIRE(targeted_edge_range<EdgeDescView, Graph>);
     
     Graph g = {{1, 2}, {2, 3}, {0, 1}};
     auto verts = vertices(g);
@@ -207,5 +207,5 @@ TEST_CASE("Edge range concepts - range requirements documented", "[adjacency_lis
     auto v = *vertices(g).begin();
     auto edge_range = edges(g, v);
     
-    STATIC_REQUIRE(targeted_edge_range<Graph, decltype(edge_range)>);
+    STATIC_REQUIRE(targeted_edge_range<decltype(edge_range), Graph>);
 }
