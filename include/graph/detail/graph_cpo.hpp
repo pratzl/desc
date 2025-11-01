@@ -417,12 +417,12 @@ namespace _cpo {
              * - Custom edges: structs/classes with custom extraction
              * 
              * @tparam G Graph type
-             * @tparam U Vertex descriptor type
+             * @tparam U Vertex descriptor type (constrained to be a vertex_descriptor_type)
              * @param g Graph container
-             * @param u Vertex descriptor
+             * @param u Vertex descriptor (must be vertex_t<G> - the vertex descriptor type for the graph)
              * @return edge_descriptor_view wrapping the edges
              */
-            template<typename G, typename U>
+            template<typename G, vertex_descriptor_type U>
             [[nodiscard]] constexpr auto operator()(G&& g, const U& u) const
                 noexcept(_Choice<std::remove_cvref_t<G>, std::remove_cvref_t<U>>._No_throw)
                 requires (_Choice<std::remove_cvref_t<G>, std::remove_cvref_t<U>>._Strategy != _St::_none)
