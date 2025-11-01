@@ -213,7 +213,8 @@ Implement core graph operation CPOs in `graph_cpo.hpp` following the canonical o
     3. `*find_vertex(g, target_id(g, uv))` - Default (lowest priority)
   - **Return type flexibility**: Custom implementations (member/ADL) can return either:
     - `vertex_descriptor` (vertex_t<G>) - used as-is
-    - `vertex_iterator` (iterator to vertices) - automatically dereferenced to descriptor
+    - `vertex_iterator` (iterator to vertices) - automatically converted to descriptor
+  - **Smart type conversion**: Internal `_to_vertex_descriptor` helper properly handles both direct descriptors and iterators from `vertices(g)`
   - **Default implementation**: Combines `find_vertex` and `target_id` for convenience
   - **Performance**: O(1) for random-access graphs, O(log n) or O(1) average for associative graphs
 
