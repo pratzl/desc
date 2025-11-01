@@ -131,6 +131,51 @@ namespace _cpo {
         };
     } // namespace _vertices
 
+} // namespace _cpo
+
+// =============================================================================
+// vertices(g) - Public CPO instance and type aliases
+// =============================================================================
+
+inline namespace _cpos {
+    /**
+     * @brief CPO for getting vertex range from a graph
+     * 
+     * Usage: auto verts = graph::vertices(my_graph);
+     * 
+     * Returns: vertex_descriptor_view
+     */
+    inline constexpr _cpo::_vertices::_fn vertices{};
+} // namespace _cpos
+
+/**
+ * @brief Range type returned by vertices(g)
+ * 
+ * This is always vertex_descriptor_view<Iter> where Iter is the iterator
+ * type of the underlying container.
+ */
+template<typename G>
+using vertex_range_t = decltype(vertices(std::declval<G&>()));
+
+/**
+ * @brief Iterator type for traversing vertices
+ * 
+ * Iterator over the vertex_descriptor_view returned by vertices(g).
+ */
+template<typename G>
+using vertex_iterator_t = std::ranges::iterator_t<vertex_range_t<G>>;
+
+/**
+ * @brief Vertex descriptor type for graph G
+ * 
+ * This is the value_type of the vertex range - a vertex_descriptor<Iter>
+ * that wraps an iterator into the graph's vertex container.
+ */
+template<typename G>
+using vertex_t = std::ranges::range_value_t<vertex_range_t<G>>;
+
+namespace _cpo {
+
     // =========================================================================
     // vertex_id(g, u) CPO
     // =========================================================================
@@ -239,6 +284,36 @@ namespace _cpo {
             }
         };
     } // namespace _vertex_id
+
+} // namespace _cpo
+
+// =============================================================================
+// vertex_id(g, u) - Public CPO instance and type alias
+// =============================================================================
+
+inline namespace _cpos {
+    /**
+     * @brief CPO for getting vertex ID from a vertex descriptor
+     * 
+     * Usage: auto id = graph::vertex_id(my_graph, vertex_descriptor);
+     * 
+     * Returns: Vertex ID (index for vector, key for map, etc.)
+     */
+    inline constexpr _cpo::_vertex_id::_fn vertex_id{};
+} // namespace _cpos
+
+/**
+ * @brief Vertex ID type for graph G
+ * 
+ * The type of the unique identifier returned by vertex_id(g, u).
+ * - For random-access containers (vector, deque): size_t (index)
+ * - For associative containers (map): key type
+ * - For bidirectional containers: iterator-based ID
+ */
+template<typename G>
+using vertex_id_t = decltype(vertex_id(std::declval<G&>(), std::declval<vertex_t<G>>()));
+
+namespace _cpo {
 
     // =========================================================================
     // find_vertex(g, uid) CPO
@@ -353,6 +428,25 @@ namespace _cpo {
         };
     } // namespace _find_vertex
 
+} // namespace _cpo
+
+// =============================================================================
+// find_vertex(g, uid) - Public CPO instance
+// =============================================================================
+
+inline namespace _cpos {
+    /**
+     * @brief CPO for finding a vertex by its ID
+     * 
+     * Usage: auto v_iter = graph::find_vertex(my_graph, vertex_id);
+     * 
+     * Returns: Iterator to the vertex (vertex_iterator_t<G>)
+     */
+    inline constexpr _cpo::_find_vertex::_fn find_vertex{};
+} // namespace _cpos
+
+namespace _cpo {
+
     // =========================================================================
     // edges(g, u) CPO
     // =========================================================================
@@ -462,6 +556,52 @@ namespace _cpo {
         };
     } // namespace _edges
 
+} // namespace _cpo
+
+// =============================================================================
+// edges(g, u) - Public CPO instance and type aliases
+// =============================================================================
+
+inline namespace _cpos {
+    /**
+     * @brief CPO for getting outgoing edges from a vertex
+     * 
+     * Usage: auto vertex_edges = graph::edges(my_graph, vertex_descriptor);
+     * 
+     * Returns: edge_descriptor_view
+     */
+    inline constexpr _cpo::_edges::_fn edges{};
+} // namespace _cpos
+
+/**
+ * @brief Range type returned by edges(g, u)
+ * 
+ * This is always edge_descriptor_view<EdgeIter, VertexIter> where EdgeIter
+ * is the iterator type of the underlying edge container and VertexIter is
+ * the iterator type of the vertex container.
+ */
+template<typename G>
+using vertex_edge_range_t = decltype(edges(std::declval<G&>(), std::declval<vertex_t<G>>()));
+
+/**
+ * @brief Iterator type for traversing edges from a vertex
+ * 
+ * Iterator over the edge_descriptor_view returned by edges(g, u).
+ */
+template<typename G>
+using vertex_edge_iterator_t = std::ranges::iterator_t<vertex_edge_range_t<G>>;
+
+/**
+ * @brief Edge descriptor type for graph G
+ * 
+ * This is the value_type of the edge range - an edge_descriptor<EdgeIter, VertexIter>
+ * that wraps an edge and maintains its source vertex.
+ */
+template<typename G>
+using edge_t = std::ranges::range_value_t<vertex_edge_range_t<G>>;
+
+namespace _cpo {
+
     // =========================================================================
     // target_id(g, uv) CPO
     // =========================================================================
@@ -549,6 +689,25 @@ namespace _cpo {
         };
     } // namespace _target_id
 
+} // namespace _cpo
+
+// =============================================================================
+// target_id(g, uv) - Public CPO instance
+// =============================================================================
+
+inline namespace _cpos {
+    /**
+     * @brief CPO for getting target vertex ID from an edge
+     * 
+     * Usage: auto target = graph::target_id(my_graph, edge_descriptor);
+     * 
+     * Returns: Vertex ID of the target vertex
+     */
+    inline constexpr _cpo::_target_id::_fn target_id{};
+} // namespace _cpos
+
+namespace _cpo {
+
     // =========================================================================
     // num_vertices(g) CPO
     // =========================================================================
@@ -631,53 +790,11 @@ namespace _cpo {
 
 } // namespace _cpo
 
-// Public CPO instances
+// =============================================================================
+// num_vertices(g) - Public CPO instance
+// =============================================================================
+
 inline namespace _cpos {
-    /**
-     * @brief CPO for getting vertex range from a graph
-     * 
-     * Usage: auto verts = graph::vertices(my_graph);
-     * 
-     * Returns: vertex_descriptor_view
-     */
-    inline constexpr _cpo::_vertices::_fn vertices{};
-    
-    /**
-     * @brief CPO for getting vertex ID from a vertex descriptor
-     * 
-     * Usage: auto id = graph::vertex_id(my_graph, vertex_descriptor);
-     * 
-     * Returns: Vertex ID (index for vector, key for map, etc.)
-     */
-    inline constexpr _cpo::_vertex_id::_fn vertex_id{};
-    
-    /**
-     * @brief CPO for finding a vertex by its ID
-     * 
-     * Usage: auto v_iter = graph::find_vertex(my_graph, vertex_id);
-     * 
-     * Returns: Iterator to the vertex (vertex_iterator_t<G>)
-     */
-    inline constexpr _cpo::_find_vertex::_fn find_vertex{};
-    
-    /**
-     * @brief CPO for getting outgoing edges from a vertex
-     * 
-     * Usage: auto vertex_edges = graph::edges(my_graph, vertex_descriptor);
-     * 
-     * Returns: edge_descriptor_view
-     */
-    inline constexpr _cpo::_edges::_fn edges{};
-    
-    /**
-     * @brief CPO for getting target vertex ID from an edge
-     * 
-     * Usage: auto target = graph::target_id(my_graph, edge_descriptor);
-     * 
-     * Returns: Vertex ID of the target vertex
-     */
-    inline constexpr _cpo::_target_id::_fn target_id{};
-    
     /**
      * @brief CPO for getting the number of vertices in the graph
      * 
@@ -686,82 +803,6 @@ inline namespace _cpos {
      * Returns: Number of vertices (size_t or similar integral type)
      */
     inline constexpr _cpo::_num_vertices::_fn num_vertices{};
-}
-
-// ============================================================================
-// Type Aliases based on vertices(g)
-// ============================================================================
-
-/**
- * @brief Range type returned by vertices(g)
- * 
- * This is always vertex_descriptor_view<Iter> where Iter is the iterator
- * type of the underlying container.
- */
-template<typename G>
-using vertex_range_t = decltype(vertices(std::declval<G&>()));
-
-/**
- * @brief Iterator type for traversing vertices
- * 
- * Iterator over the vertex_descriptor_view returned by vertices(g).
- */
-template<typename G>
-using vertex_iterator_t = std::ranges::iterator_t<vertex_range_t<G>>;
-
-/**
- * @brief Vertex descriptor type for graph G
- * 
- * This is the value_type of the vertex range - a vertex_descriptor<Iter>
- * that wraps an iterator into the graph's vertex container.
- */
-template<typename G>
-using vertex_t = std::ranges::range_value_t<vertex_range_t<G>>;
-
-// ============================================================================
-// Type Alias based on vertex_id(g, u)
-// ============================================================================
-
-/**
- * @brief Vertex ID type for graph G
- * 
- * The type of the unique identifier returned by vertex_id(g, u).
- * - For random-access containers (vector, deque): size_t (index)
- * - For associative containers (map): key type
- * - For bidirectional containers: iterator-based ID
- */
-template<typename G>
-using vertex_id_t = decltype(vertex_id(std::declval<G&>(), std::declval<vertex_t<G>>()));
-
-// ============================================================================
-// Type Aliases based on edges(g, u)
-// ============================================================================
-
-/**
- * @brief Range type returned by edges(g, u)
- * 
- * This is always edge_descriptor_view<EdgeIter, VertexIter> where EdgeIter
- * is the iterator type of the underlying edge container and VertexIter is
- * the iterator type of the vertex container.
- */
-template<typename G>
-using vertex_edge_range_t = decltype(edges(std::declval<G&>(), std::declval<vertex_t<G>>()));
-
-/**
- * @brief Iterator type for traversing edges from a vertex
- * 
- * Iterator over the edge_descriptor_view returned by edges(g, u).
- */
-template<typename G>
-using vertex_edge_iterator_t = std::ranges::iterator_t<vertex_edge_range_t<G>>;
-
-/**
- * @brief Edge descriptor type for graph G
- * 
- * This is the value_type of the edge range - an edge_descriptor<EdgeIter, VertexIter>
- * that wraps an edge and maintains its source vertex.
- */
-template<typename G>
-using edge_t = std::ranges::range_value_t<vertex_edge_range_t<G>>;
+} // namespace _cpos
 
 } // namespace graph
