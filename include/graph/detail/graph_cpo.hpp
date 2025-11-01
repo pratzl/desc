@@ -760,6 +760,21 @@ namespace _cpo_impls {
             }
         }
         
+        // Helper to convert result to vertex descriptor if needed
+        // If result is already a vertex_descriptor, return as-is
+        // If result is an iterator (to vertices), dereference to get vertex_descriptor
+        template<typename Result>
+        [[nodiscard]] constexpr auto _to_vertex_descriptor(Result&& result) noexcept {
+            using ResultType = std::remove_cvref_t<Result>;
+            if constexpr (is_vertex_descriptor_v<ResultType>) {
+                // Already a vertex_descriptor, return as-is
+                return std::forward<Result>(result);
+            } else {
+                // Assume it's an iterator to vertices, dereference to get vertex_descriptor
+                return *std::forward<Result>(result);
+            }
+        }
+        
         class _fn {
         private:
             template<typename G, typename E>
@@ -771,12 +786,20 @@ namespace _cpo_impls {
              * 
              * Resolution order:
              * 1. g.target(uv) - Member function (highest priority)
+             *    - May return either vertex_descriptor or vertex_iterator (auto-converted)
              * 2. target(g, uv) - ADL (medium priority)
+             *    - May return either vertex_descriptor or vertex_iterator (auto-converted)
              * 3. find_vertex(g, target_id(g, uv)) - Default (lowest priority)
+             *    - Returns vertex_iterator, dereferenced to get vertex_descriptor
+             * 
+             * Custom implementations (member/ADL) can return:
+             * - vertex_descriptor directly (vertex_t<G>) - used as-is
+             * - vertex_iterator (iterator to vertices) - dereferenced to get descriptor
              * 
              * The default implementation:
              * - Uses target_id(g, uv) to get the target vertex ID
-             * - Uses find_vertex(g, target_id) to get the vertex descriptor
+             * - Uses find_vertex(g, target_id) to get the vertex iterator
+             * - Dereferences the iterator to get the vertex descriptor
              * 
              * This is a convenience function that combines target_id and find_vertex.
              * For random-access graphs, this is O(1).
@@ -786,7 +809,7 @@ namespace _cpo_impls {
              * @tparam E Edge descriptor type (constrained to be an edge_descriptor_type)
              * @param g Graph container
              * @param uv Edge descriptor (must be edge_t<G> - the edge descriptor type for the graph)
-             * @return Vertex descriptor for the target vertex (vertex_iterator_t<G>)
+             * @return Vertex descriptor for the target vertex (vertex_t<G>)
              */
             template<typename G, edge_descriptor_type E>
             [[nodiscard]] constexpr auto operator()(G&& g, const E& uv) const
@@ -798,9 +821,11 @@ namespace _cpo_impls {
                 using _E = std::remove_cvref_t<E>;
                 
                 if constexpr (_Choice<_G, _E>._Strategy == _St::_member) {
-                    return g.target(uv);
+                    // Member function may return vertex_descriptor or iterator
+                    return _to_vertex_descriptor(g.target(uv));
                 } else if constexpr (_Choice<_G, _E>._Strategy == _St::_adl) {
-                    return target(g, uv);
+                    // ADL may return vertex_descriptor or iterator
+                    return _to_vertex_descriptor(target(g, uv));
                 } else if constexpr (_Choice<_G, _E>._Strategy == _St::_default) {
                     // Default: find_vertex returns an iterator, dereference to get vertex_descriptor
                     return *_find_vertex_cpo(std::forward<G>(g), _target_id_cpo(g, uv));

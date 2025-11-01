@@ -285,6 +285,89 @@ TEST_CASE("target(g,uv) - ADL customization", "[target][cpo][adl]") {
 }
 
 // =============================================================================
+// Test: Custom Implementation Returning Iterator (not descriptor)
+// =============================================================================
+
+namespace test_iterator_return {
+    struct CustomGraph {
+        std::vector<std::vector<int>> adjacency_list;
+        
+        auto& operator[](std::size_t idx) { return adjacency_list[idx]; }
+        const auto& operator[](std::size_t idx) const { return adjacency_list[idx]; }
+        
+        auto vertices() {
+            return vertex_descriptor_view(adjacency_list);
+        }
+        
+        auto edges(const auto& u) {
+            return edge_descriptor_view(u.inner_value(adjacency_list), u);
+        }
+        
+        // Custom target member that returns an ITERATOR (not descriptor)
+        // This tests that the CPO properly handles both return types
+        auto target(const auto& uv) {
+            (void)uv;  // Unused in this test
+            // Return iterator to vertex 3 (not a descriptor)
+            return std::ranges::next(std::ranges::begin(vertices()), 3);
+        }
+    };
+}
+
+TEST_CASE("target(g,uv) - custom member returning iterator", "[target][cpo][member][iterator]") {
+    test_iterator_return::CustomGraph graph{
+        {{1, 2}, {3}, {}, {0, 1}}
+    };
+    
+    auto v0 = *graph.vertices().begin();
+    auto e = *graph.edges(v0).begin();
+    
+    // Custom member returns iterator, CPO should convert to descriptor
+    auto target_v = graph::target(graph, e);
+    
+    // Verify it's a descriptor (can be used with vertex_id)
+    REQUIRE(vertex_id(graph, target_v) == 3);
+}
+
+namespace test_adl_iterator_return {
+    struct CustomGraph {
+        std::vector<std::vector<int>> adjacency_list;
+        
+        auto& operator[](std::size_t idx) { return adjacency_list[idx]; }
+        const auto& operator[](std::size_t idx) const { return adjacency_list[idx]; }
+        
+        auto vertices() {
+            return vertex_descriptor_view(adjacency_list);
+        }
+        
+        auto edges(const auto& u) {
+            return edge_descriptor_view(u.inner_value(adjacency_list), u);
+        }
+    };
+    
+    // ADL target function that returns an ITERATOR (not descriptor)
+    auto target(CustomGraph& g, const auto& uv) {
+        (void)uv;  // Unused in this test
+        // Return iterator to vertex 2 (not a descriptor)
+        return std::ranges::next(std::ranges::begin(g.vertices()), 2);
+    }
+}
+
+TEST_CASE("target(g,uv) - ADL returning iterator", "[target][cpo][adl][iterator]") {
+    test_adl_iterator_return::CustomGraph graph{
+        {{1, 2, 3}, {4}, {}, {0}}
+    };
+    
+    auto v0 = *graph.vertices().begin();
+    auto e = *graph.edges(v0).begin();
+    
+    // ADL returns iterator, CPO should convert to descriptor
+    auto target_v = graph::target(graph, e);
+    
+    // Verify it's a descriptor (can be used with vertex_id)
+    REQUIRE(vertex_id(graph, target_v) == 2);
+}
+
+// =============================================================================
 // Test: Full Graph Traversal
 // =============================================================================
 
