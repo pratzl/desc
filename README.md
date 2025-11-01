@@ -214,7 +214,13 @@ Implement core graph operation CPOs in `graph_cpo.hpp` following the canonical o
     2. `num_vertices(g)` - ADL (medium priority)
     3. `std::ranges::size(g)` - Ranges default (lowest priority)
   - **Automatic support** for any sized_range (vector, deque, map, unordered_map, etc.)
-- [ ] `num_edges(g)` - Count total edges in graph
+- [x] `num_edges(g)` - Count total edges in graph ✅ **COMPLETE** - 31 tests passing
+  - Resolution order:
+    1. `g.num_edges()` - Member function (highest priority)
+    2. `num_edges(g)` - ADL (medium priority)
+    3. Iterate vertices and sum edge counts - Default (lowest priority)
+  - **Default implementation**: Iterates through all vertices using `vertices(g)`, for each vertex calls `edges(g, u)`, uses `std::ranges::size()` for sized ranges or `std::ranges::distance()` for non-sized ranges
+  - **Note**: For directed graphs counts each edge once; for undirected graphs counts each edge twice (once per endpoint)
 - [ ] `target(g, uv)` - Get target vertex descriptor from edge
 - [ ] `edges(g, uid)` - Get outgoing edges from vertex by ID (convenience wrapper)
   - Resolution order:
@@ -299,17 +305,20 @@ desc/
 │       └── graph_utility.hpp       # Utility CPOs (stub)
 ├── scripts/                # Build and maintenance scripts
 │   └── format.sh          # Code formatting script
-├── tests/                  # Unit tests (139 tests, all passing)
+├── tests/                  # Unit tests (229 tests, all passing)
 │   ├── test_descriptor_traits.cpp
 │   ├── test_edge_concepts.cpp
 │   ├── test_edge_descriptor.cpp
 │   ├── test_edges_cpo.cpp
 │   ├── test_find_vertex_cpo.cpp
+│   ├── test_num_edges_cpo.cpp
+│   ├── test_num_vertices_cpo.cpp
+│   ├── test_target_id_cpo.cpp
+│   ├── test_type_aliases.cpp
 │   ├── test_vertex_concepts.cpp
 │   ├── test_vertex_descriptor.cpp
 │   ├── test_vertex_id_cpo.cpp
-│   ├── test_vertices_cpo.cpp
-│   └── test_vertices_type_aliases.cpp
+│   └── test_vertices_cpo.cpp
 ├── CMakeLists.txt         # Root CMake configuration
 ├── CMakePresets.json      # CMake build presets
 ├── MIGRATION_PHASE1.md    # Phase 1 migration details
@@ -466,7 +475,7 @@ cmake --build build
 
 ## Testing
 
-The project includes 139 unit tests covering descriptor functionality, CPO implementations, and type aliases:
+The project includes 229 unit tests covering descriptor functionality, CPO implementations, and type aliases:
 
 ```bash
 # Run all tests
@@ -486,6 +495,15 @@ ctest --test-dir build/linux-gcc-debug -R find_vertex
 
 # Run edges(g,u) CPO tests
 ctest --test-dir build/linux-gcc-debug -R edges
+
+# Run target_id(g,uv) CPO tests
+ctest --test-dir build/linux-gcc-debug -R target_id
+
+# Run num_vertices(g) CPO tests
+ctest --test-dir build/linux-gcc-debug -R num_vertices
+
+# Run num_edges(g) CPO tests
+ctest --test-dir build/linux-gcc-debug -R num_edges
 
 # Run type alias tests
 ctest --test-dir build/linux-gcc-debug -R "Type aliases"
@@ -517,6 +535,6 @@ This library follows the design principles and specifications from:
 
 ---
 
-**Status**: Phase 1 Complete ✅ | Phase 2 In Progress 🔄 | 179/179 Tests Passing ✅ | vertices(g) + vertex_id(g,u) + find_vertex(g,uid) + edges(g,u) + target_id(g,uv) + num_vertices(g) + Type Aliases Complete ✅
+**Status**: Phase 1 Complete ✅ | Phase 2 In Progress 🔄 | 229/229 Tests Passing ✅ | vertices(g) + vertex_id(g,u) + find_vertex(g,uid) + edges(g,u) + target_id(g,uv) + num_vertices(g) + num_edges(g) + Type Aliases Complete ✅
 
 ````
