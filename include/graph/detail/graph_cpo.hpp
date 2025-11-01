@@ -802,8 +802,8 @@ namespace _cpo_impls {
                 } else if constexpr (_Choice<_G, _E>._Strategy == _St::_adl) {
                     return target(g, uv);
                 } else if constexpr (_Choice<_G, _E>._Strategy == _St::_default) {
-                    // Default: find_vertex(g, target_id(g, uv))
-                    return _find_vertex_cpo(std::forward<G>(g), _target_id_cpo(g, uv));
+                    // Default: find_vertex returns an iterator, dereference to get vertex_descriptor
+                    return *_find_vertex_cpo(std::forward<G>(g), _target_id_cpo(g, uv));
                 }
             }
         };

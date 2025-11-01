@@ -34,7 +34,7 @@ TEST_CASE("target(g,uv) - vector<vector<int>> simple edges", "[target][cpo][defa
     auto target_v = target(graph, e);
     
     // Verify target vertex ID is 1
-    REQUIRE(vertex_id(graph, *target_v) == 1);
+    REQUIRE(vertex_id(graph, target_v) == 1);
 }
 
 TEST_CASE("target(g,uv) - accessing target's edges", "[target][cpo][default]") {
@@ -53,7 +53,7 @@ TEST_CASE("target(g,uv) - accessing target's edges", "[target][cpo][default]") {
     
     // Get edges from the target vertex
     std::vector<int> target_edges;
-    for (auto e : edges(graph, *v1)) {
+    for (auto e : edges(graph, v1)) {
         target_edges.push_back(target_id(graph, e));
     }
     
@@ -80,7 +80,7 @@ TEST_CASE("target(g,uv) - vector<vector<pair<int,double>>> weighted edges", "[ta
     
     auto target_v = target(graph, e);
     
-    REQUIRE(vertex_id(graph, *target_v) == 1);
+    REQUIRE(vertex_id(graph, target_v) == 1);
 }
 
 TEST_CASE("target(g,uv) - iterating through edges and targets", "[target][cpo][default]") {
@@ -97,7 +97,7 @@ TEST_CASE("target(g,uv) - iterating through edges and targets", "[target][cpo][d
     std::vector<int> target_ids;
     for (auto e : edges(graph, v0)) {
         auto t = target(graph, e);
-        target_ids.push_back(vertex_id(graph, *t));
+        target_ids.push_back(vertex_id(graph, t));
     }
     
     REQUIRE(target_ids.size() == 3);
@@ -124,7 +124,7 @@ TEST_CASE("target(g,uv) - vector<vector<tuple<...>>> multi-property edges", "[ta
     
     auto target_v = target(graph, e);
     
-    REQUIRE(vertex_id(graph, *target_v) == 1);
+    REQUIRE(vertex_id(graph, target_v) == 1);
 }
 
 // =============================================================================
@@ -144,7 +144,7 @@ TEST_CASE("target(g,uv) - deque<deque<int>> simple edges", "[target][cpo][defaul
     
     auto target_v = target(graph, e);
     
-    REQUIRE(vertex_id(graph, *target_v) == 10);
+    REQUIRE(vertex_id(graph, target_v) == 10);
 }
 
 // =============================================================================
@@ -164,7 +164,7 @@ TEST_CASE("target(g,uv) - map<int, vector<int>>", "[target][cpo][default]") {
     
     auto target_v = target(graph, e);
     
-    REQUIRE(vertex_id(graph, *target_v) == 1);
+    REQUIRE(vertex_id(graph, target_v) == 1);
 }
 
 TEST_CASE("target(g,uv) - map with sparse vertex IDs", "[target][cpo][default]") {
@@ -179,7 +179,7 @@ TEST_CASE("target(g,uv) - map with sparse vertex IDs", "[target][cpo][default]")
     
     auto target_v = target(graph, e);
     
-    REQUIRE(vertex_id(graph, *target_v) == 200);
+    REQUIRE(vertex_id(graph, target_v) == 200);
 }
 
 TEST_CASE("target(g,uv) - map with weighted edges", "[target][cpo][default]") {
@@ -195,7 +195,7 @@ TEST_CASE("target(g,uv) - map with weighted edges", "[target][cpo][default]") {
     
     auto target_v = target(graph, e);
     
-    REQUIRE(vertex_id(graph, *target_v) == 1);
+    REQUIRE(vertex_id(graph, target_v) == 1);
 }
 
 // =============================================================================
@@ -221,8 +221,8 @@ namespace test_member {
         // Custom target member
         auto target(const auto& uv) {
             (void)uv;  // Unused in this test
-            // Return a specific vertex regardless of edge
-            return std::ranges::next(std::ranges::begin(vertices()), 2);
+            // Return a specific vertex descriptor regardless of edge
+            return *std::ranges::next(std::ranges::begin(vertices()), 2);
         }
     };
 }
@@ -238,7 +238,7 @@ TEST_CASE("target(g,uv) - custom member function", "[target][cpo][member]") {
     // Should use custom member function
     auto target_v = graph::target(graph, e);
     
-    REQUIRE(vertex_id(graph, *target_v) == 2);
+    REQUIRE(vertex_id(graph, target_v) == 2);
 }
 
 // =============================================================================
@@ -265,8 +265,8 @@ namespace test_adl {
     // ADL target function
     auto target(CustomGraph& g, const auto& uv) {
         (void)uv;  // Unused in this test
-        // Return a specific vertex (for testing)
-        return std::ranges::next(std::ranges::begin(g.vertices()), 1);
+        // Return a specific vertex descriptor (for testing)
+        return *std::ranges::next(std::ranges::begin(g.vertices()), 1);
     }
 }
 
@@ -281,7 +281,7 @@ TEST_CASE("target(g,uv) - ADL customization", "[target][cpo][adl]") {
     // Should find ADL target
     auto target_v = graph::target(graph, e);
     
-    REQUIRE(vertex_id(graph, *target_v) == 1);
+    REQUIRE(vertex_id(graph, target_v) == 1);
 }
 
 // =============================================================================
@@ -301,7 +301,7 @@ TEST_CASE("target(g,uv) - full graph traversal using target", "[target][cpo][tra
     for (auto u : vertices(graph)) {
         for (auto e : edges(graph, u)) {
             auto v = target(graph, e);
-            edge_list.emplace_back(vertex_id(graph, u), vertex_id(graph, *v));
+            edge_list.emplace_back(vertex_id(graph, u), vertex_id(graph, v));
         }
     }
     
@@ -329,7 +329,7 @@ TEST_CASE("target(g,uv) - const graph", "[target][cpo][const]") {
     
     auto target_v = target(graph, e);
     
-    REQUIRE(vertex_id(graph, *target_v) == 1);
+    REQUIRE(vertex_id(graph, target_v) == 1);
 }
 
 TEST_CASE("target(g,uv) - const map graph", "[target][cpo][const]") {
@@ -344,7 +344,7 @@ TEST_CASE("target(g,uv) - const map graph", "[target][cpo][const]") {
     
     auto target_v = target(graph, e);
     
-    REQUIRE(vertex_id(graph, *target_v) == 1);
+    REQUIRE(vertex_id(graph, target_v) == 1);
 }
 
 // =============================================================================
@@ -364,7 +364,7 @@ TEST_CASE("target(g,uv) - self-loops", "[target][cpo][edge_cases]") {
     auto target_v = target(graph, e_self);
     
     // Target of self-loop should be the same vertex
-    REQUIRE(vertex_id(graph, *target_v) == 0);
+    REQUIRE(vertex_id(graph, target_v) == 0);
 }
 
 TEST_CASE("target(g,uv) - multiple edges to same target", "[target][cpo][edge_cases]") {
@@ -379,7 +379,7 @@ TEST_CASE("target(g,uv) - multiple edges to same target", "[target][cpo][edge_ca
     // All edges should point to vertex 1
     for (auto e : edges(graph, v0)) {
         auto t = target(graph, e);
-        REQUIRE(vertex_id(graph, *t) == 1);
+        REQUIRE(vertex_id(graph, t) == 1);
     }
 }
 
@@ -395,7 +395,7 @@ TEST_CASE("target(g,uv) - large vertex IDs", "[target][cpo][edge_cases]") {
     
     auto target_v = target(graph, e);
     
-    REQUIRE(vertex_id(graph, *target_v) == 2000);
+    REQUIRE(vertex_id(graph, target_v) == 2000);
 }
 
 // =============================================================================
@@ -416,7 +416,7 @@ TEST_CASE("target(g,uv) - consistency with target_id", "[target][cpo][integratio
             auto tv = target(graph, e);
             
             // target_id and target should be consistent
-            REQUIRE(vertex_id(graph, *tv) == tid);
+            REQUIRE(vertex_id(graph, tv) == tid);
         }
     }
 }
@@ -435,16 +435,16 @@ TEST_CASE("target(g,uv) - chaining target calls", "[target][cpo][integration]") 
     
     // Get vertex 1
     auto v1 = target(graph, e01);
-    auto e12 = *edges(graph, *v1).begin();
+    auto e12 = *edges(graph, v1).begin();
     
     // Get vertex 2
     auto v2 = target(graph, e12);
-    auto e23 = *edges(graph, *v2).begin();
+    auto e23 = *edges(graph, v2).begin();
     
     // Get vertex 3
     auto v3 = target(graph, e23);
     
-    REQUIRE(vertex_id(graph, *v3) == 3);
+    REQUIRE(vertex_id(graph, v3) == 3);
 }
 
 TEST_CASE("target(g,uv) - using target to traverse edges", "[target][cpo][integration]") {
@@ -461,7 +461,7 @@ TEST_CASE("target(g,uv) - using target to traverse edges", "[target][cpo][integr
     std::vector<int> targets;
     for (auto e : edges(graph, v0)) {
         auto t = target(graph, e);
-        targets.push_back(vertex_id(graph, *t));
+        targets.push_back(vertex_id(graph, t));
     }
     
     REQUIRE(targets.size() == 2);
@@ -486,12 +486,12 @@ TEST_CASE("target(g,uv) - return type is vertex_iterator", "[target][cpo][types]
     auto target_v = target(graph, e);
     
     using TargetType = decltype(target_v);
-    using ExpectedType = vertex_iterator_t<decltype(graph)>;
+    using ExpectedType = vertex_t<decltype(graph)>;
     
     static_assert(std::is_same_v<TargetType, ExpectedType>, 
-                  "target should return vertex_iterator_t");
+                  "target should return vertex_t (vertex descriptor)");
     
-    REQUIRE(vertex_id(graph, *target_v) == 1);
+    REQUIRE(vertex_id(graph, target_v) == 1);
 }
 
 // =============================================================================
@@ -510,7 +510,7 @@ TEST_CASE("target(g,uv) - complete graph K3", "[target][cpo][patterns]") {
     for (auto u : vertices(graph)) {
         for (auto e : edges(graph, u)) {
             auto t = target(graph, e);
-            int tid = vertex_id(graph, *t);
+            int tid = vertex_id(graph, t);
             
             // Target should be a valid vertex
             REQUIRE(tid >= 0);
@@ -533,7 +533,7 @@ TEST_CASE("target(g,uv) - directed acyclic graph", "[target][cpo][patterns]") {
     std::vector<int> targets_from_0;
     for (auto e : edges(graph, v0)) {
         auto t = target(graph, e);
-        targets_from_0.push_back(vertex_id(graph, *t));
+        targets_from_0.push_back(vertex_id(graph, t));
     }
     
     REQUIRE(targets_from_0.size() == 2);
@@ -554,13 +554,13 @@ TEST_CASE("target(g,uv) - cyclic graph", "[target][cpo][patterns]") {
     auto e01 = *edges(graph, v0).begin();
     auto v1 = target(graph, e01);
     
-    auto e12 = *edges(graph, *v1).begin();
+    auto e12 = *edges(graph, v1).begin();
     auto v2 = target(graph, e12);
     
-    auto e20 = *edges(graph, *v2).begin();
+    auto e20 = *edges(graph, v2).begin();
     auto v0_again = target(graph, e20);
     
-    REQUIRE(vertex_id(graph, *v0_again) == 0);
+    REQUIRE(vertex_id(graph, v0_again) == 0);
 }
 
 // =============================================================================
@@ -580,7 +580,7 @@ TEST_CASE("target(g,uv) - vector random access performance", "[target][cpo][perf
     // Should be O(1) for vector
     auto t = target(graph, e);
     
-    REQUIRE(vertex_id(graph, *t) == 1);
+    REQUIRE(vertex_id(graph, t) == 1);
 }
 
 TEST_CASE("target(g,uv) - map logarithmic performance", "[target][cpo][performance]") {
@@ -596,5 +596,5 @@ TEST_CASE("target(g,uv) - map logarithmic performance", "[target][cpo][performan
     // Should be O(log n) for map
     auto t = target(graph, e);
     
-    REQUIRE(vertex_id(graph, *t) == 10);
+    REQUIRE(vertex_id(graph, t) == 10);
 }
