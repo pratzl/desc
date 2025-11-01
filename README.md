@@ -309,7 +309,18 @@ Implement core graph operation CPOs in `graph_cpo.hpp` following the canonical o
     * Associative (map): returns `.second` value (not the key)
     * Bidirectional: returns dereferenced value
   - **Note**: Provides access to user-defined vertex properties/data stored in the graph
-- [ ] `edge_value(g, uv)` - Get user-defined edge value
+- [x] `edge_value(g, uv)` - Get user-defined edge value ✅ **COMPLETE** - 33 tests passing
+  - Resolution order:
+    1. `g.edge_value(uv)` - Member function (highest priority)
+    2. `edge_value(g, uv)` - ADL (medium priority)
+    3. `uv.inner_value(edges)` - Default using edge descriptor's inner_value (lowest priority)
+  - **Return type**: `decltype(auto)` - Perfect forwarding of references (supports both by-value and by-reference returns)
+  - **Default implementation**: Delegates to `uv.inner_value(uv.source().inner_value(g))` which extracts properties based on edge pattern:
+    * Simple (int): returns the value itself (target ID only, no separate property)
+    * Pair (target, weight): returns `.second` (the weight/property)
+    * Tuple (target, prop1, prop2, ...): returns tuple of elements [1, N) (all properties except target)
+    * Custom struct: returns the whole value (user manages property access)
+  - **Note**: Honors const-correctness - returns const reference when graph is const, mutable reference when graph is mutable
 - [ ] `graph_value(g)` - Get user-defined graph value
 
 **Phase 5: Optional Features**
@@ -616,6 +627,6 @@ This library follows the design principles and specifications from:
 
 ---
 
-**Status**: Phase 1 Complete ✅ | Phase 2 & 3 Complete ✅ | Phase 4 In Progress 🔄 | 385/385 Tests Passing ✅ | vertices(g) + vertex_id(g,u) + find_vertex(g,uid) + edges(g,u) + edges(g,uid) + target_id(g,uv) + target(g,uv) + num_vertices(g) + num_edges(g) + degree(g,u) + degree(g,uid) + find_vertex_edge(g,u,v/vid) + find_vertex_edge(g,uid,vid) + contains_edge(g,u,v) + contains_edge(g,uid,vid) + has_edge(g) + vertex_value(g,u) + Type Aliases Complete ✅
+**Status**: Phase 1 Complete ✅ | Phase 2 & 3 Complete ✅ | Phase 4 In Progress 🔄 | 420/420 Tests Passing ✅ | vertices(g) + vertex_id(g,u) + find_vertex(g,uid) + edges(g,u) + edges(g,uid) + target_id(g,uv) + target(g,uv) + num_vertices(g) + num_edges(g) + degree(g,u) + degree(g,uid) + find_vertex_edge(g,u,v/vid) + find_vertex_edge(g,uid,vid) + contains_edge(g,u,v) + contains_edge(g,uid,vid) + has_edge(g) + vertex_value(g,u) + edge_value(g,uv) + Type Aliases Complete ✅
 
 ````

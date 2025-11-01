@@ -150,7 +150,7 @@ public:
      * For tuples with 3+ elements, this creates a tuple of references to elements [1, N).
      */
     template<typename EdgeContainer>
-    [[nodiscard]] constexpr decltype(auto) inner_value(EdgeContainer& edges) noexcept {
+    [[nodiscard]] constexpr decltype(auto) inner_value(EdgeContainer& edges) const noexcept {
         using edge_value_type = typename std::iterator_traits<EdgeIter>::value_type;
         
         // Simple type: just the target ID, return it (no separate property)

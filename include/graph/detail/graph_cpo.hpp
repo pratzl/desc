@@ -1934,4 +1934,124 @@ inline namespace _cpo_instances {
     inline constexpr _cpo_impls::_vertex_value::_fn vertex_value{};
 } // namespace _cpo_instances
 
+namespace _cpo_impls {
+
+    // =========================================================================
+    // edge_value(g, uv) CPO
+    // =========================================================================
+    
+    namespace _edge_value {
+        enum class _St { _none, _member, _adl, _default };
+        
+        // Check for g.edge_value(uv) member function
+        // Note: Uses G (not G&) to preserve const qualification
+        template<typename G, typename E>
+        concept _has_member = requires(G g, const E& uv) {
+            { g.edge_value(uv) };
+        };
+        
+        // Check for ADL edge_value(g, uv)
+        // Note: Uses G (not G&) to preserve const qualification
+        template<typename G, typename E>
+        concept _has_adl = requires(G g, const E& uv) {
+            { edge_value(g, uv) };
+        };
+        
+        // Check if we can use default: uv.inner_value(edges) where edges = uv.source().inner_value(g)
+        // Note: Uses G (not G&) to preserve const qualification
+        template<typename G, typename E>
+        concept _has_default = 
+            is_edge_descriptor_v<std::remove_cvref_t<E>> &&
+            requires(G g, const E& uv) {
+                { uv.source().inner_value(g) };
+                { uv.inner_value(uv.source().inner_value(g)) };
+            };
+        
+        template<typename G, typename E>
+        [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
+            if constexpr (_has_member<G, E>) {
+                return {_St::_member, 
+                        noexcept(std::declval<G>().edge_value(std::declval<const E&>()))};
+            } else if constexpr (_has_adl<G, E>) {
+                return {_St::_adl, 
+                        noexcept(edge_value(std::declval<G>(), std::declval<const E&>()))};
+            } else if constexpr (_has_default<G, E>) {
+                return {_St::_default, 
+                        noexcept(std::declval<const E&>().inner_value(
+                            std::declval<const E&>().source().inner_value(std::declval<G>())))};
+            } else {
+                return {_St::_none, false};
+            }
+        }
+        
+        class _fn {
+        private:
+            template<typename G, typename E>
+            static constexpr _Choice_t<_St> _Choice = _Choose<std::remove_cvref_t<G>, std::remove_cvref_t<E>>();
+            
+        public:
+            /**
+             * @brief Get the user-defined value associated with an edge
+             * 
+             * Resolution order:
+             * 1. g.edge_value(uv) - Member function (highest priority)
+             * 2. edge_value(g, uv) - ADL (medium priority)
+             * 3. uv.inner_value(edges) - Default using edge descriptor's inner_value (lowest priority)
+             * 
+             * The default implementation:
+             * - Uses uv.inner_value(edges) where edges = uv.source().inner_value(g)
+             * - For simple edges (int): returns the value itself (the target ID)
+             * - For pair edges (target, weight): returns .second (the weight/property)
+             * - For tuple edges (target, prop1, prop2, ...): returns tuple of properties [1, N)
+             * - For custom edge types: returns the whole edge value
+             * 
+             * This provides access to user-defined edge properties/weights stored in the graph.
+             * 
+             * @tparam G Graph type
+             * @tparam E Edge descriptor type (constrained to be an edge_descriptor_type)
+             * @param g Graph container
+             * @param uv Edge descriptor
+             * @return Reference to the edge value/properties (or by-value if custom implementation returns by-value)
+             */
+            template<typename G, edge_descriptor_type E>
+            [[nodiscard]] constexpr decltype(auto) operator()(G&& g, E&& uv) const
+                noexcept(_Choice<std::remove_cvref_t<G>, std::remove_cvref_t<E>>._No_throw)
+                requires (_Choice<std::remove_cvref_t<G>, std::remove_cvref_t<E>>._Strategy != _St::_none)
+            {
+                using _G = std::remove_cvref_t<G>;
+                using _E = std::remove_cvref_t<E>;
+                
+                if constexpr (_Choice<_G, _E>._Strategy == _St::_member) {
+                    return g.edge_value(std::forward<E>(uv));
+                } else if constexpr (_Choice<_G, _E>._Strategy == _St::_adl) {
+                    return edge_value(g, std::forward<E>(uv));
+                } else if constexpr (_Choice<_G, _E>._Strategy == _St::_default) {
+                    // Get the edge container from the source vertex
+                    auto&& edges = std::forward<E>(uv).source().inner_value(std::forward<G>(g));
+                    // Get the edge property value using the edge descriptor's inner_value
+                    // Forward the descriptor to call the correct (const/non-const) overload
+                    return std::forward<E>(uv).inner_value(std::forward<decltype(edges)>(edges));
+                }
+            }
+        };
+    } // namespace _edge_value
+
+} // namespace _cpo_impls
+
+// =============================================================================
+// edge_value(g, uv) - Public CPO instance
+// =============================================================================
+
+inline namespace _cpo_instances {
+    /**
+     * @brief CPO for getting the user-defined value associated with an edge
+     * 
+     * Usage: 
+     *   auto& value = graph::edge_value(my_graph, edge_descriptor);
+     * 
+     * Returns: Reference to the edge value/properties (or by-value if custom)
+     */
+    inline constexpr _cpo_impls::_edge_value::_fn edge_value{};
+} // namespace _cpo_instances
+
 } // namespace graph
