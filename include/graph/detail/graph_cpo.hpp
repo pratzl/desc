@@ -1821,4 +1821,117 @@ inline namespace _cpo_instances {
     inline constexpr _cpo_impls::_has_edge::_fn has_edge{};
 } // namespace _cpo_instances
 
+namespace _cpo_impls {
+
+    // =========================================================================
+    // vertex_value(g, u) CPO
+    // =========================================================================
+    
+    namespace _vertex_value {
+        enum class _St { _none, _member, _adl, _default };
+        
+        // Check for g.vertex_value(u) member function
+        // Note: Uses G (not G&) to preserve const qualification
+        template<typename G, typename U>
+        concept _has_member = requires(G g, const U& u) {
+            { g.vertex_value(u) };
+        };
+        
+        // Check for ADL vertex_value(g, u)
+        // Note: Uses G (not G&) to preserve const qualification
+        template<typename G, typename U>
+        concept _has_adl = requires(G g, const U& u) {
+            { vertex_value(g, u) };
+        };
+        
+        // Check if we can use default: u.inner_value(g)
+        // Note: Uses G (not G&) to preserve const qualification
+        template<typename G, typename U>
+        concept _has_default = 
+            is_vertex_descriptor_v<std::remove_cvref_t<U>> &&
+            requires(G g, const U& u) {
+                { u.inner_value(g) };
+            };
+        
+        template<typename G, typename U>
+        [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
+            if constexpr (_has_member<G, U>) {
+                return {_St::_member, 
+                        noexcept(std::declval<G>().vertex_value(std::declval<const U&>()))};
+            } else if constexpr (_has_adl<G, U>) {
+                return {_St::_adl, 
+                        noexcept(vertex_value(std::declval<G>(), std::declval<const U&>()))};
+            } else if constexpr (_has_default<G, U>) {
+                return {_St::_default, 
+                        noexcept(std::declval<const U&>().inner_value(std::declval<G>()))};
+            } else {
+                return {_St::_none, false};
+            }
+        }
+        
+        class _fn {
+        private:
+            template<typename G, typename U>
+            static constexpr _Choice_t<_St> _Choice = _Choose<std::remove_cvref_t<G>, std::remove_cvref_t<U>>();
+            
+        public:
+            /**
+             * @brief Get the user-defined value associated with a vertex
+             * 
+             * Resolution order:
+             * 1. g.vertex_value(u) - Member function (highest priority)
+             * 2. vertex_value(g, u) - ADL (medium priority)
+             * 3. u.inner_value(g) - Default using descriptor's inner_value (lowest priority)
+             * 
+             * The default implementation:
+             * - Uses u.inner_value(g) which returns the actual vertex data
+             * - For random-access containers (vector): returns container[index]
+             * - For associative containers (map): returns the .second value
+             * - For bidirectional containers: returns the dereferenced value
+             * 
+             * This provides access to user-defined vertex properties/data stored in the graph.
+             * 
+             * @tparam G Graph type
+             * @tparam U Vertex descriptor type (constrained to be a vertex_descriptor_type)
+             * @param g Graph container
+             * @param u Vertex descriptor
+             * @return Reference to the vertex value/data
+             */
+            template<typename G, vertex_descriptor_type U>
+            [[nodiscard]] constexpr decltype(auto) operator()(G&& g, const U& u) const
+                noexcept(_Choice<std::remove_cvref_t<G>, std::remove_cvref_t<U>>._No_throw)
+                requires (_Choice<std::remove_cvref_t<G>, std::remove_cvref_t<U>>._Strategy != _St::_none)
+            {
+                using _G = std::remove_cvref_t<G>;
+                using _U = std::remove_cvref_t<U>;
+                
+                if constexpr (_Choice<_G, _U>._Strategy == _St::_member) {
+                    return g.vertex_value(u);
+                } else if constexpr (_Choice<_G, _U>._Strategy == _St::_adl) {
+                    return vertex_value(g, u);
+                } else if constexpr (_Choice<_G, _U>._Strategy == _St::_default) {
+                    return u.inner_value(std::forward<G>(g));
+                }
+            }
+        };
+    } // namespace _vertex_value
+
+} // namespace _cpo_impls
+
+// =============================================================================
+// vertex_value(g, u) - Public CPO instance
+// =============================================================================
+
+inline namespace _cpo_instances {
+    /**
+     * @brief CPO for getting the user-defined value associated with a vertex
+     * 
+     * Usage: 
+     *   auto& value = graph::vertex_value(my_graph, vertex_descriptor);
+     * 
+     * Returns: Reference to the vertex value/data
+     */
+    inline constexpr _cpo_impls::_vertex_value::_fn vertex_value{};
+} // namespace _cpo_instances
+
 } // namespace graph

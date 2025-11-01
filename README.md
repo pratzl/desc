@@ -298,7 +298,17 @@ Implement core graph operation CPOs in `graph_cpo.hpp` following the canonical o
   - **Note**: Efficient early termination - stops at first vertex with edges
 
 **Phase 4: Value Access (Optional)**
-- [ ] `vertex_value(g, u)` - Get user-defined vertex value
+- [x] `vertex_value(g, u)` - Get user-defined vertex value ✅ **COMPLETE** - 21 tests passing
+  - Resolution order:
+    1. `g.vertex_value(u)` - Member function (highest priority)
+    2. `vertex_value(g, u)` - ADL (medium priority)
+    3. `u.inner_value(g)` - Default using descriptor's inner_value (lowest priority)
+  - **Return type**: `decltype(auto)` - Perfect forwarding of references
+  - **Default implementation**: Delegates to `u.inner_value(g)` which handles different container types:
+    * Random-access (vector): returns `container[index]`
+    * Associative (map): returns `.second` value (not the key)
+    * Bidirectional: returns dereferenced value
+  - **Note**: Provides access to user-defined vertex properties/data stored in the graph
 - [ ] `edge_value(g, uv)` - Get user-defined edge value
 - [ ] `graph_value(g)` - Get user-defined graph value
 
@@ -606,6 +616,6 @@ This library follows the design principles and specifications from:
 
 ---
 
-**Status**: Phase 1 Complete ✅ | Phase 2 In Progress 🔄 | 364/364 Tests Passing ✅ | vertices(g) + vertex_id(g,u) + find_vertex(g,uid) + edges(g,u) + edges(g,uid) + target_id(g,uv) + target(g,uv) + num_vertices(g) + num_edges(g) + degree(g,u) + degree(g,uid) + find_vertex_edge(g,u,v/vid) + find_vertex_edge(g,uid,vid) + contains_edge(g,u,v) + contains_edge(g,uid,vid) + has_edge(g) + Type Aliases Complete ✅
+**Status**: Phase 1 Complete ✅ | Phase 2 & 3 Complete ✅ | Phase 4 In Progress 🔄 | 385/385 Tests Passing ✅ | vertices(g) + vertex_id(g,u) + find_vertex(g,uid) + edges(g,u) + edges(g,uid) + target_id(g,uv) + target(g,uv) + num_vertices(g) + num_edges(g) + degree(g,u) + degree(g,uid) + find_vertex_edge(g,u,v/vid) + find_vertex_edge(g,uid,vid) + contains_edge(g,u,v) + contains_edge(g,uid,vid) + has_edge(g) + vertex_value(g,u) + Type Aliases Complete ✅
 
 ````
