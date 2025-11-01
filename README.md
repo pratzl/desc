@@ -12,7 +12,7 @@ This library provides the foundation for a complete graph library following the 
 - **Range-Based Design**: Graphs as ranges of vertices, where each vertex is a range of edges
 - **Documentation**: Comprehensive documentation following P1709 conventions
 
-**Current Status**: Phase 1 complete - Core infrastructure and documentation in place, ready for container and algorithm implementation.
+**Current Status**: Phase 4 complete - All core CPOs and value access CPOs implemented with comprehensive tests. Ready for adjacency list concepts and traits definition.
 
 ## Features
 
@@ -330,7 +330,41 @@ Implement core graph operation CPOs in `graph_cpo.hpp` following the canonical o
   - **Note**: Provides access to user-defined graph-level properties/metadata (e.g., name, version, statistics)
   - **Use cases**: Graph metadata, version tracking, global parameters (weight multipliers), statistics
 
-**Phase 5: Optional Features**
+**Phase 5: Adjacency List Concepts & Traits (PLANNED)**
+- [ ] Define adjacency list concepts in `graph/adjacency_list_concepts.hpp`:
+  - Edge concepts:
+    * `targeted_edge` - Target and Target IDs only
+    * `sourced_edge` - Source and Source IDs only
+    * `sourced_targeted_edge` - Target IDs and Source IDs
+    * `targeted_edge_range` - Forward range of targeted_edges
+    * `sourced_targeted_edge_range` - Forward range of edges that support sourced_edge and targeted_edge concepts
+  - Vertex concepts:
+    * `vertex_range` - Sized, forward range of vertices with Vertex ID
+    * `index_vertex_range` - Random access range of vertices with Vertex ID
+  - Adjacency list concepts:
+    - `adjacency_list` - Concept for graphs with adjacency list structure using vertex_range and targeted_edge_range.
+    - `index_adjacency_list` - Concept for graphs with adjacency list structure using index_vertex_range and targeted_edge_range.
+    - `sourced_adjacency_list` - Concept for graphs with adjacency list structure using vertex_range and sourced_targeted_edge_range.
+    - `index_sourced_adjacency_list` - Concept for graphs with adjacency list structure using index_vertex_range and sourced_targeted_edge_range.
+  - Requirements:
+    * Container type traits (vertex/edge container types)
+    * Iterator requirements
+    * Size/capacity operations
+    * Modification operations (add/remove vertices/edges)
+- [ ] Define adjacency list traits in `graph/adjacency_list_traits.hpp`:
+  - `has_degree<G>` - A graph supports the degree(g,u) and degree(g,uid) functions
+  - `has_find_vertex<G>` - A graph supports find_vertex(g,uid)
+  - `has_find_vertex_edge<G>` - A graph supports find_vertex_edge(g,u,v), find_vertex_edge(g,u,vid) and find_vertex_edge(g,uid,vid)
+  - `has_contains_edge<G, V>` - A graph supports contains_edge(g,u,v) and contains_edge(g,uid,vid)
+  - `define_unordered_edge<G>` - Overridable trait on a graph that defaults to false. When true, logic in views must guarantee that the target vertex or vertex id is not the same where it came from (the source) when traversing the graph.
+  - Helper metafunctions for compile-time queries
+- [ ] Unit tests for concepts and traits:
+  - Concept satisfaction with various container types
+  - Trait extraction and correctness
+  - SFINAE-friendly design verification
+  - Integration with existing descriptor framework
+
+**Phase 6: Optional Features**
 - [ ] `source_id(g, uv)` - Get source vertex ID (for sourced edges)
 - [ ] `source(g, uv)` - Get source vertex descriptor (for sourced edges)
 - [ ] `partition_id(g, u)` - Get partition ID (for multipartite graphs)
@@ -338,7 +372,7 @@ Implement core graph operation CPOs in `graph_cpo.hpp` following the canonical o
 
 Unit tests and documentation for each CPO to be added incrementally.
 
-### 📋 Phase 3: First Container Implementation (PLANNED)
+### 📋 Phase 7: First Container Implementation (PLANNED)
 - [ ] `adjacency_list.hpp` in `include/graph/container/`:
   - Dynamic adjacency list representation
   - Uses descriptors for vertices and edges
@@ -346,14 +380,14 @@ Unit tests and documentation for each CPO to be added incrementally.
   - Comprehensive unit tests
   - Usage examples
 
-### 📋 Phase 4: Basic Algorithms (PLANNED)
+### 📋 Phase 8: Basic Algorithms (PLANNED)
 - [ ] Foundational algorithms in `include/graph/algorithm/`:
   - `breadth_first_search.hpp` - BFS traversal
   - `depth_first_search.hpp` - DFS traversal
   - `dijkstra_shortest_paths.hpp` - Single-source shortest paths
   - `topological_sort.hpp` - Topological ordering
 
-### 📋 Phase 5: Views and Adaptors (PLANNED)
+### 📋 Phase 9: Views and Adaptors (PLANNED)
 - [ ] Graph views in `include/graph/views/`:
   - `vertices.hpp` - Vertex range views
   - `edges.hpp` - Edge range views

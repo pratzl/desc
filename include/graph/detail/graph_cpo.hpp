@@ -2149,4 +2149,106 @@ inline namespace _cpo_instances {
     inline constexpr _cpo_impls::_graph_value::_fn graph_value{};
 } // namespace _cpo_instances
 
+namespace _cpo_impls {
+
+    // =========================================================================
+    // source_id(g, uv) CPO
+    // =========================================================================
+    
+    namespace _source_id {
+        enum class _St { _none, _member, _adl };
+        
+        // Check for g.source_id(uv) member function
+        // Note: Uses G (not G&) to preserve const qualification
+        template<typename G, typename E>
+        concept _has_member = requires(G g, const E& uv) {
+            { g.source_id(uv) };
+        };
+        
+        // Check for ADL source_id(g, uv)
+        // Note: Uses G (not G&) to preserve const qualification
+        template<typename G, typename E>
+        concept _has_adl = requires(G g, const E& uv) {
+            { source_id(g, uv) };
+        };
+        
+        template<typename G, typename E>
+        [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
+            if constexpr (_has_member<G, E>) {
+                return {_St::_member, 
+                        noexcept(std::declval<G>().source_id(std::declval<const E&>()))};
+            } else if constexpr (_has_adl<G, E>) {
+                return {_St::_adl, 
+                        noexcept(source_id(std::declval<G>(), std::declval<const E&>()))};
+            } else {
+                return {_St::_none, false};
+            }
+        }
+        
+        class _fn {
+        private:
+            template<typename G, typename E>
+            static constexpr _Choice_t<_St> _Choice = _Choose<std::remove_cvref_t<G>, std::remove_cvref_t<E>>();
+            
+        public:
+            /**
+             * @brief Get the source vertex ID for a sourced edge
+             * 
+             * Resolution order:
+             * 1. g.source_id(uv) - Member function (highest priority)
+             * 2. source_id(g, uv) - ADL (lowest priority)
+             * 
+             * There is no default implementation. If neither member nor ADL is found,
+             * a compile-time error will occur due to the requires constraint.
+             * 
+             * This is used for graphs with sourced edges (e.g., bidirectional graphs)
+             * where edges explicitly store or can compute their source vertex ID.
+             * 
+             * For standard adjacency list graphs where edges are stored in the source
+             * vertex's edge list, use the edge descriptor's source().value() instead.
+             * 
+             * @tparam G Graph type
+             * @tparam E Edge descriptor type
+             * @param g Graph container
+             * @param uv Edge descriptor
+             * @return Source vertex ID (type depends on graph's vertex_id_t)
+             */
+            template<typename G, typename E>
+            [[nodiscard]] constexpr auto operator()(G&& g, const E& uv) const
+                noexcept(_Choice<std::remove_cvref_t<G>, std::remove_cvref_t<E>>._No_throw)
+                requires (_Choice<std::remove_cvref_t<G>, std::remove_cvref_t<E>>._Strategy != _St::_none)
+            {
+                using _G = std::remove_cvref_t<G>;
+                using _E = std::remove_cvref_t<E>;
+                
+                if constexpr (_Choice<_G, _E>._Strategy == _St::_member) {
+                    return g.source_id(uv);
+                } else if constexpr (_Choice<_G, _E>._Strategy == _St::_adl) {
+                    return source_id(g, uv);
+                }
+            }
+        };
+    } // namespace _source_id
+
+} // namespace _cpo_impls
+
+// =============================================================================
+// source_id(g, uv) - Public CPO instance
+// =============================================================================
+
+inline namespace _cpo_instances {
+    /**
+     * @brief CPO for getting the source vertex ID for a sourced edge
+     * 
+     * Usage: 
+     *   auto src_id = graph::source_id(my_graph, edge_descriptor);
+     * 
+     * Returns: Source vertex ID
+     * 
+     * Note: No default implementation - requires either member function or ADL.
+     *       Used for graphs with sourced edges (bidirectional, edge lists with source info).
+     */
+    inline constexpr _cpo_impls::_source_id::_fn source_id{};
+} // namespace _cpo_instances
+
 } // namespace graph
