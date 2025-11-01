@@ -208,7 +208,12 @@ Implement core graph operation CPOs in `graph_cpo.hpp` following the canonical o
   - **Automatic extraction** for edge patterns: simple (int → itself), pair (→ .first), tuple (→ get<0>), custom via ADL
 
 **Phase 2: Query Functions (High Priority)**
-- [ ] `num_vertices(g)` - Count vertices in graph
+- [x] `num_vertices(g)` - Count vertices in graph ✅ **COMPLETE** - 24 tests passing
+  - Resolution order:
+    1. `g.num_vertices()` - Member function (highest priority)
+    2. `num_vertices(g)` - ADL (medium priority)
+    3. `std::ranges::size(g)` - Ranges default (lowest priority)
+  - **Automatic support** for any sized_range (vector, deque, map, unordered_map, etc.)
 - [ ] `num_edges(g)` - Count total edges in graph
 - [ ] `target(g, uv)` - Get target vertex descriptor from edge
 - [ ] `degree(g, u)` - Get degree of vertex
@@ -503,6 +508,6 @@ This library follows the design principles and specifications from:
 
 ---
 
-**Status**: Phase 1 Complete ✅ | Phase 2 In Progress 🔄 | 155/155 Tests Passing ✅ | vertices(g) + vertex_id(g,u) + find_vertex(g,uid) + edges(g,u) + target_id(g,uv) + Type Aliases Complete ✅
+**Status**: Phase 1 Complete ✅ | Phase 2 In Progress 🔄 | 179/179 Tests Passing ✅ | vertices(g) + vertex_id(g,u) + find_vertex(g,uid) + edges(g,u) + target_id(g,uv) + num_vertices(g) + Type Aliases Complete ✅
 
 ````
