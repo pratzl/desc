@@ -23,7 +23,7 @@
 
 namespace graph {
 
-namespace _cpo {
+namespace _cpo_impls {
     /**
      * @brief Shared choice struct for all graph CPOs
      * 
@@ -36,9 +36,9 @@ namespace _cpo {
         bool _No_throw = false;
     };
 
-} // namespace _cpo
+} // namespace _cpo_impls
 
-namespace _cpo {
+namespace _cpo_impls {
 
     // =========================================================================
     // vertices(g) CPO
@@ -131,13 +131,13 @@ namespace _cpo {
         };
     } // namespace _vertices
 
-} // namespace _cpo
+} // namespace _cpo_impls
 
 // =============================================================================
 // vertices(g) - Public CPO instance and type aliases
 // =============================================================================
 
-inline namespace _cpos {
+inline namespace _cpo_instances {
     /**
      * @brief CPO for getting vertex range from a graph
      * 
@@ -145,8 +145,8 @@ inline namespace _cpos {
      * 
      * Returns: vertex_descriptor_view
      */
-    inline constexpr _cpo::_vertices::_fn vertices{};
-} // namespace _cpos
+    inline constexpr _cpo_impls::_vertices::_fn vertices{};
+} // namespace _cpo_instances
 
 /**
  * @brief Range type returned by vertices(g)
@@ -174,7 +174,7 @@ using vertex_iterator_t = std::ranges::iterator_t<vertex_range_t<G>>;
 template<typename G>
 using vertex_t = std::ranges::range_value_t<vertex_range_t<G>>;
 
-namespace _cpo {
+namespace _cpo_impls {
 
     // =========================================================================
     // vertex_id(g, u) CPO
@@ -285,13 +285,13 @@ namespace _cpo {
         };
     } // namespace _vertex_id
 
-} // namespace _cpo
+} // namespace _cpo_impls
 
 // =============================================================================
 // vertex_id(g, u) - Public CPO instance and type alias
 // =============================================================================
 
-inline namespace _cpos {
+inline namespace _cpo_instances {
     /**
      * @brief CPO for getting vertex ID from a vertex descriptor
      * 
@@ -299,8 +299,8 @@ inline namespace _cpos {
      * 
      * Returns: Vertex ID (index for vector, key for map, etc.)
      */
-    inline constexpr _cpo::_vertex_id::_fn vertex_id{};
-} // namespace _cpos
+    inline constexpr _cpo_impls::_vertex_id::_fn vertex_id{};
+} // namespace _cpo_instances
 
 /**
  * @brief Vertex ID type for graph G
@@ -313,7 +313,7 @@ inline namespace _cpos {
 template<typename G>
 using vertex_id_t = decltype(vertex_id(std::declval<G&>(), std::declval<vertex_t<G>>()));
 
-namespace _cpo {
+namespace _cpo_impls {
 
     // =========================================================================
     // find_vertex(g, uid) CPO
@@ -428,13 +428,13 @@ namespace _cpo {
         };
     } // namespace _find_vertex
 
-} // namespace _cpo
+} // namespace _cpo_impls
 
 // =============================================================================
 // find_vertex(g, uid) - Public CPO instance
 // =============================================================================
 
-inline namespace _cpos {
+inline namespace _cpo_instances {
     /**
      * @brief CPO for finding a vertex by its ID
      * 
@@ -442,10 +442,10 @@ inline namespace _cpos {
      * 
      * Returns: Iterator to the vertex (vertex_iterator_t<G>)
      */
-    inline constexpr _cpo::_find_vertex::_fn find_vertex{};
-} // namespace _cpos
+    inline constexpr _cpo_impls::_find_vertex::_fn find_vertex{};
+} // namespace _cpo_instances
 
-namespace _cpo {
+namespace _cpo_impls {
 
     // =========================================================================
     // edges(g, u) CPO
@@ -556,13 +556,13 @@ namespace _cpo {
         };
     } // namespace _edges
 
-} // namespace _cpo
+} // namespace _cpo_impls
 
 // =============================================================================
 // edges(g, u) - Public CPO instance and type aliases
 // =============================================================================
 
-inline namespace _cpos {
+inline namespace _cpo_instances {
     /**
      * @brief CPO for getting outgoing edges from a vertex
      * 
@@ -570,8 +570,8 @@ inline namespace _cpos {
      * 
      * Returns: edge_descriptor_view
      */
-    inline constexpr _cpo::_edges::_fn edges{};
-} // namespace _cpos
+    inline constexpr _cpo_impls::_edges::_fn edges{};
+} // namespace _cpo_instances
 
 /**
  * @brief Range type returned by edges(g, u)
@@ -600,7 +600,7 @@ using vertex_edge_iterator_t = std::ranges::iterator_t<vertex_edge_range_t<G>>;
 template<typename G>
 using edge_t = std::ranges::range_value_t<vertex_edge_range_t<G>>;
 
-namespace _cpo {
+namespace _cpo_impls {
 
     // =========================================================================
     // target_id(g, uv) CPO
@@ -689,13 +689,13 @@ namespace _cpo {
         };
     } // namespace _target_id
 
-} // namespace _cpo
+} // namespace _cpo_impls
 
 // =============================================================================
 // target_id(g, uv) - Public CPO instance
 // =============================================================================
 
-inline namespace _cpos {
+inline namespace _cpo_instances {
     /**
      * @brief CPO for getting target vertex ID from an edge
      * 
@@ -703,10 +703,10 @@ inline namespace _cpos {
      * 
      * Returns: Vertex ID of the target vertex
      */
-    inline constexpr _cpo::_target_id::_fn target_id{};
-} // namespace _cpos
+    inline constexpr _cpo_impls::_target_id::_fn target_id{};
+} // namespace _cpo_instances
 
-namespace _cpo {
+namespace _cpo_impls {
 
     // =========================================================================
     // num_vertices(g) CPO
@@ -788,13 +788,13 @@ namespace _cpo {
         };
     } // namespace _num_vertices
 
-} // namespace _cpo
+} // namespace _cpo_impls
 
 // =============================================================================
 // num_vertices(g) - Public CPO instance
 // =============================================================================
 
-inline namespace _cpos {
+inline namespace _cpo_instances {
     /**
      * @brief CPO for getting the number of vertices in the graph
      * 
@@ -802,7 +802,7 @@ inline namespace _cpos {
      * 
      * Returns: Number of vertices (size_t or similar integral type)
      */
-    inline constexpr _cpo::_num_vertices::_fn num_vertices{};
-} // namespace _cpos
+    inline constexpr _cpo_impls::_num_vertices::_fn num_vertices{};
+} // namespace _cpo_instances
 
 } // namespace graph

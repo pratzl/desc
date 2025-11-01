@@ -22,7 +22,7 @@ namespace graph {
 // Forward declarations for CPOs that will be implemented
 // Following the MSVC-style CPO pattern documented in docs/cpo.md
 
-namespace _cpo {
+namespace _cpo_impls {
     // Shared _Choice_t struct for all CPOs
     template<typename _Ty>
     struct _Choice_t {
@@ -50,9 +50,9 @@ namespace _cpo {
 }
 
 // Public CPO instances will be defined here
-// inline namespace _cpos {
-//     inline constexpr _cpo::_vertex_id::_fn vertex_id{};
-//     inline constexpr _cpo::_num_vertices::_fn num_vertices{};
+// inline namespace _cpo_instances {
+//     inline constexpr _cpo_impls::_vertex_id::_fn vertex_id{};
+//     inline constexpr _cpo_impls::_num_vertices::_fn num_vertices{};
 //     // ... etc
 // }
 
