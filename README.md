@@ -317,7 +317,7 @@ desc/
 │       └── graph_utility.hpp       # Utility CPOs (stub)
 ├── scripts/                # Build and maintenance scripts
 │   └── format.sh          # Code formatting script
-├── tests/                  # Unit tests (276 tests, all passing)
+├── tests/                  # Unit tests (293 tests, all passing)
 │   ├── test_descriptor_traits.cpp
 │   ├── test_edge_concepts.cpp
 │   ├── test_edge_descriptor.cpp
@@ -326,6 +326,7 @@ desc/
 │   ├── test_find_vertex_cpo.cpp
 │   ├── test_num_edges_cpo.cpp
 │   ├── test_num_vertices_cpo.cpp
+│   ├── test_degree_cpo.cpp
 │   ├── test_target_cpo.cpp
 │   ├── test_target_id_cpo.cpp
 │   ├── test_type_aliases.cpp
@@ -489,7 +490,7 @@ cmake --build build
 
 ## Testing
 
-The project includes 276 unit tests covering descriptor functionality, CPO implementations, and type aliases:
+The project includes 293 unit tests covering descriptor functionality, CPO implementations, and type aliases:
 
 ```bash
 # Run all tests
@@ -525,6 +526,9 @@ ctest --test-dir build/linux-gcc-debug -R num_vertices
 # Run num_edges(g) CPO tests
 ctest --test-dir build/linux-gcc-debug -R num_edges
 
+# Run degree(g,u) and degree(g,uid) CPO tests
+ctest --test-dir build/linux-gcc-debug -R degree
+
 # Run type alias tests
 ctest --test-dir build/linux-gcc-debug -R "Type aliases"
 
@@ -555,6 +559,6 @@ This library follows the design principles and specifications from:
 
 ---
 
-**Status**: Phase 1 Complete ✅ | Phase 2 In Progress 🔄 | 276/276 Tests Passing ✅ | vertices(g) + vertex_id(g,u) + find_vertex(g,uid) + edges(g,u) + edges(g,uid) + target_id(g,uv) + target(g,uv) + num_vertices(g) + num_edges(g) + Type Aliases Complete ✅
+**Status**: Phase 1 Complete ✅ | Phase 2 In Progress 🔄 | 293/293 Tests Passing ✅ | vertices(g) + vertex_id(g,u) + find_vertex(g,uid) + edges(g,u) + edges(g,uid) + target_id(g,uv) + target(g,uv) + num_vertices(g) + num_edges(g) + degree(g,u) + degree(g,uid) + Type Aliases Complete ✅
 
 ````

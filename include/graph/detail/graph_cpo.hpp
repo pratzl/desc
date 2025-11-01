@@ -1168,6 +1168,134 @@ namespace _cpo_impls {
         };
     } // namespace _num_edges
 
+    // =========================================================================
+    // degree(g, u) and degree(g, uid) CPO
+    // =========================================================================
+    
+    namespace _degree {
+        using graph::find_vertex;
+        using graph::edges;
+        
+        // Strategy enum for degree(g, u) - vertex descriptor version
+        enum class _St_u { _none, _member, _adl, _default };
+        
+        // Check for g.degree(u) member function - vertex descriptor
+        template<typename G, typename U>
+        concept _has_member_u = requires(G& g, const U& u) {
+            { g.degree(u) } -> std::integral;
+        };
+        
+        // Check for ADL degree(g, u) - vertex descriptor
+        template<typename G, typename U>
+        concept _has_adl_u = requires(G& g, const U& u) {
+            { degree(g, u) } -> std::integral;
+        };
+        
+        // Check if we can use default: std::ranges::size(edges(g, u))
+        template<typename G, typename U>
+        concept _has_default_u = requires(G& g, const U& u) {
+            { edges(g, u) } -> std::ranges::sized_range;
+        };
+        
+        template<typename G, typename U>
+        [[nodiscard]] consteval _Choice_t<_St_u> _Choose_u() noexcept {
+            if constexpr (_has_member_u<G, U>) {
+                return {_St_u::_member, noexcept(std::declval<G&>().degree(std::declval<const U&>()))};
+            } else if constexpr (_has_adl_u<G, U>) {
+                return {_St_u::_adl, noexcept(degree(std::declval<G&>(), std::declval<const U&>()))};
+            } else if constexpr (_has_default_u<G, U>) {
+                return {_St_u::_default, noexcept(std::ranges::size(edges(std::declval<G&>(), std::declval<const U&>())))};
+            } else {
+                return {_St_u::_none, false};
+            }
+        }
+        
+        // Strategy enum for degree(g, uid) - vertex ID version
+        enum class _St_uid { _none, _member, _adl, _default };
+        
+        // Check for g.degree(uid) member function - vertex ID
+        template<typename G, typename VId>
+        concept _has_member_uid = requires(G& g, const VId& uid) {
+            { g.degree(uid) } -> std::integral;
+        };
+        
+        // Check for ADL degree(g, uid) - vertex ID
+        template<typename G, typename VId>
+        concept _has_adl_uid = requires(G& g, const VId& uid) {
+            { degree(g, uid) } -> std::integral;
+        };
+        
+        // Check if we can use default implementation: degree(g, *find_vertex(g, uid))
+        template<typename G, typename VId>
+        concept _has_default_uid = requires(G& g, const VId& uid) {
+            { find_vertex(g, uid) } -> std::input_iterator;
+            requires vertex_descriptor_type<decltype(*find_vertex(g, uid))>;
+            requires _has_default_u<G, decltype(*find_vertex(g, uid))>;
+        };
+        
+        template<typename G, typename VId>
+        [[nodiscard]] consteval _Choice_t<_St_uid> _Choose_uid() noexcept {
+            if constexpr (_has_member_uid<G, VId>) {
+                return {_St_uid::_member, noexcept(std::declval<G&>().degree(std::declval<const VId&>()))};
+            } else if constexpr (_has_adl_uid<G, VId>) {
+                return {_St_uid::_adl, noexcept(degree(std::declval<G&>(), std::declval<const VId&>()))};
+            } else if constexpr (_has_default_uid<G, VId>) {
+                return {_St_uid::_default, false};
+            } else {
+                return {_St_uid::_none, false};
+            }
+        }
+        
+        class _fn {
+        private:
+            template<typename G, typename U>
+            static constexpr _Choice_t<_St_u> _Choice_u = _Choose_u<std::remove_cvref_t<G>, std::remove_cvref_t<U>>();
+            
+            template<typename G, typename VId>
+            static constexpr _Choice_t<_St_uid> _Choice_uid = _Choose_uid<std::remove_cvref_t<G>, std::remove_cvref_t<VId>>();
+            
+        public:
+            // degree(g, u) - vertex descriptor version
+            template<typename G, vertex_descriptor_type U>
+            [[nodiscard]] constexpr auto operator()(G&& g, const U& u) const
+                noexcept(_Choice_u<G, U>._No_throw)
+                requires (_Choice_u<std::remove_cvref_t<G>, std::remove_cvref_t<U>>._Strategy != _St_u::_none)
+            {
+                using _G = std::remove_cvref_t<G>;
+                using _U = std::remove_cvref_t<U>;
+                
+                if constexpr (_Choice_u<_G, _U>._Strategy == _St_u::_member) {
+                    return g.degree(u);
+                } else if constexpr (_Choice_u<_G, _U>._Strategy == _St_u::_adl) {
+                    return degree(g, u);
+                } else if constexpr (_Choice_u<_G, _U>._Strategy == _St_u::_default) {
+                    return std::ranges::size(edges(std::forward<G>(g), u));
+                }
+            }
+            
+            // degree(g, uid) - vertex ID version
+            template<typename G, typename VId>
+                requires (!vertex_descriptor_type<VId>)
+            [[nodiscard]] constexpr auto operator()(G&& g, const VId& uid) const
+                noexcept(_Choice_uid<G, VId>._No_throw)
+                requires (_Choice_uid<std::remove_cvref_t<G>, std::remove_cvref_t<VId>>._Strategy != _St_uid::_none)
+            {
+                using _G = std::remove_cvref_t<G>;
+                using _VId = std::remove_cvref_t<VId>;
+                
+                if constexpr (_Choice_uid<_G, _VId>._Strategy == _St_uid::_member) {
+                    return g.degree(uid);
+                } else if constexpr (_Choice_uid<_G, _VId>._Strategy == _St_uid::_adl) {
+                    return degree(g, uid);
+                } else if constexpr (_Choice_uid<_G, _VId>._Strategy == _St_uid::_default) {
+                    // Default: find vertex then call degree(g, u)
+                    auto v = *find_vertex(std::forward<G>(g), uid);
+                    return (*this)(std::forward<G>(g), v);
+                }
+            }
+        };
+    } // namespace _degree
+
 } // namespace _cpo_impls
 
 // =============================================================================
@@ -1183,6 +1311,23 @@ inline namespace _cpo_instances {
      * Returns: Total number of edges (size_t)
      */
     inline constexpr _cpo_impls::_num_edges::_fn num_edges{};
+} // namespace _cpo_instances
+
+// =============================================================================
+// degree(g, u) and degree(g, uid) - Public CPO instances
+// =============================================================================
+
+inline namespace _cpo_instances {
+    /**
+     * @brief CPO for getting the degree (number of outgoing edges) of a vertex
+     * 
+     * Usage: 
+     *   auto deg = graph::degree(my_graph, vertex_descriptor);
+     *   auto deg = graph::degree(my_graph, vertex_id);
+     * 
+     * Returns: Number of outgoing edges from the vertex (integral type)
+     */
+    inline constexpr _cpo_impls::_degree::_fn degree{};
 } // namespace _cpo_instances
 
 } // namespace graph
