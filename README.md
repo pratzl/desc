@@ -240,12 +240,25 @@ Implement core graph operation CPOs in `graph_cpo.hpp` following the canonical o
   - **Note**: Convenience function that combines find_vertex + edges(g,u) to avoid boilerplate
   - **Return type**: Returns `edge_descriptor_view` (same as edges(g,u))
   - **Dual overload pattern**: Uses `requires (!vertex_descriptor_type<VId>)` constraint to differentiate from edges(g,u)
-- [ ] `degree(g, u)` - Get degree of vertex
-- [ ] `degree(g, uid)` - Get degree of vertex by ID
+- [x] `degree(g, u)` - Get out-degree of vertex (descriptor version) ✅ **COMPLETE** - 17 tests passing
+  - Resolution order:
+    1. `g.degree(u)` - Member function (highest priority)
+    2. `degree(g, u)` - ADL (medium priority)
+    3. `std::ranges::size(edges(g, u))` - Default using edges (lowest priority)
+  - **Return type**: Integral type (size_t or similar)
+  - **Default implementation**: Uses `std::ranges::size()` on result of `edges(g, u)` when available
+- [x] `degree(g, uid)` - Get out-degree of vertex by ID (convenience wrapper) ✅ **COMPLETE** - Included in 17 tests
+  - Resolution order:
+    1. `g.degree(uid)` - Member function (highest priority)
+    2. `degree(g, uid)` - ADL (medium priority)
+    3. `degree(g, *find_vertex(g, uid))` - Default using find_vertex (lowest priority)
+  - **Note**: Convenience function that combines find_vertex + degree(g,u) to avoid boilerplate
+  - **Dual overload pattern**: Uses `requires (!vertex_descriptor_type<VId>)` constraint to differentiate from degree(g,u)
 
 **Phase 3: Edge Queries (Medium Priority)**
 - [ ] `find_vertex_edge(g, u, v)` - Find edge from u to v
 - [ ] `find_vertex_edge(g, u, vid)` - Find edge from u to vid
+- [ ] `find_vertex_edge(g, uid, vid)` - Find edge from uid to vid
 - [ ] `contains_edge(g, u, v)` - Check if edge exists
 - [ ] `contains_edge(g, uid, vid)` - Check if edge exists
 - [ ] `has_edge(g)` - Check if graph has any edges
