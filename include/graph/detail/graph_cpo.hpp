@@ -1167,15 +1167,29 @@ namespace _cpo_impls {
             }
         };
     } // namespace _num_edges
+} // namespace _cpo_impls
 
+// =============================================================================
+// num_edges(g) - Public CPO instance
+// =============================================================================
+
+inline namespace _cpo_instances {
+    /**
+     * @brief CPO for getting the total number of edges in the graph
+     * 
+     * Usage: auto count = graph::num_edges(my_graph);
+     * 
+     * Returns: Total number of edges (size_t)
+     */
+    inline constexpr _cpo_impls::_num_edges::_fn num_edges{};
+} // namespace _cpo_instances
+
+namespace _cpo_impls {
     // =========================================================================
     // degree(g, u) and degree(g, uid) CPO
     // =========================================================================
     
     namespace _degree {
-        using graph::find_vertex;
-        using graph::edges;
-        
         // Strategy enum for degree(g, u) - vertex descriptor version
         enum class _St_u { _none, _member, _adl, _default };
         
@@ -1295,17 +1309,32 @@ namespace _cpo_impls {
             }
         };
     } // namespace _degree
+} // namespace _cpo_impls
 
+// =============================================================================
+// degree(g, u) and degree(g, uid) - Public CPO instances
+// =============================================================================
+
+inline namespace _cpo_instances {
+    /**
+     * @brief CPO for getting the degree (number of outgoing edges) of a vertex
+     * 
+     * Usage: 
+     *   auto deg = graph::degree(my_graph, vertex_descriptor);
+     *   auto deg = graph::degree(my_graph, vertex_id);
+     * 
+     * Returns: Number of outgoing edges from the vertex (integral type)
+     */
+    inline constexpr _cpo_impls::_degree::_fn degree{};
+} // namespace _cpo_instances
+
+namespace _cpo_impls {
     // =========================================================================
     // find_vertex_edge(g, u, v) and find_vertex_edge(g, u, vid) and 
     // find_vertex_edge(g, uid, vid) CPO
     // =========================================================================
     
     namespace _find_vertex_edge {
-        using graph::find_vertex;
-        using graph::edges;
-        using graph::target_id;
-        
         // Strategy enum for find_vertex_edge(g, u, v) - both descriptors
         enum class _St_uu { _none, _member, _adl, _default };
         
@@ -1501,17 +1530,32 @@ namespace _cpo_impls {
             }
         };
     } // namespace _find_vertex_edge
+} // namespace _cpo_impls
 
+// =============================================================================
+// find_vertex_edge(g, u, v/vid) and find_vertex_edge(g, uid, vid) - Public CPO instances
+// =============================================================================
+
+inline namespace _cpo_instances {
+    /**
+     * @brief CPO for finding an edge from source vertex u to target vertex v
+     * 
+     * Usage: 
+     *   auto e = graph::find_vertex_edge(my_graph, u_descriptor, v_descriptor);
+     *   auto e = graph::find_vertex_edge(my_graph, u_descriptor, target_id);
+     *   auto e = graph::find_vertex_edge(my_graph, source_id, target_id);
+     * 
+     * Returns: Edge descriptor if found, or end iterator/sentinel if not found
+     */
+    inline constexpr _cpo_impls::_find_vertex_edge::_fn find_vertex_edge{};
+} // namespace _cpo_instances
+
+namespace _cpo_impls {
     // =========================================================================
     // contains_edge(g, u, v) and contains_edge(g, uid, vid) CPO
     // =========================================================================
     
     namespace _contains_edge {
-        using graph::find_vertex;
-        using graph::edges;
-        using graph::target_id;
-        using graph::vertex_id;
-        
         // Strategy enum for contains_edge(g, u, v)
         enum class _St_uv { _none, _member, _adl, _default };
         
@@ -1610,12 +1654,10 @@ namespace _cpo_impls {
                     // Default: iterate edges and check if target matches
                     auto target_vid = vertex_id(std::forward<G>(g), v);
                     auto edge_range = edges(std::forward<G>(g), u);
-                    for (auto e : edge_range) {
-                        if (target_id(std::forward<G>(g), e) == target_vid) {
-                            return true;
-                        }
-                    }
-                    return false;
+                    auto it = std::ranges::find_if(edge_range, [&](const auto& e) {
+                        return target_id(std::forward<G>(g), e) == target_vid;
+                    });
+                    return it != std::ranges::end(edge_range);
                 }
             }
             
@@ -1638,68 +1680,16 @@ namespace _cpo_impls {
                     // Default: find source vertex then iterate edges and check target
                     auto u = *find_vertex(std::forward<G>(g), uid);
                     auto edge_range = edges(std::forward<G>(g), u);
-                    for (auto e : edge_range) {
-                        if (target_id(std::forward<G>(g), e) == vid) {
-                            return true;
-                        }
-                    }
-                    return false;
+                    auto it = std::ranges::find_if(edge_range, [&](const auto& e) {
+                        return target_id(std::forward<G>(g), e) == vid;
+                    });
+                    return it != std::ranges::end(edge_range);
                 }
             }
         };
     } // namespace _contains_edge
 
 } // namespace _cpo_impls
-
-// =============================================================================
-// num_edges(g) - Public CPO instance
-// =============================================================================
-
-inline namespace _cpo_instances {
-    /**
-     * @brief CPO for getting the total number of edges in the graph
-     * 
-     * Usage: auto count = graph::num_edges(my_graph);
-     * 
-     * Returns: Total number of edges (size_t)
-     */
-    inline constexpr _cpo_impls::_num_edges::_fn num_edges{};
-} // namespace _cpo_instances
-
-// =============================================================================
-// degree(g, u) and degree(g, uid) - Public CPO instances
-// =============================================================================
-
-inline namespace _cpo_instances {
-    /**
-     * @brief CPO for getting the degree (number of outgoing edges) of a vertex
-     * 
-     * Usage: 
-     *   auto deg = graph::degree(my_graph, vertex_descriptor);
-     *   auto deg = graph::degree(my_graph, vertex_id);
-     * 
-     * Returns: Number of outgoing edges from the vertex (integral type)
-     */
-    inline constexpr _cpo_impls::_degree::_fn degree{};
-} // namespace _cpo_instances
-
-// =============================================================================
-// find_vertex_edge(g, u, v/vid) and find_vertex_edge(g, uid, vid) - Public CPO instances
-// =============================================================================
-
-inline namespace _cpo_instances {
-    /**
-     * @brief CPO for finding an edge from source vertex u to target vertex v
-     * 
-     * Usage: 
-     *   auto e = graph::find_vertex_edge(my_graph, u_descriptor, v_descriptor);
-     *   auto e = graph::find_vertex_edge(my_graph, u_descriptor, target_id);
-     *   auto e = graph::find_vertex_edge(my_graph, source_id, target_id);
-     * 
-     * Returns: Edge descriptor if found, or end iterator/sentinel if not found
-     */
-    inline constexpr _cpo_impls::_find_vertex_edge::_fn find_vertex_edge{};
-} // namespace _cpo_instances
 
 // =============================================================================
 // contains_edge(g, u, v) and contains_edge(g, uid, vid) - Public CPO instances
