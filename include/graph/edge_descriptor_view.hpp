@@ -147,3 +147,7 @@ edge_descriptor_view(Container&, VertexDesc)
     -> edge_descriptor_view<typename Container::iterator, typename VertexDesc::iterator_type>;
 
 } // namespace graph
+
+// Enable borrowed_range for edge_descriptor_view to allow std::ranges operations on temporaries
+template<typename EdgeIter, typename VertexIter>
+inline constexpr bool std::ranges::enable_borrowed_range<graph::edge_descriptor_view<EdgeIter, VertexIter>> = true;

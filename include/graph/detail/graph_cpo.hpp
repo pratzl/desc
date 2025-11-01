@@ -17,6 +17,7 @@
 #include <ranges>
 #include <iterator>
 #include "graph/vertex_descriptor_view.hpp"
+#include "graph/edge_descriptor_view.hpp"
 #include "graph/descriptor.hpp"
 #include "graph/descriptor_traits.hpp"
 
@@ -330,6 +331,115 @@ namespace _cpo {
         };
     } // namespace _find_vertex
 
+    // =========================================================================
+    // edges(g, u) CPO
+    // =========================================================================
+    
+    namespace _edges {
+        enum class _St { _none, _member, _adl, _edge_value_pattern };
+        
+        // Check for g.edges(u) member function
+        template<typename G, typename U>
+        concept _has_member = requires(G& g, const U& u) {
+            { g.edges(u) } -> std::ranges::forward_range;
+        };
+        
+        // Check for ADL edges(g, u)
+        template<typename G, typename U>
+        concept _has_adl = requires(G& g, const U& u) {
+            { edges(g, u) } -> std::ranges::forward_range;
+        };
+        
+        // Check if the vertex descriptor's inner value is a forward range
+        // and its elements satisfy edge_value_type
+        template<typename G, typename U>
+        concept _has_edge_value_pattern = 
+            is_vertex_descriptor_v<std::remove_cvref_t<U>> &&
+            requires(G& g, const U& u) {
+                { u.inner_value(g) } -> std::ranges::forward_range;
+            } &&
+            requires(G& g, const U& u) {
+                typename std::ranges::range_value_t<decltype(u.inner_value(g))>;
+                requires edge_value_type<std::ranges::range_value_t<decltype(u.inner_value(g))>>;
+            };
+        
+        template<typename G, typename U>
+        [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
+            if constexpr (_has_member<G, U>) {
+                return {_St::_member, noexcept(std::declval<G&>().edges(std::declval<const U&>()))};
+            } else if constexpr (_has_adl<G, U>) {
+                return {_St::_adl, noexcept(edges(std::declval<G&>(), std::declval<const U&>()))};
+            } else if constexpr (_has_edge_value_pattern<G, U>) {
+                return {_St::_edge_value_pattern, noexcept(std::declval<const U&>().inner_value(std::declval<G&>()))};
+            } else {
+                return {_St::_none, false};
+            }
+        }
+        
+        // Helper to wrap result in edge_descriptor_view if not already
+        template<typename Result, typename U>
+        [[nodiscard]] constexpr auto _wrap_if_needed(Result&& result, const U& source_vertex) noexcept {
+            using ResultType = std::remove_cvref_t<Result>;
+            if constexpr (is_edge_descriptor_view_v<ResultType>) {
+                // Already an edge_descriptor_view, return as-is
+                return std::forward<Result>(result);
+            } else {
+                // Not an edge_descriptor_view, wrap it
+                return edge_descriptor_view(std::forward<Result>(result), source_vertex);
+            }
+        }
+        
+        class _fn {
+        private:
+            template<typename G, typename U>
+            static constexpr _Choice_t<_St> _Choice = _Choose<std::remove_cvref_t<G>, std::remove_cvref_t<U>>();
+            
+        public:
+            /**
+             * @brief Get range of outgoing edges from a vertex
+             * 
+             * IMPORTANT: This CPO MUST always return an edge_descriptor_view.
+             * 
+             * Resolution order:
+             * 1. If g.edges(u) exists -> use it (wrap in descriptor view if needed)
+             * 2. If ADL edges(g, u) exists -> use it (wrap in descriptor view if needed)
+             * 3. If u.inner_value(g) is a forward range of edge_value_type elements 
+             *    -> return edge_descriptor_view(u.inner_value(g), u)
+             * 
+             * If custom g.edges(u) or ADL edges(g, u) already returns an 
+             * edge_descriptor_view, it's used as-is. Otherwise, the result is 
+             * automatically wrapped in edge_descriptor_view.
+             * 
+             * The default implementation works automatically for common patterns:
+             * - Simple edges: vector<int> (target IDs)
+             * - Pair edges: vector<pair<int, Weight>> (target + property)
+             * - Tuple edges: vector<tuple<int, ...>> (target + properties)
+             * - Custom edges: structs/classes with custom extraction
+             * 
+             * @tparam G Graph type
+             * @tparam U Vertex descriptor type
+             * @param g Graph container
+             * @param u Vertex descriptor
+             * @return edge_descriptor_view wrapping the edges
+             */
+            template<typename G, typename U>
+            [[nodiscard]] constexpr auto operator()(G&& g, const U& u) const
+                noexcept(_Choice<std::remove_cvref_t<G>, std::remove_cvref_t<U>>._No_throw)
+                requires (_Choice<std::remove_cvref_t<G>, std::remove_cvref_t<U>>._Strategy != _St::_none)
+            {
+                using _G = std::remove_cvref_t<G>;
+                using _U = std::remove_cvref_t<U>;
+                if constexpr (_Choice<_G, _U>._Strategy == _St::_member) {
+                    return _wrap_if_needed(g.edges(u), u);
+                } else if constexpr (_Choice<_G, _U>._Strategy == _St::_adl) {
+                    return _wrap_if_needed(edges(g, u), u);
+                } else if constexpr (_Choice<_G, _U>._Strategy == _St::_edge_value_pattern) {
+                    return edge_descriptor_view(u.inner_value(g), u);
+                }
+            }
+        };
+    } // namespace _edges
+
 } // namespace _cpo
 
 // Public CPO instances
@@ -360,6 +470,15 @@ inline namespace _cpos {
      * Returns: Iterator to the vertex (vertex_iterator_t<G>)
      */
     inline constexpr _cpo::_find_vertex::_fn find_vertex{};
+    
+    /**
+     * @brief CPO for getting outgoing edges from a vertex
+     * 
+     * Usage: auto vertex_edges = graph::edges(my_graph, vertex_descriptor);
+     * 
+     * Returns: edge_descriptor_view
+     */
+    inline constexpr _cpo::_edges::_fn edges{};
 }
 
 // ============================================================================
@@ -406,5 +525,44 @@ using vertex_t = std::ranges::range_value_t<vertex_range_t<G>>;
  */
 template<typename G>
 using vertex_id_t = decltype(vertex_id(std::declval<G&>(), std::declval<vertex_t<G>>()));
+
+// ============================================================================
+// Type Aliases based on edges(g, u)
+// ============================================================================
+
+/**
+ * @brief Range type returned by edges(g, u)
+ * 
+ * This is always edge_descriptor_view<EdgeIter, VertexIter> where EdgeIter
+ * is the iterator type of the underlying edge container and VertexIter is
+ * the iterator type of the vertex container.
+ */
+template<typename G>
+using vertex_edge_range_t = decltype(edges(std::declval<G&>(), std::declval<vertex_t<G>>()));
+
+/**
+ * @brief Iterator type for traversing edges from a vertex
+ * 
+ * Iterator over the edge_descriptor_view returned by edges(g, u).
+ */
+template<typename G>
+using vertex_edge_iterator_t = std::ranges::iterator_t<vertex_edge_range_t<G>>;
+
+/**
+ * @brief Edge descriptor type for graph G
+ * 
+ * This is the value_type of the edge range - an edge_descriptor<EdgeIter, VertexIter>
+ * that wraps an edge and maintains its source vertex.
+ */
+template<typename G>
+using edge_descriptor_t = std::ranges::range_value_t<vertex_edge_range_t<G>>;
+
+/**
+ * @brief Edge descriptor type alias (same as edge_descriptor_t)
+ * 
+ * Provides a shorter name for the edge descriptor type.
+ */
+template<typename G>
+using edge_t = edge_descriptor_t<G>;
 
 } // namespace graph
