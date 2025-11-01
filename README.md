@@ -232,12 +232,14 @@ Implement core graph operation CPOs in `graph_cpo.hpp` following the canonical o
     3. Iterate vertices and sum edge counts - Default (lowest priority)
   - **Default implementation**: Iterates through all vertices using `vertices(g)`, for each vertex calls `edges(g, u)`, uses `std::ranges::size()` for sized ranges or `std::ranges::distance()` for non-sized ranges
   - **Note**: For directed graphs counts each edge once; for undirected graphs counts each edge twice (once per endpoint)
-- [ ] `edges(g, uid)` - Get outgoing edges from vertex by ID (convenience wrapper)
+- [x] `edges(g, uid)` - Get outgoing edges from vertex by ID (convenience wrapper) ✅ **COMPLETE** - 19 tests passing
   - Resolution order:
     1. `g.edges(uid)` - Member function (highest priority)
     2. `edges(g, uid)` - ADL (medium priority)
     3. `edges(g, *find_vertex(g, uid))` - Default using find_vertex (lowest priority)
-  - **Note**: Convenience function that combines find_vertex + edges(g,u)
+  - **Note**: Convenience function that combines find_vertex + edges(g,u) to avoid boilerplate
+  - **Return type**: Returns `edge_descriptor_view` (same as edges(g,u))
+  - **Dual overload pattern**: Uses `requires (!vertex_descriptor_type<VId>)` constraint to differentiate from edges(g,u)
 - [ ] `degree(g, u)` - Get degree of vertex
 - [ ] `degree(g, uid)` - Get degree of vertex by ID
 
@@ -315,11 +317,12 @@ desc/
 │       └── graph_utility.hpp       # Utility CPOs (stub)
 ├── scripts/                # Build and maintenance scripts
 │   └── format.sh          # Code formatting script
-├── tests/                  # Unit tests (257 tests, all passing)
+├── tests/                  # Unit tests (276 tests, all passing)
 │   ├── test_descriptor_traits.cpp
 │   ├── test_edge_concepts.cpp
 │   ├── test_edge_descriptor.cpp
 │   ├── test_edges_cpo.cpp
+│   ├── test_edges_uid_cpo.cpp
 │   ├── test_find_vertex_cpo.cpp
 │   ├── test_num_edges_cpo.cpp
 │   ├── test_num_vertices_cpo.cpp
@@ -486,7 +489,7 @@ cmake --build build
 
 ## Testing
 
-The project includes 257 unit tests covering descriptor functionality, CPO implementations, and type aliases:
+The project includes 276 unit tests covering descriptor functionality, CPO implementations, and type aliases:
 
 ```bash
 # Run all tests
@@ -505,7 +508,10 @@ ctest --test-dir build/linux-gcc-debug -R vertex_id
 ctest --test-dir build/linux-gcc-debug -R find_vertex
 
 # Run edges(g,u) CPO tests
-ctest --test-dir build/linux-gcc-debug -R edges
+ctest --test-dir build/linux-gcc-debug -R "edges.*cpo"
+
+# Run edges(g,uid) CPO tests
+ctest --test-dir build/linux-gcc-debug -R "edges.*uid"
 
 # Run target_id(g,uv) CPO tests
 ctest --test-dir build/linux-gcc-debug -R target_id
@@ -549,6 +555,6 @@ This library follows the design principles and specifications from:
 
 ---
 
-**Status**: Phase 1 Complete ✅ | Phase 2 In Progress 🔄 | 257/257 Tests Passing ✅ | vertices(g) + vertex_id(g,u) + find_vertex(g,uid) + edges(g,u) + target_id(g,uv) + target(g,uv) + num_vertices(g) + num_edges(g) + Type Aliases Complete ✅
+**Status**: Phase 1 Complete ✅ | Phase 2 In Progress 🔄 | 276/276 Tests Passing ✅ | vertices(g) + vertex_id(g,u) + find_vertex(g,uid) + edges(g,u) + edges(g,uid) + target_id(g,uv) + target(g,uv) + num_vertices(g) + num_edges(g) + Type Aliases Complete ✅
 
 ````
