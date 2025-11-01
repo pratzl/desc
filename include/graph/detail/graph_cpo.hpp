@@ -1708,4 +1708,117 @@ inline namespace _cpo_instances {
     inline constexpr _cpo_impls::_contains_edge::_fn contains_edge{};
 } // namespace _cpo_instances
 
+namespace _cpo_impls {
+
+    // =========================================================================
+    // has_edge(g) CPO
+    // =========================================================================
+    
+    namespace _has_edge {
+        enum class _St { _none, _member, _adl, _default };
+        
+        // Check for g.has_edge() member function
+        template<typename G>
+        concept _has_member = 
+            requires(const G& g) {
+                { g.has_edge() } -> std::convertible_to<bool>;
+            };
+        
+        // Check for ADL has_edge(g)
+        template<typename G>
+        concept _has_adl = 
+            requires(const G& g) {
+                { has_edge(g) } -> std::convertible_to<bool>;
+            };
+        
+        // Check if we can iterate vertices and their edges (default)
+        template<typename G>
+        concept _has_default = requires(G& g) {
+            { vertices(g) };
+            requires std::ranges::forward_range<decltype(vertices(g))>;
+        };
+        
+        template<typename G>
+        [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
+            if constexpr (_has_member<G>) {
+                return {_St::_member, 
+                        noexcept(std::declval<const G&>().has_edge())};
+            } else if constexpr (_has_adl<G>) {
+                return {_St::_adl, 
+                        noexcept(has_edge(std::declval<const G&>()))};
+            } else if constexpr (_has_default<G>) {
+                // Default implementation is not noexcept as it may allocate
+                return {_St::_default, false};
+            } else {
+                return {_St::_none, false};
+            }
+        }
+        
+        class _fn {
+        private:
+            template<typename G>
+            static constexpr _Choice_t<_St> _Choice = _Choose<std::remove_cvref_t<G>>();
+            
+        public:
+            /**
+             * @brief Check if the graph has any edges
+             * 
+             * Resolution order:
+             * 1. g.has_edge() - Member function (highest priority)
+             * 2. has_edge(g) - ADL (medium priority)
+             * 3. Default implementation (lowest priority) - Iterates through vertices
+             *    and checks if any vertex has a non-empty edges range
+             * 
+             * The default implementation:
+             * - Iterates through all vertices using vertices(g)
+             * - For each vertex u, gets edges(g, u)
+             * - Returns true when the first non-empty edge range is found
+             * - Returns false if all vertices have empty edge ranges
+             * 
+             * @tparam G Graph type
+             * @param g Graph container
+             * @return true if the graph has at least one edge, false otherwise
+             */
+            template<typename G>
+            [[nodiscard]] constexpr bool operator()(G&& g) const
+                noexcept(_Choice<std::remove_cvref_t<G>>._No_throw)
+                requires (_Choice<std::remove_cvref_t<G>>._Strategy != _St::_none)
+            {
+                using _G = std::remove_cvref_t<G>;
+                
+                if constexpr (_Choice<_G>._Strategy == _St::_member) {
+                    return g.has_edge();
+                } else if constexpr (_Choice<_G>._Strategy == _St::_adl) {
+                    return has_edge(g);
+                } else if constexpr (_Choice<_G>._Strategy == _St::_default) {
+                    // Default implementation: check if any vertex has edges
+                    auto vertex_range = vertices(std::forward<G>(g));
+                    auto it = std::ranges::find_if(vertex_range, [&](const auto& u) {
+                        auto edge_range = edges(std::forward<G>(g), u);
+                        return !std::ranges::empty(edge_range);
+                    });
+                    return it != std::ranges::end(vertex_range);
+                }
+            }
+        };
+    } // namespace _has_edge
+
+} // namespace _cpo_impls
+
+// =============================================================================
+// has_edge(g) - Public CPO instance
+// =============================================================================
+
+inline namespace _cpo_instances {
+    /**
+     * @brief CPO for checking if the graph has any edges
+     * 
+     * Usage: 
+     *   bool has_edges = graph::has_edge(my_graph);
+     * 
+     * Returns: true if graph has at least one edge, false otherwise
+     */
+    inline constexpr _cpo_impls::_has_edge::_fn has_edge{};
+} // namespace _cpo_instances
+
 } // namespace graph

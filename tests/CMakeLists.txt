@@ -30,6 +30,7 @@ add_executable(descriptor_tests
     test_degree_cpo.cpp
     test_find_vertex_edge_cpo.cpp
     test_contains_edge_cpo.cpp
+    test_has_edge_cpo.cpp
     test_type_aliases.cpp
 )
 

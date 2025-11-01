@@ -288,7 +288,14 @@ Implement core graph operation CPOs in `graph_cpo.hpp` following the canonical o
     2. `contains_edge(g, uid, vid)` - ADL (medium priority)
     3. `find_vertex(g, uid)` then iterate `edges(g, u)` comparing `target_id(g, e) == vid` (lowest priority)
   - **Dual overload pattern**: Uses `requires (!vertex_descriptor_type<UId> && !vertex_descriptor_type<VId>)` to differentiate
-- [ ] `has_edge(g)` - Check if graph has any edges
+- [x] `has_edge(g)` - Check if graph has any edges ✅ **COMPLETE** - 33 tests passing
+  - Resolution order:
+    1. `g.has_edge()` - Member function (highest priority)
+    2. `has_edge(g)` - ADL (medium priority)
+    3. Iterate `vertices(g)` checking if any vertex has non-empty `edges(g, u)` (lowest priority)
+  - **Return type**: `bool` - true if graph has at least one edge, false otherwise
+  - **Default implementation**: Uses `std::ranges::find_if` to find first vertex with non-empty edge range (short-circuits on first match)
+  - **Note**: Efficient early termination - stops at first vertex with edges
 
 **Phase 4: Value Access (Optional)**
 - [ ] `vertex_value(g, u)` - Get user-defined vertex value
@@ -599,6 +606,6 @@ This library follows the design principles and specifications from:
 
 ---
 
-**Status**: Phase 1 Complete ✅ | Phase 2 In Progress 🔄 | 331/331 Tests Passing ✅ | vertices(g) + vertex_id(g,u) + find_vertex(g,uid) + edges(g,u) + edges(g,uid) + target_id(g,uv) + target(g,uv) + num_vertices(g) + num_edges(g) + degree(g,u) + degree(g,uid) + find_vertex_edge(g,u,v/vid) + find_vertex_edge(g,uid,vid) + contains_edge(g,u,v) + contains_edge(g,uid,vid) + Type Aliases Complete ✅
+**Status**: Phase 1 Complete ✅ | Phase 2 In Progress 🔄 | 364/364 Tests Passing ✅ | vertices(g) + vertex_id(g,u) + find_vertex(g,uid) + edges(g,u) + edges(g,uid) + target_id(g,uv) + target(g,uv) + num_vertices(g) + num_edges(g) + degree(g,u) + degree(g,uid) + find_vertex_edge(g,u,v/vid) + find_vertex_edge(g,uid,vid) + contains_edge(g,u,v) + contains_edge(g,uid,vid) + has_edge(g) + Type Aliases Complete ✅
 
 ````
