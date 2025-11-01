@@ -611,9 +611,9 @@ namespace _cpo_impls {
         
         // Check for ADL target_id(g, descriptor) - highest priority custom override
         // This allows customization by providing a free function that takes the descriptor
+        // Accepts either edge_descriptor or underlying edge value type
         template<typename G, typename E>
         concept _has_adl_descriptor = 
-            is_edge_descriptor_v<std::remove_cvref_t<E>> &&
             requires(const G& g, const E& uv) {
                 { target_id(g, uv) };
             };
