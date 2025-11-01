@@ -12,7 +12,7 @@ This library provides the foundation for a complete graph library following the 
 - **Range-Based Design**: Graphs as ranges of vertices, where each vertex is a range of edges
 - **Documentation**: Comprehensive documentation following P1709 conventions
 
-**Current Status**: Phase 4 complete - All core CPOs, value access CPOs, and optional partitioning/sourced edge CPOs implemented with comprehensive tests. Ready for adjacency list concepts and traits definition.
+**Current Status**: Phase 6 complete - All core CPOs, value access CPOs, optional partitioning/sourced edge CPOs, and adjacency list concepts implemented with comprehensive tests. Ready for adjacency list traits definition.
 
 ## Features
 
@@ -370,27 +370,33 @@ Implement core graph operation CPOs in `graph_cpo.hpp` following the canonical o
 
 Unit tests and documentation for each CPO added.
 
-### 📋 Phase 6: Adjacency List Concepts & Traits (PLANNED)
-- [ ] Define adjacency list concepts in `graph/adjacency_list_concepts.hpp`:
+### ✅ Phase 6: Adjacency List Concepts (COMPLETE)
+- [x] **Adjacency List Concepts** in `graph/adjacency_list_concepts.hpp` ✅ **COMPLETE** - 26 tests passing
   - Edge concepts:
-    * `targeted_edge` - Target and Target IDs only
-    * `sourced_edge` - Source and Source IDs only
-    * `sourced_targeted_edge` - Target IDs and Source IDs
-    * `targeted_edge_range` - Forward range of targeted_edges
-    * `sourced_targeted_edge_range` - Forward range of edges that support sourced_edge and targeted_edge concepts
+    * `targeted_edge<G, E>` - Requires target_id(g,e) and target(g,e), plus is_edge_descriptor_v ✅
+    * `sourced_edge<G, E>` - Requires source_id(g,e) and source(g,e), plus is_edge_descriptor_v ✅
+    * `sourced_targeted_edge<G, E>` - Combines both targeted_edge and sourced_edge ✅
+    * `targeted_edge_range<R, G>` - Forward range of targeted_edges ✅
+    * `sourced_targeted_edge_range<R, G>` - Forward range of sourced_targeted_edges ✅
   - Vertex concepts:
-    * `vertex_range` - Sized, forward range of vertices with Vertex ID
-    * `index_vertex_range` - Random access range of vertices with Vertex ID
+    * `vertex_range<G>` - Graph with forward range of vertex descriptors (derived from vertex_range_t<G>) ✅
+    * `index_vertex_range<G>` - Graph with random access range of vertex descriptors ✅
   - Adjacency list concepts:
-    - `adjacency_list` - Concept for graphs with adjacency list structure using vertex_range and targeted_edge_range.
-    - `index_adjacency_list` - Concept for graphs with adjacency list structure using index_vertex_range and targeted_edge_range.
-    - `sourced_adjacency_list` - Concept for graphs with adjacency list structure using vertex_range and sourced_targeted_edge_range.
-    - `index_sourced_adjacency_list` - Concept for graphs with adjacency list structure using index_vertex_range and sourced_targeted_edge_range.
-  - Requirements:
-    * Container type traits (vertex/edge container types)
-    * Iterator requirements
-    * Size/capacity operations
-    * Modification operations (add/remove vertices/edges)
+    * `adjacency_list<G>` - Graph with vertex_range and targeted_edge_range ✅
+    * `index_adjacency_list<G>` - Graph with index_vertex_range and targeted_edge_range ✅
+    * `sourced_adjacency_list<G>` - Graph with vertex_range and sourced_targeted_edge_range ✅
+    * `index_sourced_adjacency_list<G>` - Graph with index_vertex_range and sourced_targeted_edge_range ✅
+  - Design decisions:
+    * Parameter order: Range concepts use `<R, G>` to work with C++20's `-> concept<G>` syntax
+    * vertex_range concepts refactored to use single graph parameter, deriving range type via vertex_range_t<G>
+    * Forward-only iteration: vertex_descriptor_view is forward-only by design (descriptors synthesized on-the-fly)
+    * No sized_range requirement: Map-based graphs don't naturally provide O(1) size()
+  - Test coverage:
+    * 8 test cases for edge concepts with edge_descriptor from vector/deque/pair containers
+    * 18 test cases for vertex and graph concepts with vector/map/deque containers
+    * Comprehensive integration tests for concept hierarchies
+
+### 📋 Phase 7: Adjacency List Traits (PLANNED)
 - [ ] Define adjacency list traits in `graph/adjacency_list_traits.hpp`:
   - `has_degree<G>` - A graph supports the degree(g,u) and degree(g,uid) functions
   - `has_find_vertex<G>` - A graph supports find_vertex(g,uid)
@@ -398,21 +404,20 @@ Unit tests and documentation for each CPO added.
   - `has_contains_edge<G, V>` - A graph supports contains_edge(g,u,v) and contains_edge(g,uid,vid)
   - `define_unordered_edge<G>` - Overridable trait on a graph that defaults to false. When true, logic in views must guarantee that the target vertex or vertex id is not the same where it came from (the source) when traversing the graph.
   - Helper metafunctions for compile-time queries
-- [ ] Unit tests for concepts and traits:
-  - Concept satisfaction with various container types
+- [ ] Unit tests for traits:
   - Trait extraction and correctness
   - SFINAE-friendly design verification
   - Integration with existing descriptor framework
 
-### 📋 Phase 7: First Container Implementation (PLANNED)
-### 📋 Phase 8: Basic Algorithms (PLANNED)
+### 📋 Phase 8: First Container Implementation (PLANNED)
+### 📋 Phase 9: Basic Algorithms (PLANNED)
 - [ ] Foundational algorithms in `include/graph/algorithm/`:
   - `breadth_first_search.hpp` - BFS traversal
   - `depth_first_search.hpp` - DFS traversal
   - `dijkstra_shortest_paths.hpp` - Single-source shortest paths
   - `topological_sort.hpp` - Topological ordering
 
-### 📋 Phase 9: Views and Adaptors (PLANNED)
+### 📋 Phase 10: Views and Adaptors (PLANNED)
 - [ ] Graph views in `include/graph/views/`:
   - `vertices.hpp` - Vertex range views
   - `edges.hpp` - Edge range views
@@ -451,7 +456,9 @@ desc/
 │       └── graph_utility.hpp       # Utility CPOs (stub)
 ├── scripts/                # Build and maintenance scripts
 │   └── format.sh          # Code formatting script
-├── tests/                  # Unit tests (490 tests, all passing)
+├── tests/                  # Unit tests (516 tests, all passing)
+│   ├── test_adjacency_list_edge_concepts.cpp
+│   ├── test_adjacency_list_vertex_concepts.cpp
 │   ├── test_contains_edge_cpo.cpp
 │   ├── test_degree_cpo.cpp
 │   ├── test_descriptor_traits.cpp
@@ -632,7 +639,7 @@ cmake --build build
 
 ## Testing
 
-The project includes 490 unit tests covering descriptor functionality, CPO implementations, partitioning, and type aliases:
+The project includes 516 unit tests covering descriptor functionality, CPO implementations, partitioning, adjacency list concepts, and type aliases:
 
 ```bash
 # Run all tests
@@ -680,6 +687,12 @@ ctest --test-dir build/linux-gcc-debug -R num_partitions
 # Run type alias tests
 ctest --test-dir build/linux-gcc-debug -R "Type aliases"
 
+# Run adjacency list edge concept tests
+ctest --test-dir build/linux-gcc-debug -R "adjacency.*edge.*concepts"
+
+# Run adjacency list vertex concept tests
+ctest --test-dir build/linux-gcc-debug -R "adjacency.*vertex.*concepts"
+
 # Verbose output
 ctest --test-dir build/linux-gcc-debug -V
 ```
@@ -707,8 +720,10 @@ This library follows the design principles and specifications from:
 
 ---
 
-**Status**: Phase 1-5 Complete ✅ | 490/490 Tests Passing ✅ | All Core CPOs + Value Access + Sourced Edges + Partitioning Complete ✅
+**Status**: Phase 1-6 Complete ✅ | 516/516 Tests Passing ✅ | All Core CPOs + Value Access + Sourced Edges + Partitioning + Adjacency List Concepts Complete ✅
 
 **Implemented CPOs**: vertices(g) • vertex_id(g,u) • find_vertex(g,uid) • edges(g,u) • edges(g,uid) • target_id(g,uv) • target(g,uv) • num_vertices(g) • num_edges(g) • degree(g,u) • degree(g,uid) • find_vertex_edge • contains_edge • has_edge(g) • vertex_value(g,u) • edge_value(g,uv) • graph_value(g) • source_id(g,uv) • source(g,uv) • partition_id(g,u) • num_partitions(g) • Type Aliases
+
+**Implemented Concepts**: targeted_edge • sourced_edge • sourced_targeted_edge • targeted_edge_range • sourced_targeted_edge_range • vertex_range • index_vertex_range • adjacency_list • index_adjacency_list • sourced_adjacency_list • index_sourced_adjacency_list
 
 ````
