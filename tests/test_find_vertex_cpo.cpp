@@ -129,37 +129,192 @@ TEST_CASE("find_vertex - ADL customization", "[graph_cpo][find_vertex][adl]") {
 }
 
 // ============================================================================
-// Associative Container Tests (requires member override)
+// Associative Container Tests (Map-based graphs)
 // ============================================================================
 
-// Note: Complex custom implementations with maps would require more sophisticated
-// iterator conversion. For now, testing with vector-based graphs is sufficient.
-//
-// Map-based sparse graphs would typically provide their own find_vertex
-// implementation that returns a suitable iterator type.
-
-// Note: Map-based graphs don't satisfy the sized_range requirement for the default
-// find_vertex implementation. They would need to provide custom find_vertex implementations.
-// This is expected behavior - associative containers need custom lookups.
-
-TEST_CASE("find_vertex - map notes", "[graph_cpo][find_vertex][associative]") {
-    // Maps would require custom find_vertex implementations
-    // The default implementation requires sized_range which maps don't provide
-    // through vertex_descriptor_view (bidirectional iterators, not random access)
+// Custom wrapper for map-based graphs with find_vertex member
+struct MapGraphWrapper {
+    std::map<int, std::vector<int>> data;
     
-    SECTION("Maps work with manual iteration") {
-        std::map<int, std::vector<int>> g = {{10, {20, 30}}, {20, {10, 30}}, {30, {10, 20}}};
-        auto verts = vertices(g);
-        
-        // Can iterate and find manually
-        bool found = false;
-        for (auto v : verts) {
-            if (vertex_id(g, v) == 20) {
-                found = true;
-                break;
-            }
+    // Custom find_vertex that uses map's efficient lookup
+    auto find_vertex(int uid) {
+        auto verts = graph::vertices(data);
+        auto map_iter = data.find(uid);
+        if (map_iter == data.end()) {
+            return std::ranges::end(verts);
         }
-        REQUIRE(found);
+        // Convert map iterator to vertex_descriptor_view iterator
+        // by counting distance from begin
+        auto begin_iter = data.begin();
+        auto distance = std::distance(begin_iter, map_iter);
+        return std::ranges::next(std::ranges::begin(verts), distance);
+    }
+};
+
+TEST_CASE("find_vertex - map with member function", "[graph_cpo][find_vertex][map]") {
+    MapGraphWrapper g{{{10, {20, 30}}, {20, {10, 30}}, {30, {10, 20}}}};
+    
+    SECTION("Find existing vertex") {
+        auto v_iter = find_vertex(g, 20);
+        auto verts = vertices(g.data);
+        REQUIRE(v_iter != std::ranges::end(verts));
+        REQUIRE(vertex_id(g.data, *v_iter) == 20);
+    }
+    
+    SECTION("Find first vertex") {
+        auto v_iter = find_vertex(g, 10);
+        auto verts = vertices(g.data);
+        REQUIRE(v_iter != std::ranges::end(verts));
+        REQUIRE(vertex_id(g.data, *v_iter) == 10);
+    }
+    
+    SECTION("Find last vertex") {
+        auto v_iter = find_vertex(g, 30);
+        auto verts = vertices(g.data);
+        REQUIRE(v_iter != std::ranges::end(verts));
+        REQUIRE(vertex_id(g.data, *v_iter) == 30);
+    }
+    
+    SECTION("Non-existent vertex returns end") {
+        auto v_iter = find_vertex(g, 99);
+        auto verts = vertices(g.data);
+        REQUIRE(v_iter == std::ranges::end(verts));
+    }
+}
+
+// ADL-based approach for map graphs
+namespace map_adl_ns {
+    struct MapGraph {
+        std::map<int, std::vector<std::pair<int, double>>> adj_list;
+    };
+    
+    // ADL find_vertex for map-based graph
+    auto find_vertex(MapGraph& g, int uid) {
+        auto verts = graph::vertices(g.adj_list);
+        auto map_iter = g.adj_list.find(uid);
+        if (map_iter == g.adj_list.end()) {
+            return std::ranges::end(verts);
+        }
+        auto distance = std::distance(g.adj_list.begin(), map_iter);
+        return std::ranges::next(std::ranges::begin(verts), distance);
+    }
+}
+
+TEST_CASE("find_vertex - map with ADL", "[graph_cpo][find_vertex][map][adl]") {
+    map_adl_ns::MapGraph g{{{5, {{10, 1.0}, {15, 2.0}}}, {10, {{15, 1.5}}}, {15, {}}}};
+    
+    SECTION("Find vertex via ADL") {
+        auto v_iter = find_vertex(g, 10);
+        auto verts = vertices(g.adj_list);
+        REQUIRE(v_iter != std::ranges::end(verts));
+        REQUIRE(vertex_id(g.adj_list, *v_iter) == 10);
+    }
+    
+    SECTION("ADL handles non-existent keys") {
+        auto v_iter = find_vertex(g, 100);
+        auto verts = vertices(g.adj_list);
+        REQUIRE(v_iter == std::ranges::end(verts));
+    }
+}
+
+TEST_CASE("find_vertex - map sparse vertex IDs", "[graph_cpo][find_vertex][map]") {
+    // Test with non-contiguous vertex IDs
+    MapGraphWrapper g{{{100, {200}}, {200, {300}}, {300, {100}}, {500, {}}}};
+    
+    SECTION("Find sparse vertex IDs") {
+        auto v_iter = find_vertex(g, 200);
+        REQUIRE(vertex_id(g.data, *v_iter) == 200);
+        
+        v_iter = find_vertex(g, 500);
+        REQUIRE(vertex_id(g.data, *v_iter) == 500);
+    }
+    
+    SECTION("Gaps in ID space return end") {
+        auto v_iter = find_vertex(g, 150);  // ID between 100 and 200
+        auto verts = vertices(g.data);
+        REQUIRE(v_iter == std::ranges::end(verts));
+        
+        v_iter = find_vertex(g, 400);  // ID between 300 and 500
+        REQUIRE(v_iter == std::ranges::end(verts));
+    }
+}
+
+TEST_CASE("find_vertex - map integration with vertices", "[graph_cpo][find_vertex][map][integration]") {
+    MapGraphWrapper g{{{1, {2, 3}}, {2, {3}}, {3, {1}}}};
+    
+    SECTION("Round-trip through all vertices") {
+        auto verts = vertices(g.data);
+        for (auto v : verts) {
+            auto vid = vertex_id(g.data, v);
+            auto found = find_vertex(g, vid);
+            REQUIRE(found != std::ranges::end(verts));
+            REQUIRE(vertex_id(g.data, *found) == vid);
+        }
+    }
+}
+
+TEST_CASE("find_vertex - map with weighted edges", "[graph_cpo][find_vertex][map]") {
+    struct WeightedMapGraph {
+        std::map<int, std::vector<std::pair<int, double>>> data = {
+            {0, {{1, 1.5}, {2, 2.5}}},
+            {1, {{2, 3.5}}},
+            {2, {}}
+        };
+        
+        auto find_vertex(int uid) {
+            auto verts = graph::vertices(data);
+            auto map_iter = data.find(uid);
+            if (map_iter == data.end()) {
+                return std::ranges::end(verts);
+            }
+            auto distance = std::distance(data.begin(), map_iter);
+            return std::ranges::next(std::ranges::begin(verts), distance);
+        }
+    };
+    
+    WeightedMapGraph g;
+    
+    SECTION("Find vertices in weighted map graph") {
+        auto v_iter = find_vertex(g, 1);
+        auto verts = vertices(g.data);
+        REQUIRE(v_iter != std::ranges::end(verts));
+        REQUIRE(vertex_id(g.data, *v_iter) == 1);
+        
+        // Verify edges are accessible
+        auto edge_range = edges(g.data, *v_iter);
+        size_t edge_count = 0;
+        for (auto e : edge_range) {
+            (void)e;
+            ++edge_count;
+        }
+        REQUIRE(edge_count == 1);  // Vertex 1 has one edge to vertex 2
+    }
+}
+
+TEST_CASE("find_vertex - empty map", "[graph_cpo][find_vertex][map][edge_cases]") {
+    MapGraphWrapper g{{}};
+    
+    SECTION("Finding in empty map returns end") {
+        auto v_iter = find_vertex(g, 0);
+        auto verts = vertices(g.data);
+        REQUIRE(v_iter == std::ranges::end(verts));
+    }
+}
+
+TEST_CASE("find_vertex - map single vertex", "[graph_cpo][find_vertex][map][edge_cases]") {
+    MapGraphWrapper g{{{42, {}}}};
+    
+    SECTION("Find single vertex") {
+        auto v_iter = find_vertex(g, 42);
+        auto verts = vertices(g.data);
+        REQUIRE(v_iter != std::ranges::end(verts));
+        REQUIRE(vertex_id(g.data, *v_iter) == 42);
+    }
+    
+    SECTION("Wrong ID returns end") {
+        auto v_iter = find_vertex(g, 43);
+        auto verts = vertices(g.data);
+        REQUIRE(v_iter == std::ranges::end(verts));
     }
 }
 
