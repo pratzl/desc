@@ -2397,4 +2397,118 @@ inline namespace _cpo_instances {
     inline constexpr _cpo_impls::_source::_fn source{};
 } // namespace _cpo_instances
 
+namespace _cpo_impls {
+
+    // =========================================================================
+    // partition_id(g, u) CPO - Get partition ID for a vertex
+    // =========================================================================
+    
+    namespace _partition_id {
+        enum class _St { _none, _member, _adl, _default };
+        
+        // Check for g.partition_id(u) member function
+        // Note: Uses G (not G&) to preserve const qualification
+        template<typename G, typename U>
+        concept _has_member = 
+            requires(G g, const U& u) {
+                { g.partition_id(u) };
+            };
+        
+        // Check for ADL partition_id(g, u)
+        // Note: Uses G (not G&) to preserve const qualification
+        template<typename G, typename U>
+        concept _has_adl = 
+            requires(G g, const U& u) {
+                { partition_id(g, u) };
+            };
+        
+        // Default always available for vertex descriptors
+        template<typename U>
+        concept _has_default = is_vertex_descriptor_v<std::remove_cvref_t<U>>;
+        
+        template<typename G, typename U>
+        [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
+            if constexpr (_has_member<G, U>) {
+                return {_St::_member, 
+                        noexcept(std::declval<G>().partition_id(std::declval<const U&>()))};
+            } else if constexpr (_has_adl<G, U>) {
+                return {_St::_adl, 
+                        noexcept(partition_id(std::declval<G>(), std::declval<const U&>()))};
+            } else if constexpr (_has_default<U>) {
+                return {_St::_default, true}; // Default is noexcept
+            } else {
+                return {_St::_none, false};
+            }
+        }
+        
+        class _fn {
+        private:
+            template<typename G, typename U>
+            static constexpr _Choice_t<_St> _Choice = _Choose<std::remove_cvref_t<G>, std::remove_cvref_t<U>>();
+            
+        public:
+            /**
+             * @brief Get partition ID for a vertex
+             * 
+             * Resolution order:
+             * 1. g.partition_id(u) - Member function (highest priority)
+             * 2. partition_id(g, u) - ADL (medium priority)
+             * 3. Default: returns 0 (lowest priority)
+             * 
+             * The default implementation assumes a single partition where all vertices
+             * belong to partition 0. This is suitable for:
+             * - Non-partitioned graphs
+             * - Graphs without explicit partition information
+             * - Single-process/single-node graph algorithms
+             * 
+             * Custom implementations can provide:
+             * - Multi-partition support for distributed graphs
+             * - Graph coloring/partitioning algorithms
+             * - NUMA-aware partitioning
+             * - Load-balancing partitions
+             * 
+             * @tparam G Graph type
+             * @tparam U Vertex descriptor type (constrained to be a vertex_descriptor_type)
+             * @param g Graph container
+             * @param u Vertex descriptor (must be vertex_t<G>)
+             * @return Partition ID (integral type, default 0)
+             */
+            template<typename G, vertex_descriptor_type U>
+            [[nodiscard]] constexpr auto operator()(G&& g, const U& u) const
+                noexcept(_Choice<std::remove_cvref_t<G>, std::remove_cvref_t<U>>._No_throw)
+                -> decltype(auto)
+                requires (_Choice<std::remove_cvref_t<G>, std::remove_cvref_t<U>>._Strategy != _St::_none)
+            {
+                using _G = std::remove_cvref_t<G>;
+                using _U = std::remove_cvref_t<U>;
+                
+                if constexpr (_Choice<_G, _U>._Strategy == _St::_member) {
+                    return g.partition_id(u);
+                } else if constexpr (_Choice<_G, _U>._Strategy == _St::_adl) {
+                    return partition_id(g, u);
+                } else if constexpr (_Choice<_G, _U>._Strategy == _St::_default) {
+                    // Default: single partition, all vertices in partition 0
+                    return 0;
+                }
+            }
+        };
+    } // namespace _partition_id
+
+} // namespace _cpo_impls
+
+// =============================================================================
+// partition_id(g, u) - Public CPO instance
+// =============================================================================
+
+inline namespace _cpo_instances {
+    /**
+     * @brief CPO for getting partition ID for a vertex
+     * 
+     * Usage: auto pid = graph::partition_id(my_graph, vertex_descriptor);
+     * 
+     * Returns: Partition ID (default 0 for single-partition graphs)
+     */
+    inline constexpr _cpo_impls::_partition_id::_fn partition_id{};
+} // namespace _cpo_instances
+
 } // namespace graph
