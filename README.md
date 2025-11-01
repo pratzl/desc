@@ -206,6 +206,16 @@ Implement core graph operation CPOs in `graph_cpo.hpp` following the canonical o
     1. `target_id(g, uv)` - ADL (highest priority)
     2. `uv.target_id(edges)` - Edge descriptor default (lowest priority)
   - **Automatic extraction** for edge patterns: simple (int → itself), pair (→ .first), tuple (→ get<0>), custom via ADL
+- [x] `target(g, uv)` - Get target vertex descriptor from edge ✅ **COMPLETE** - 28 tests passing
+  - Resolution order:
+    1. `g.target(uv)` - Member function (highest priority)
+    2. `target(g, uv)` - ADL (medium priority)
+    3. `*find_vertex(g, target_id(g, uv))` - Default (lowest priority)
+  - **Return type flexibility**: Custom implementations (member/ADL) can return either:
+    - `vertex_descriptor` (vertex_t<G>) - used as-is
+    - `vertex_iterator` (iterator to vertices) - automatically dereferenced to descriptor
+  - **Default implementation**: Combines `find_vertex` and `target_id` for convenience
+  - **Performance**: O(1) for random-access graphs, O(log n) or O(1) average for associative graphs
 
 **Phase 2: Query Functions (High Priority)**
 - [x] `num_vertices(g)` - Count vertices in graph ✅ **COMPLETE** - 24 tests passing
@@ -221,7 +231,6 @@ Implement core graph operation CPOs in `graph_cpo.hpp` following the canonical o
     3. Iterate vertices and sum edge counts - Default (lowest priority)
   - **Default implementation**: Iterates through all vertices using `vertices(g)`, for each vertex calls `edges(g, u)`, uses `std::ranges::size()` for sized ranges or `std::ranges::distance()` for non-sized ranges
   - **Note**: For directed graphs counts each edge once; for undirected graphs counts each edge twice (once per endpoint)
-- [ ] `target(g, uv)` - Get target vertex descriptor from edge
 - [ ] `edges(g, uid)` - Get outgoing edges from vertex by ID (convenience wrapper)
   - Resolution order:
     1. `g.edges(uid)` - Member function (highest priority)
@@ -305,7 +314,7 @@ desc/
 │       └── graph_utility.hpp       # Utility CPOs (stub)
 ├── scripts/                # Build and maintenance scripts
 │   └── format.sh          # Code formatting script
-├── tests/                  # Unit tests (229 tests, all passing)
+├── tests/                  # Unit tests (257 tests, all passing)
 │   ├── test_descriptor_traits.cpp
 │   ├── test_edge_concepts.cpp
 │   ├── test_edge_descriptor.cpp
@@ -313,6 +322,7 @@ desc/
 │   ├── test_find_vertex_cpo.cpp
 │   ├── test_num_edges_cpo.cpp
 │   ├── test_num_vertices_cpo.cpp
+│   ├── test_target_cpo.cpp
 │   ├── test_target_id_cpo.cpp
 │   ├── test_type_aliases.cpp
 │   ├── test_vertex_concepts.cpp
@@ -475,7 +485,7 @@ cmake --build build
 
 ## Testing
 
-The project includes 229 unit tests covering descriptor functionality, CPO implementations, and type aliases:
+The project includes 257 unit tests covering descriptor functionality, CPO implementations, and type aliases:
 
 ```bash
 # Run all tests
@@ -498,6 +508,9 @@ ctest --test-dir build/linux-gcc-debug -R edges
 
 # Run target_id(g,uv) CPO tests
 ctest --test-dir build/linux-gcc-debug -R target_id
+
+# Run target(g,uv) CPO tests
+ctest --test-dir build/linux-gcc-debug -R "target.*cpo"
 
 # Run num_vertices(g) CPO tests
 ctest --test-dir build/linux-gcc-debug -R num_vertices
@@ -535,6 +548,6 @@ This library follows the design principles and specifications from:
 
 ---
 
-**Status**: Phase 1 Complete ✅ | Phase 2 In Progress 🔄 | 229/229 Tests Passing ✅ | vertices(g) + vertex_id(g,u) + find_vertex(g,uid) + edges(g,u) + target_id(g,uv) + num_vertices(g) + num_edges(g) + Type Aliases Complete ✅
+**Status**: Phase 1 Complete ✅ | Phase 2 In Progress 🔄 | 257/257 Tests Passing ✅ | vertices(g) + vertex_id(g,u) + find_vertex(g,uid) + edges(g,u) + target_id(g,uv) + target(g,uv) + num_vertices(g) + num_edges(g) + Type Aliases Complete ✅
 
 ````
