@@ -555,14 +555,6 @@ using vertex_edge_iterator_t = std::ranges::iterator_t<vertex_edge_range_t<G>>;
  * that wraps an edge and maintains its source vertex.
  */
 template<typename G>
-using edge_descriptor_t = std::ranges::range_value_t<vertex_edge_range_t<G>>;
-
-/**
- * @brief Edge descriptor type alias (same as edge_descriptor_t)
- * 
- * Provides a shorter name for the edge descriptor type.
- */
-template<typename G>
-using edge_t = edge_descriptor_t<G>;
+using edge_t = std::ranges::range_value_t<vertex_edge_range_t<G>>;
 
 } // namespace graph

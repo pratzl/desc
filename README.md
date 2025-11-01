@@ -200,7 +200,7 @@ Implement core graph operation CPOs in `graph_cpo.hpp` following the canonical o
     2. `edges(g, u)` - ADL (medium priority)
     3. `edge_descriptor_view(u.inner_value(g), u)` - Edge value pattern default (lowest priority)
   - **Automatic support** for containers following edge value patterns: simple (int), pair, tuple, custom
-- [x] Type aliases: `vertex_edge_range_t<G>`, `vertex_edge_iterator_t<G>`, `edge_descriptor_t<G>`, `edge_t<G>` ✅ **COMPLETE**
+- [x] Type aliases: `vertex_edge_range_t<G>`, `vertex_edge_iterator_t<G>`, `edge_t<G>` ✅ **COMPLETE**
 - [ ] `target_id(g, uv)` - Get target vertex ID from edge
 
 **Phase 2: Query Functions (High Priority)**
