@@ -194,8 +194,13 @@ Implement core graph operation CPOs in `graph_cpo.hpp` following the canonical o
     2. `find_vertex(g, uid)` - ADL (medium priority)
     3. `std::ranges::next(std::ranges::begin(vertices(g)), uid)` - Random access default (lowest priority)
   - **Note**: Default implementation requires `sized_range` (works with vector/deque, maps need custom implementation)
-- [ ] `edges(g, u)` - Get outgoing edges from vertex (returns `edge_descriptor_view`)
-- [ ] Type aliases: `vertex_edge_range_t<G>`, `vertex_edge_iterator_t<G>`, `edge_descriptor_t<G>`, `edge_t<G>`
+- [x] `edges(g, u)` - Get outgoing edges from vertex (returns `edge_descriptor_view`) ✅ **COMPLETE** - 14 tests passing
+  - Resolution order:
+    1. `g.edges(u)` - Member function (highest priority)
+    2. `edges(g, u)` - ADL (medium priority)
+    3. `edge_descriptor_view(u.inner_value(g), u)` - Edge value pattern default (lowest priority)
+  - **Automatic support** for containers following edge value patterns: simple (int), pair, tuple, custom
+- [x] Type aliases: `vertex_edge_range_t<G>`, `vertex_edge_iterator_t<G>`, `edge_descriptor_t<G>`, `edge_t<G>` ✅ **COMPLETE**
 - [ ] `target_id(g, uv)` - Get target vertex ID from edge
 
 **Phase 2: Query Functions (High Priority)**
@@ -276,10 +281,11 @@ desc/
 │       └── graph_utility.hpp       # Utility CPOs (stub)
 ├── scripts/                # Build and maintenance scripts
 │   └── format.sh          # Code formatting script
-├── tests/                  # Unit tests (125 tests, all passing)
+├── tests/                  # Unit tests (139 tests, all passing)
 │   ├── test_descriptor_traits.cpp
 │   ├── test_edge_concepts.cpp
 │   ├── test_edge_descriptor.cpp
+│   ├── test_edges_cpo.cpp
 │   ├── test_find_vertex_cpo.cpp
 │   ├── test_vertex_concepts.cpp
 │   ├── test_vertex_descriptor.cpp
@@ -442,7 +448,7 @@ cmake --build build
 
 ## Testing
 
-The project includes 125 unit tests covering descriptor functionality, CPO implementations, and type aliases:
+The project includes 139 unit tests covering descriptor functionality, CPO implementations, and type aliases:
 
 ```bash
 # Run all tests
@@ -459,6 +465,9 @@ ctest --test-dir build/linux-gcc-debug -R vertex_id
 
 # Run find_vertex(g,uid) CPO tests
 ctest --test-dir build/linux-gcc-debug -R find_vertex
+
+# Run edges(g,u) CPO tests
+ctest --test-dir build/linux-gcc-debug -R edges
 
 # Run type alias tests
 ctest --test-dir build/linux-gcc-debug -R "Type aliases"
@@ -490,6 +499,6 @@ This library follows the design principles and specifications from:
 
 ---
 
-**Status**: Phase 1 Complete ✅ | Phase 2 In Progress 🔄 | 125/125 Tests Passing ✅ | vertices(g) + vertex_id(g,u) + find_vertex(g,uid) + Type Aliases Complete ✅
+**Status**: Phase 1 Complete ✅ | Phase 2 In Progress 🔄 | 139/139 Tests Passing ✅ | vertices(g) + vertex_id(g,u) + find_vertex(g,uid) + edges(g,u) + Type Aliases Complete ✅
 
 ````
