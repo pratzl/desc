@@ -709,6 +709,126 @@ inline namespace _cpo_instances {
 namespace _cpo_impls {
 
     // =========================================================================
+    // target(g, uv) CPO
+    // =========================================================================
+    
+    namespace _target {
+        enum class _St { _none, _member, _adl, _default };
+        
+        // Forward declare find_vertex and target_id CPOs for use in default implementation
+        inline constexpr _find_vertex::_fn _find_vertex_cpo{};
+        inline constexpr _target_id::_fn _target_id_cpo{};
+        
+        // Check for g.target(uv) member function
+        template<typename G, typename E>
+        concept _has_member = 
+            is_edge_descriptor_v<std::remove_cvref_t<E>> &&
+            requires(G& g, const E& uv) {
+                { g.target(uv) };
+            };
+        
+        // Check for ADL target(g, uv)
+        template<typename G, typename E>
+        concept _has_adl = 
+            is_edge_descriptor_v<std::remove_cvref_t<E>> &&
+            requires(G& g, const E& uv) {
+                { target(g, uv) };
+            };
+        
+        // Check if we can use default implementation: find_vertex(g, target_id(g, uv))
+        template<typename G, typename E>
+        concept _has_default = 
+            is_edge_descriptor_v<std::remove_cvref_t<E>> &&
+            requires(G& g, const E& uv) {
+                { _target_id_cpo(g, uv) };
+                { _find_vertex_cpo(g, _target_id_cpo(g, uv)) };
+            };
+        
+        template<typename G, typename E>
+        [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
+            if constexpr (_has_member<G, E>) {
+                return {_St::_member, 
+                        noexcept(std::declval<G&>().target(std::declval<const E&>()))};
+            } else if constexpr (_has_adl<G, E>) {
+                return {_St::_adl, 
+                        noexcept(target(std::declval<G&>(), std::declval<const E&>()))};
+            } else if constexpr (_has_default<G, E>) {
+                // Default is not noexcept as it depends on target_id and find_vertex
+                return {_St::_default, false};
+            } else {
+                return {_St::_none, false};
+            }
+        }
+        
+        class _fn {
+        private:
+            template<typename G, typename E>
+            static constexpr _Choice_t<_St> _Choice = _Choose<std::remove_cvref_t<G>, std::remove_cvref_t<E>>();
+            
+        public:
+            /**
+             * @brief Get target vertex descriptor from an edge
+             * 
+             * Resolution order:
+             * 1. g.target(uv) - Member function (highest priority)
+             * 2. target(g, uv) - ADL (medium priority)
+             * 3. find_vertex(g, target_id(g, uv)) - Default (lowest priority)
+             * 
+             * The default implementation:
+             * - Uses target_id(g, uv) to get the target vertex ID
+             * - Uses find_vertex(g, target_id) to get the vertex descriptor
+             * 
+             * This is a convenience function that combines target_id and find_vertex.
+             * For random-access graphs, this is O(1).
+             * For associative graphs, this is O(log n) or O(1) average.
+             * 
+             * @tparam G Graph type
+             * @tparam E Edge descriptor type (constrained to be an edge_descriptor_type)
+             * @param g Graph container
+             * @param uv Edge descriptor (must be edge_t<G> - the edge descriptor type for the graph)
+             * @return Vertex descriptor for the target vertex (vertex_iterator_t<G>)
+             */
+            template<typename G, edge_descriptor_type E>
+            [[nodiscard]] constexpr auto operator()(G&& g, const E& uv) const
+                noexcept(_Choice<std::remove_cvref_t<G>, std::remove_cvref_t<E>>._No_throw)
+                -> decltype(auto)
+                requires (_Choice<std::remove_cvref_t<G>, std::remove_cvref_t<E>>._Strategy != _St::_none)
+            {
+                using _G = std::remove_cvref_t<G>;
+                using _E = std::remove_cvref_t<E>;
+                
+                if constexpr (_Choice<_G, _E>._Strategy == _St::_member) {
+                    return g.target(uv);
+                } else if constexpr (_Choice<_G, _E>._Strategy == _St::_adl) {
+                    return target(g, uv);
+                } else if constexpr (_Choice<_G, _E>._Strategy == _St::_default) {
+                    // Default: find_vertex(g, target_id(g, uv))
+                    return _find_vertex_cpo(std::forward<G>(g), _target_id_cpo(g, uv));
+                }
+            }
+        };
+    } // namespace _target
+
+} // namespace _cpo_impls
+
+// =============================================================================
+// target(g, uv) - Public CPO instance
+// =============================================================================
+
+inline namespace _cpo_instances {
+    /**
+     * @brief CPO for getting target vertex descriptor from an edge
+     * 
+     * Usage: auto target_vertex = graph::target(my_graph, edge_descriptor);
+     * 
+     * Returns: Vertex descriptor (vertex_iterator_t<G>) for the target vertex
+     */
+    inline constexpr _cpo_impls::_target::_fn target{};
+} // namespace _cpo_instances
+
+namespace _cpo_impls {
+
+    // =========================================================================
     // num_vertices(g) CPO
     // =========================================================================
     
