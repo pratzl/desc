@@ -188,7 +188,12 @@ Implement core graph operation CPOs in `graph_cpo.hpp` following the canonical o
     3. `vertex_id(g, u)` - ADL with descriptor
     4. `u.vertex_id()` - Descriptor default (lowest priority)
 - [x] Type alias: `vertex_id_t<G>` ✅ **COMPLETE** - 2 tests passing
-- [ ] `find_vertex(g, uid)` - Find vertex by ID
+- [x] `find_vertex(g, uid)` - Find vertex by ID ✅ **COMPLETE** - 11 tests passing
+  - Resolution order:
+    1. `g.find_vertex(uid)` - Member function (highest priority)
+    2. `find_vertex(g, uid)` - ADL (medium priority)
+    3. `std::ranges::next(std::ranges::begin(vertices(g)), uid)` - Random access default (lowest priority)
+  - **Note**: Default implementation requires `sized_range` (works with vector/deque, maps need custom implementation)
 - [ ] `edges(g, u)` - Get outgoing edges from vertex (returns `edge_descriptor_view`)
 - [ ] Type aliases: `vertex_edge_range_t<G>`, `vertex_edge_iterator_t<G>`, `edge_descriptor_t<G>`, `edge_t<G>`
 - [ ] `target_id(g, uv)` - Get target vertex ID from edge
@@ -271,12 +276,16 @@ desc/
 │       └── graph_utility.hpp       # Utility CPOs (stub)
 ├── scripts/                # Build and maintenance scripts
 │   └── format.sh          # Code formatting script
-├── tests/                  # Unit tests (75 tests, all passing)
+├── tests/                  # Unit tests (125 tests, all passing)
 │   ├── test_descriptor_traits.cpp
 │   ├── test_edge_concepts.cpp
 │   ├── test_edge_descriptor.cpp
+│   ├── test_find_vertex_cpo.cpp
 │   ├── test_vertex_concepts.cpp
-│   └── test_vertex_descriptor.cpp
+│   ├── test_vertex_descriptor.cpp
+│   ├── test_vertex_id_cpo.cpp
+│   ├── test_vertices_cpo.cpp
+│   └── test_vertices_type_aliases.cpp
 ├── CMakeLists.txt         # Root CMake configuration
 ├── CMakePresets.json      # CMake build presets
 ├── MIGRATION_PHASE1.md    # Phase 1 migration details
@@ -433,7 +442,7 @@ cmake --build build
 
 ## Testing
 
-The project includes 114 unit tests covering descriptor functionality, CPO implementations, and type aliases:
+The project includes 125 unit tests covering descriptor functionality, CPO implementations, and type aliases:
 
 ```bash
 # Run all tests
@@ -447,6 +456,9 @@ ctest --test-dir build/linux-gcc-debug -R vertices
 
 # Run vertex_id(g,u) CPO tests
 ctest --test-dir build/linux-gcc-debug -R vertex_id
+
+# Run find_vertex(g,uid) CPO tests
+ctest --test-dir build/linux-gcc-debug -R find_vertex
 
 # Run type alias tests
 ctest --test-dir build/linux-gcc-debug -R "Type aliases"
@@ -478,4 +490,6 @@ This library follows the design principles and specifications from:
 
 ---
 
-**Status**: Phase 1 Complete ✅ | Phase 2 In Progress 🔄 | 114/114 Tests Passing ✅ | vertices(g) + vertex_id(g,u) + Type Aliases Complete ✅
+**Status**: Phase 1 Complete ✅ | Phase 2 In Progress 🔄 | 125/125 Tests Passing ✅ | vertices(g) + vertex_id(g,u) + find_vertex(g,uid) + Type Aliases Complete ✅
+
+````
