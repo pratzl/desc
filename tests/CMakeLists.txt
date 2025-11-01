@@ -22,6 +22,7 @@ add_executable(descriptor_tests
     test_vertex_id_cpo.cpp
     test_find_vertex_cpo.cpp
     test_edges_cpo.cpp
+    test_target_id_cpo.cpp
     test_type_aliases.cpp
 )
 

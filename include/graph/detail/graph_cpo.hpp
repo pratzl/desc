@@ -440,6 +440,93 @@ namespace _cpo {
         };
     } // namespace _edges
 
+    // =========================================================================
+    // target_id(g, uv) CPO
+    // =========================================================================
+    
+    namespace _target_id {
+        enum class _St { _none, _adl_descriptor, _descriptor };
+        
+        // Check for ADL target_id(g, descriptor) - highest priority custom override
+        // This allows customization by providing a free function that takes the descriptor
+        template<typename G, typename E>
+        concept _has_adl_descriptor = 
+            is_edge_descriptor_v<std::remove_cvref_t<E>> &&
+            requires(const G& g, const E& uv) {
+                { target_id(g, uv) };
+            };
+        
+        // Check if descriptor has target_id() member (default lowest priority)
+        // Note: edge_descriptor.target_id() requires the edge container, not the graph
+        // So we check for target_id(edges) where edges is obtained from the vertex
+        template<typename G, typename E>
+        concept _has_descriptor = is_edge_descriptor_v<std::remove_cvref_t<E>> &&
+            requires(G& g, const E& uv) {
+                { uv.source().inner_value(g) };
+                { uv.target_id(uv.source().inner_value(g)) };
+            };
+        
+        template<typename G, typename E>
+        [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
+            if constexpr (_has_adl_descriptor<G, E>) {
+                return {_St::_adl_descriptor, 
+                        noexcept(target_id(std::declval<const G&>(), std::declval<const E&>()))};
+            } else if constexpr (_has_descriptor<G, E>) {
+                return {_St::_descriptor, 
+                        noexcept(std::declval<const E&>().target_id(std::declval<const E&>().source().inner_value(std::declval<G&>())))};
+            } else {
+                return {_St::_none, false};
+            }
+        }
+        
+        class _fn {
+        private:
+            template<typename G, typename E>
+            static constexpr _Choice_t<_St> _Choice = _Choose<std::remove_cvref_t<G>, std::remove_cvref_t<E>>();
+            
+        public:
+            /**
+             * @brief Get target vertex ID from an edge
+             * 
+             * Resolution order (two-tier approach):
+             * 1. target_id(g, uv) - ADL with edge_descriptor (highest priority)
+             * 2. uv.target_id(uv.source().inner_value(g)) - descriptor's default method (lowest priority)
+             * 
+             * Where:
+             * - uv must be edge_t<G> (the edge descriptor type for graph G)
+             * - The default implementation uses the edge container from the source vertex
+             * 
+             * Edge data extraction (default implementation):
+             * - Simple integral type (int): Returns the value itself (the target ID)
+             * - Pair<target, property>: Returns .first (the target ID)
+             * - Tuple<target, prop1, ...>: Returns std::get<0> (the target ID)
+             * - Custom struct/type: User provides custom extraction via ADL
+             * 
+             * @tparam G Graph type
+             * @tparam E Edge descriptor type (constrained to be an edge_descriptor_type)
+             * @param g Graph container
+             * @param uv Edge descriptor (must be edge_t<G> - the edge descriptor type for the graph)
+             * @return Target vertex identifier
+             */
+            template<typename G, edge_descriptor_type E>
+            [[nodiscard]] constexpr auto operator()(G& g, const E& uv) const
+                noexcept(_Choice<std::remove_cvref_t<G>, std::remove_cvref_t<E>>._No_throw)
+                -> decltype(auto)
+                requires (_Choice<std::remove_cvref_t<G>, std::remove_cvref_t<E>>._Strategy != _St::_none)
+            {
+                using _G = std::remove_cvref_t<G>;
+                using _E = std::remove_cvref_t<E>;
+                
+                if constexpr (_Choice<_G, _E>._Strategy == _St::_adl_descriptor) {
+                    return target_id(g, uv);
+                } else if constexpr (_Choice<_G, _E>._Strategy == _St::_descriptor) {
+                    // Default: use edge_descriptor.target_id() with the edge container from source vertex
+                    return uv.target_id(uv.source().inner_value(g));
+                }
+            }
+        };
+    } // namespace _target_id
+
 } // namespace _cpo
 
 // Public CPO instances
@@ -479,6 +566,15 @@ inline namespace _cpos {
      * Returns: edge_descriptor_view
      */
     inline constexpr _cpo::_edges::_fn edges{};
+    
+    /**
+     * @brief CPO for getting target vertex ID from an edge
+     * 
+     * Usage: auto target = graph::target_id(my_graph, edge_descriptor);
+     * 
+     * Returns: Vertex ID of the target vertex
+     */
+    inline constexpr _cpo::_target_id::_fn target_id{};
 }
 
 // ============================================================================
