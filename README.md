@@ -201,7 +201,11 @@ Implement core graph operation CPOs in `graph_cpo.hpp` following the canonical o
     3. `edge_descriptor_view(u.inner_value(g), u)` - Edge value pattern default (lowest priority)
   - **Automatic support** for containers following edge value patterns: simple (int), pair, tuple, custom
 - [x] Type aliases: `vertex_edge_range_t<G>`, `vertex_edge_iterator_t<G>`, `edge_t<G>` ✅ **COMPLETE**
-- [ ] `target_id(g, uv)` - Get target vertex ID from edge
+- [x] `target_id(g, uv)` - Get target vertex ID from edge ✅ **COMPLETE** - 20 tests passing
+  - Resolution order:
+    1. `target_id(g, uv)` - ADL (highest priority)
+    2. `uv.target_id(edges)` - Edge descriptor default (lowest priority)
+  - **Automatic extraction** for edge patterns: simple (int → itself), pair (→ .first), tuple (→ get<0>), custom via ADL
 
 **Phase 2: Query Functions (High Priority)**
 - [ ] `num_vertices(g)` - Count vertices in graph
@@ -499,6 +503,6 @@ This library follows the design principles and specifications from:
 
 ---
 
-**Status**: Phase 1 Complete ✅ | Phase 2 In Progress 🔄 | 139/139 Tests Passing ✅ | vertices(g) + vertex_id(g,u) + find_vertex(g,uid) + edges(g,u) + Type Aliases Complete ✅
+**Status**: Phase 1 Complete ✅ | Phase 2 In Progress 🔄 | 155/155 Tests Passing ✅ | vertices(g) + vertex_id(g,u) + find_vertex(g,uid) + edges(g,u) + target_id(g,uv) + Type Aliases Complete ✅
 
 ````
