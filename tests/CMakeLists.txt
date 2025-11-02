@@ -39,6 +39,7 @@ add_executable(descriptor_tests
     test_type_aliases.cpp
     test_adjacency_list_edge_concepts.cpp
     test_adjacency_list_vertex_concepts.cpp
+    test_adjacency_list_traits.cpp
 )
 
 target_link_libraries(descriptor_tests
