@@ -76,11 +76,14 @@ public:
     
     /**
      * @brief Construct view from iterator range
-     * @param begin_iter Starting iterator/index
-     * @param end_iter Ending iterator/index
+     * @param begin_val Starting iterator/index
+     * @param end_val Ending iterator/index
+     * 
+     * Note: Requires random access iterator so size can be calculated.
      */
     constexpr vertex_descriptor_view(storage_type begin_val, storage_type end_val) noexcept
-        : begin_(begin_val), end_(end_val) {}
+        requires std::random_access_iterator<VertexIter>
+        : begin_(begin_val), end_(end_val), size_(end_val - begin_val) {}
     
     /**
      * @brief Construct view from non-const container with begin/end methods
@@ -90,15 +93,17 @@ public:
         requires requires(Container& c) {
             { c.begin() } -> std::convertible_to<VertexIter>;
             { c.end() } -> std::convertible_to<VertexIter>;
-        }
+        } && (std::ranges::sized_range<Container> || std::random_access_iterator<VertexIter>)
     constexpr explicit vertex_descriptor_view(Container& container) noexcept {
         if constexpr (std::random_access_iterator<VertexIter>) {
             begin_ = 0;
-            end_ = static_cast<storage_type>(container.size());
+            end_ = static_cast<storage_type>(std::ranges::size(container));
         } else {
+            // Must be sized_range (enforced by requires clause)
             begin_ = container.begin();
             end_ = container.end();
         }
+        size_ = std::ranges::size(container);
     }
     
     /**
@@ -112,15 +117,17 @@ public:
         requires requires(const Container& c) {
             { c.begin() } -> std::convertible_to<VertexIter>;
             { c.end() } -> std::convertible_to<VertexIter>;
-        }
+        } && (std::ranges::sized_range<const Container> || std::random_access_iterator<VertexIter>)
     constexpr explicit vertex_descriptor_view(const Container& container) noexcept {
         if constexpr (std::random_access_iterator<VertexIter>) {
             begin_ = 0;
-            end_ = static_cast<storage_type>(container.size());
+            end_ = static_cast<storage_type>(std::ranges::size(container));
         } else {
+            // Must be sized_range (enforced by requires clause)
             begin_ = container.begin();
             end_ = container.end();
         }
+        size_ = std::ranges::size(container);
     }
     
     [[nodiscard]] constexpr iterator begin() const noexcept {
@@ -139,16 +146,16 @@ public:
         return end();
     }
     
-    // Size if available (for random access)
-    [[nodiscard]] constexpr auto size() const noexcept
-        requires std::random_access_iterator<VertexIter>
-    {
-        return end_ - begin_;
+    // Size - always available (required for sized_range concept)
+    // O(1) - returns cached size from construction
+    [[nodiscard]] constexpr auto size() const noexcept {
+        return size_;
     }
     
 private:
     storage_type begin_{};
     storage_type end_{};
+    std::size_t size_{};      // Cached size from sized_range containers or calculated from random_access iterators
 };
 
 // Deduction guides

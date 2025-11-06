@@ -157,14 +157,18 @@ concept sourced_targeted_edge_range =
  * 
  * Requirements:
  * - vertices(g) must return a std::ranges::forward_range
+ * - vertices(g) must return a std::ranges::sized_range (size() available)
  * - Range value type must be a vertex_descriptor
  * 
- * Note: sized_range requirement removed since some vertex ranges (e.g., over
- * map iterators) don't naturally support O(1) size() without counting.
+ * Note: sized_range is required as a functional requirement even though
+ * performance may be substandard for some containers (e.g., O(n) for map).
  * 
  * Note: The vertex_id(g, v) operation is expected to be available but not
  * checked in the concept to avoid circular dependencies and provide better
  * error messages when used incorrectly.
+ * 
+ * Note: forward_range has been chosen over bidirectional_range to allow
+ * the use of std::unordered_map as a vertex container.
  * 
  * Examples:
  * - vertex_descriptor_view over std::vector<T>
@@ -176,6 +180,7 @@ concept sourced_targeted_edge_range =
 template<typename G>
 concept vertex_range = 
     std::ranges::forward_range<vertex_range_t<G>> &&
+    std::ranges::sized_range<vertex_range_t<G>> &&
     is_vertex_descriptor_v<std::remove_cvref_t<std::ranges::range_value_t<vertex_range_t<G>>>>;
 
 /**
