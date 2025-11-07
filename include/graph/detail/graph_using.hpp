@@ -5,10 +5,6 @@
 #include <tuple>
 #include <functional>
 #include <optional>
-#include <type_traits>
-#include <iterator>
-#include <algorithm>
-#include <memory>
 
 namespace graph {
 // Containers are not included to avoid potential conflicts: vector, list, string, etc.
@@ -23,8 +19,6 @@ using std::forward_iterator_tag;
 using std::declval;
 using std::allocator;
 using std::allocator_traits;
-using std::unique_ptr;
-using std::shared_ptr;
 
 using std::iter_difference_t;
 using std::iter_value_t;
@@ -46,6 +40,7 @@ using std::is_arithmetic_v;
 using std::is_convertible_v;
 using std::is_same_v;
 using std::is_invocable_v;
+using std::is_arithmetic_v;
 using std::is_void_v;
 using std::is_lvalue_reference_v;
 using std::is_signed_v;
@@ -57,7 +52,6 @@ using std::remove_reference_t;
 using std::remove_pointer_t;
 using std::remove_cvref_t;
 using std::invoke_result_t;
-using std::decay_t;
 
 using std::false_type;
 using std::true_type;
@@ -68,7 +62,6 @@ using std::convertible_to;
 using std::integral;
 using std::invocable;
 using std::regular_invocable;
-using std::predicate;
 
 // range concepts
 using std::ranges::range;
@@ -117,6 +110,4 @@ using std::ranges::empty;
 using std::tuple_cat;
 using std::max;
 using std::min;
-using std::swap;
-using std::is_sorted;
 } // namespace graph
