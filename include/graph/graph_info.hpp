@@ -1,8 +1,26 @@
 #pragma once
 #include <concepts>
+#include <stdexcept>
+#include <string>
 #include "detail/graph_using.hpp"
 
 namespace graph {
+
+/**
+ * @brief Exception class for graph-related errors
+ * 
+ * Used throughout the graph library to report runtime errors such as:
+ * - Invalid vertex or edge IDs
+ * - Out-of-bounds access
+ * - Constraint violations (e.g., unordered edges, invalid partitions)
+ * - Data consistency issues
+ */
+class graph_error : public std::runtime_error {
+public:
+    explicit graph_error(const std::string& msg) : std::runtime_error(msg) {}
+    explicit graph_error(const char* msg) : std::runtime_error(msg) {}
+};
+
 //
 // vertex_info
 // for(auto&& [uid, u]        : vertexlist(g))

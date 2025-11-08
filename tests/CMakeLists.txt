@@ -40,6 +40,7 @@ add_executable(descriptor_tests
     test_adjacency_list_edge_concepts.cpp
     test_adjacency_list_vertex_concepts.cpp
     test_adjacency_list_traits.cpp
+    test_compressed_graph.cpp
 )
 
 target_link_libraries(descriptor_tests

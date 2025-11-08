@@ -20,17 +20,6 @@
 //  allow multiple calls to load edges as long as subsequent edges have uid >= last vertex (append)
 //  VId must be large enough for the total edges and the total vertices.
 
-// load_vertices(vrng, vproj) <- [uid,vval]
-// load_edges(erng, eproj) <- [uid, vid, eval]
-// load(erng, eproj, vrng, vproj): load_edges(erng,eproj), load_vertices(vrng,vproj)
-//
-// compressed_graph(initializer_list<[uid,vid,eval]>) : load_edges(erng,eproj)
-// compressed_graph(erng, eproj) : load_edges(erng,eproj)
-// compressed_graph(erng, eproj, vrng, vproj): load(erng, eproj, vrng, vprog)
-//
-// [uid,vval]     <-- copyable_vertex<VId,VV>
-// [uid,vid,eval] <-- copyable_edge<VId,EV>
-//
 namespace graph::container {
 
 /**
@@ -250,6 +239,21 @@ public: // Operations
 
   constexpr void clear() noexcept {}
   constexpr void swap([[maybe_unused]] csr_row_values& other) noexcept {}
+
+  // Load vertex values - no-op for void vertex values (ISSUE #4 fix)
+  template <forward_range VRng, class VProj = identity>
+  constexpr void load_row_values([[maybe_unused]] const VRng& vrng, 
+                                 [[maybe_unused]] VProj projection, 
+                                 [[maybe_unused]] size_type vertex_count) {
+    // No-op for void vertex values - nothing to load
+  }
+
+  template <forward_range VRng, class VProj = identity>
+  constexpr void load_row_values([[maybe_unused]] VRng&& vrng, 
+                                 [[maybe_unused]] VProj projection, 
+                                 [[maybe_unused]] size_type vertex_count) {
+    // No-op for void vertex values - nothing to load
+  }
 };
 
 
@@ -424,6 +428,46 @@ public: // Construction/Destruction
     terminate_partitions();
   }
 
+public: // Properties - resolve ambiguity from multiple inheritance
+  /**
+   * @brief Get the number of vertices in the graph.
+   * 
+   * Returns the count of vertices (rows) in the CSR structure. This explicitly calls
+   * the row version to avoid ambiguity with the inherited col_values_base::size().
+   * 
+   * @return The number of vertices in the graph
+  */
+  [[nodiscard]] constexpr size_type size() const noexcept { 
+    return row_index_.empty() ? 0 : row_index_.size() - 1; // -1 for terminating row
+  }
+  
+  /**
+   * @brief Check if the graph has no vertices.
+   * 
+   * Returns true if the graph contains no vertices. This explicitly calls the row
+   * version to avoid ambiguity with the inherited col_values_base::empty().
+   * 
+   * @return true if the graph is empty, false otherwise
+  */
+  [[nodiscard]] constexpr bool empty() const noexcept { 
+    return row_index_.empty() || row_index_.size() <= 1; // Account for terminating row
+  }
+  
+  /**
+   * @brief Clear all graph data.
+   * 
+   * Removes all vertices, edges, vertex values, edge values, and partitions from the graph.
+   * After calling clear(), the graph will be empty with size() == 0.
+  */
+  constexpr void clear() noexcept { 
+    row_index_.clear();
+    col_index_.clear();
+    row_values_base::clear();
+    col_values_base::clear();
+    partition_.clear();
+    terminate_partitions();
+  }
+
   /**
    * @brief Constructor that takes a edge range to create the CSR graph.
    * 
@@ -468,7 +512,7 @@ public: // Construction/Destruction
    * @param erng                The input range of edges
    * @param vrng                The input range of vertices
    * @param eprojection         Projection function that creates a @c copyable_edge_t<VId,EV> from an @c erng value
-   * @param vprojection         Projection function that creates a @c copyable_vertex_t<VId,EV> from a @c vrng value
+   * @param vprojection         Projection function that creates a @c copyable_vertex_t<VId,VV> from a @c vrng value
    * @param partition_start_ids Range of starting vertex ids for each partition. If empty, all vertices are in partition 0.
    * @param alloc               Allocator to use for internal containers
   */
@@ -482,8 +526,8 @@ public: // Construction/Destruction
   //      copyable_vertex<invoke_result_t<VProj, range_value_t<VRng>>, VId, VV>
   constexpr compressed_graph_base(const ERng&    erng,
                                   const VRng&    vrng,
-                                  EProj          eprojection = {}, // eproj(eval) -> {source_id,target_id [,value]}
-                                  VProj          vprojection = {}, // vproj(vval) -> {target_id [,value]}
+                                  EProj          eprojection = {}, // eproj(eval) -> {source_id, target_id [,value]}
+                                  VProj          vprojection = {}, // vproj(vval) -> {vertex_id [,value]}
                                   const PartRng& partition_start_ids = std::vector<VId>(),
                                   const Alloc&   alloc               = Alloc())
         : row_values_base(alloc)
@@ -498,15 +542,14 @@ public: // Construction/Destruction
 
   /**
    * @brief Constructor for easy creation of a graph that takes an initializer list 
-   *        of @c copyable_edge_t<VId,EV> -> [source_id, target_id, value].
+   *        of @c copyable_edge_t<VId,EV> -> {source_id, target_id [,value]}.
    *
-   * @param ilist   Initializer list of @c copyable_edge_t<VId,EV> -> [source_id, target_id, value]
+   * @param ilist   Initializer list of @c copyable_edge_t<VId,EV> -> {source_id, target_id [,value]}
    * @param alloc   Allocator to use for internal containers
   */
   constexpr compressed_graph_base(const std::initializer_list<copyable_edge_t<VId, EV>>& ilist,
                                   const Alloc&                                           alloc = Alloc())
         : row_values_base(alloc), col_values_base(alloc), row_index_(alloc), col_index_(alloc), partition_(alloc) {
-    [[maybe_unused]] auto part_fnc = [](vertex_id_t<graph_type>) -> partition_id_t<graph_type> { return 0; };
     load_edges(ilist, identity());
     terminate_partitions();
   }
@@ -583,25 +626,7 @@ public: // Operations
    * @param  vrng           Range of values to load for vertices. The order of the values is 
    *                        preserved in the internal vector.
    * @param  vprojection    Projection function for @c vrng values
-  */
-  template <forward_range VRng, class VProj = identity>
-  //requires views::copyable_vertex<invoke_result_t<VProj, range_value_t<VRng>>, VId, VV>
-  constexpr void load_vertices(const VRng& vrng, VProj vprojection, size_type vertex_count = 0) {
-    row_values_base::load_row_values(vrng, vprojection, max(vertex_count, std::ranges::size(vrng)));
-  }
-
-  /**
-   * Load vertex values, callable either before or after @c load_edges(erng,eproj).
-   *
-   * If @c load_edges(vrng,vproj) has been called before this, the @c row_values_ vector will be
-   * extended to match the number of @c row_index_.size()-1 to avoid out-of-bounds errors when
-   * accessing vertex values.
-   *
-   * @tparam VRng   Vertex range type
-   * @tparam VProj  Projection function type
-   * 
-   * @param vrng        Range of values to load for vertices. The order of the values is preserved in the internal vector.
-   * @param vprojection Projection function for @c vrng values
+   * @param  vertex_count   Expected vertex count (optional, inferred from range size)
   */
   template <forward_range VRng, class VProj = identity>
   //requires views::copyable_vertex<invoke_result_t<VProj, range_value_t<VRng>>, VId, VV>
@@ -689,7 +714,7 @@ public: // Operations
       col_index_.push_back(edge_type{edge.target_id});
       if constexpr (!is_void_v<EV>)
         static_cast<col_values_base&>(*this).emplace_back(move(edge.value));
-      max_vid  = max(max_vid, edge.target_id);
+      max_vid  = max(max_vid, static_cast<vertex_id_type>(edge.target_id));
     }
 
     // uid and vid may refer to rows that exceed the value evaluated for vertex_count (if any)
@@ -763,7 +788,7 @@ public: // Operations
       col_index_.push_back(edge_type{edge.target_id});
       if constexpr (!is_void_v<EV>)
         static_cast<col_values_base&>(*this).push_back(edge.value);
-      max_vid  = max(max_vid, edge.target_id);
+      max_vid  = max(max_vid, static_cast<vertex_id_type>(edge.target_id));
 #ifndef NDEBUG
       ++debug_count;
 #endif
@@ -943,6 +968,48 @@ public: // Operators
   */
   constexpr const vertex_type& operator[](vertex_id_type id) const noexcept { return row_index_[id]; }
 
+public: // Vertex range accessors (Issue #2 fix)
+  /**
+   * @brief Get a range of all vertices in the graph.
+   * 
+   * Returns a subrange over the internal row_index_ vector, excluding the terminating row.
+   * This allows iteration over all vertices using range-based for loops and standard algorithms.
+   * 
+   * @return Subrange of vertex objects (csr_row<EIndex>)
+   * @note The returned range has size() elements (excludes the n+1 terminating row)
+  */
+  [[nodiscard]] constexpr auto vertices() noexcept {
+    return std::ranges::subrange(row_index_.begin(), 
+                                  row_index_.empty() ? row_index_.end() 
+                                                     : row_index_.end() - 1);
+  }
+  
+  /**
+   * @brief Get a const range of all vertices in the graph.
+   * 
+   * Returns a const subrange over the internal row_index_ vector, excluding the terminating row.
+   * 
+   * @return Const subrange of vertex objects (csr_row<EIndex>)
+   * @note The returned range has size() elements (excludes the n+1 terminating row)
+  */
+  [[nodiscard]] constexpr auto vertices() const noexcept {
+    return std::ranges::subrange(row_index_.begin(), 
+                                  row_index_.empty() ? row_index_.end() 
+                                                     : row_index_.end() - 1);
+  }
+  
+  /**
+   * @brief Get a range of all vertex IDs in the graph.
+   * 
+   * Returns an iota view generating vertex IDs from 0 to size()-1. This is useful when
+   * you only need vertex IDs rather than the actual vertex objects.
+   * 
+   * @return Iota view generating vertex IDs [0, size())
+   * @note This is a lightweight view with no storage overhead
+  */
+  [[nodiscard]] constexpr auto vertex_ids() const noexcept {
+    return std::views::iota(vertex_id_type{0}, static_cast<vertex_id_type>(size()));
+  }
 
 private:                       // Member variables
   row_index_vector row_index_; // starting index into col_index_ and v_; holds +1 extra terminating row
@@ -986,6 +1053,30 @@ public: // Types
   using value_type        = GV;
 
   using vertex_id_type = VId;
+
+public: // Graph value accessors (Issue #3 fix)
+  /**
+   * @brief Get a const reference to the graph value.
+   * 
+   * Returns a const reference to the user-defined graph value stored in the graph.
+   * This value is independent of vertices and edges and represents metadata or
+   * properties associated with the entire graph.
+   * 
+   * @return Const reference to the graph value
+   * @note Only available when GV is not void
+  */
+  [[nodiscard]] constexpr const graph_value_type& value() const noexcept { return value_; }
+  
+  /**
+   * @brief Get a mutable reference to the graph value.
+   * 
+   * Returns a mutable reference to the user-defined graph value stored in the graph.
+   * This allows modification of graph-level metadata without affecting the graph structure.
+   * 
+   * @return Mutable reference to the graph value
+   * @note Only available when GV is not void
+  */
+  [[nodiscard]] constexpr graph_value_type& value() noexcept { return value_; }
 
 public: // Construction/Destruction
   constexpr compressed_graph()                        = default;
