@@ -1056,75 +1056,6 @@ public: // Vertex range accessors (Issue #2 fix)
                                   col_index_.begin() + end_idx);
   }
 
-private:                       // Member variables
-  row_index_vector row_index_; // starting index into col_index_ and v_; holds +1 extra terminating row
-  col_index_vector col_index_; // col_index_[n] holds the column index (aka target)
-  partition_vector partition_; // partition_[n] holds the first vertex id for each partition n
-                               // holds +1 extra terminating partition
-
-  //v_vector_type    v_;         // v_[n]         holds the edge value for col_index_[n]
-  //row_values_type  row_value_; // row_value_[r] holds the value for row_index_[r], for VV!=void
-
-private:
-  friend row_values_base;
-  friend col_values_base;
-};
-
-
-/**
- * @ingroup graph_containers
- * @brief Compressed Sparse Row adjacency graph container.
- *
- * When defining multiple partitions, the partition_start_ids[] must be in increasing order.
- * If the partition_start_ids[] is empty, all vertices are in partition 0. If partition_start_ids[0]!=0,
- * 0 will be inserted as the start of the first partition id.
- * 
- * @tparam EV Edge value type
- * @tparam VV Vertex value type
- * @tparam GV Graph value type
- * @tparam VI Vertex Id type. This must be large enough for the count of vertices.
- * @tparam EIndex Edge Index type. This must be large enough for the count of edges.
- * @tparam Alloc Allocator type
-*/
-template <class EV, class VV, class GV, integral VId, integral EIndex, class Alloc>
-class compressed_graph : public compressed_graph_base<EV, VV, GV, VId, EIndex, Alloc> {
-public: // Types
-  using graph_type = compressed_graph<EV, VV, GV, VId, EIndex, Alloc>;
-  using base_type  = compressed_graph_base<EV, VV, GV, VId, EIndex, Alloc>;
-  using row_values_base = csr_row_values<EV, VV, GV, VId, EIndex, Alloc>;
-
-  using edge_value_type   = EV;
-  using vertex_value_type = VV;
-  using graph_value_type  = GV;
-  using value_type        = GV;
-
-  using vertex_id_type = VId;
-
-public: // Graph value accessors (Issue #3 fix)
-  /**
-   * @brief Get a const reference to the graph value.
-   * 
-   * Returns a const reference to the user-defined graph value stored in the graph.
-   * This value is independent of vertices and edges and represents metadata or
-   * properties associated with the entire graph.
-   * 
-   * @return Const reference to the graph value
-   * @note Only available when GV is not void
-  */
-  [[nodiscard]] constexpr const graph_value_type& value() const noexcept { return value_; }
-  
-  /**
-   * @brief Get a mutable reference to the graph value.
-   * 
-   * Returns a mutable reference to the user-defined graph value stored in the graph.
-   * This allows modification of graph-level metadata without affecting the graph structure.
-   * 
-   * @return Mutable reference to the graph value
-   * @note Only available when GV is not void
-  */
-  [[nodiscard]] constexpr graph_value_type& value() noexcept { return value_; }
-
-public: // Vertex value accessors
   /**
    * @brief Get a const reference to the vertex value for a given vertex ID.
    * 
@@ -1162,6 +1093,73 @@ public: // Vertex value accessors
   { 
     return row_values_base::operator[](static_cast<typename row_values_base::size_type>(id)); 
   }
+
+private:                       // Member variables
+  row_index_vector row_index_; // starting index into col_index_ and v_; holds +1 extra terminating row
+  col_index_vector col_index_; // col_index_[n] holds the column index (aka target)
+  partition_vector partition_; // partition_[n] holds the first vertex id for each partition n
+                               // holds +1 extra terminating partition
+
+  //v_vector_type    v_;         // v_[n]         holds the edge value for col_index_[n]
+  //row_values_type  row_value_; // row_value_[r] holds the value for row_index_[r], for VV!=void
+
+private:
+  friend row_values_base;
+  friend col_values_base;
+};
+
+
+/**
+ * @ingroup graph_containers
+ * @brief Compressed Sparse Row adjacency graph container.
+ *
+ * When defining multiple partitions, the partition_start_ids[] must be in increasing order.
+ * If the partition_start_ids[] is empty, all vertices are in partition 0. If partition_start_ids[0]!=0,
+ * 0 will be inserted as the start of the first partition id.
+ * 
+ * @tparam EV Edge value type
+ * @tparam VV Vertex value type
+ * @tparam GV Graph value type
+ * @tparam VI Vertex Id type. This must be large enough for the count of vertices.
+ * @tparam EIndex Edge Index type. This must be large enough for the count of edges.
+ * @tparam Alloc Allocator type
+*/
+template <class EV, class VV, class GV, integral VId, integral EIndex, class Alloc>
+class compressed_graph : public compressed_graph_base<EV, VV, GV, VId, EIndex, Alloc> {
+public: // Types
+  using graph_type = compressed_graph<EV, VV, GV, VId, EIndex, Alloc>;
+  using base_type  = compressed_graph_base<EV, VV, GV, VId, EIndex, Alloc>;
+
+  using edge_value_type   = EV;
+  using vertex_value_type = VV;
+  using graph_value_type  = GV;
+  using value_type        = GV;
+
+  using vertex_id_type = VId;
+
+public: // Graph value accessors (Issue #3 fix)
+  /**
+   * @brief Get a const reference to the graph value.
+   * 
+   * Returns a const reference to the user-defined graph value stored in the graph.
+   * This value is independent of vertices and edges and represents metadata or
+   * properties associated with the entire graph.
+   * 
+   * @return Const reference to the graph value
+   * @note Only available when GV is not void
+  */
+  [[nodiscard]] constexpr const graph_value_type& value() const noexcept { return value_; }
+  
+  /**
+   * @brief Get a mutable reference to the graph value.
+   * 
+   * Returns a mutable reference to the user-defined graph value stored in the graph.
+   * This allows modification of graph-level metadata without affecting the graph structure.
+   * 
+   * @return Mutable reference to the graph value
+   * @note Only available when GV is not void
+  */
+  [[nodiscard]] constexpr graph_value_type& value() noexcept { return value_; }
 
 public: // Construction/Destruction
   constexpr compressed_graph()                        = default;
@@ -1296,52 +1294,12 @@ class compressed_graph<EV, VV, void, VId, EIndex, Alloc>
 public: // Types
   using graph_type = compressed_graph<EV, VV, void, VId, EIndex, Alloc>;
   using base_type  = compressed_graph_base<EV, VV, void, VId, EIndex, Alloc>;
-  using row_values_base = csr_row_values<EV, VV, void, VId, EIndex, Alloc>;
 
   using vertex_id_type    = VId;
   using vertex_value_type = VV;
 
   using graph_value_type = void;
   using value_type       = void;
-
-public: // Vertex value accessors
-  /**
-   * @brief Get a const reference to the vertex value for a given vertex ID.
-   * 
-   * Returns a const reference to the user-defined value stored for the vertex
-   * with the specified ID. This provides direct access to vertex data by ID
-   * without needing to obtain the vertex object first.
-   * 
-   * @param id The vertex ID to get the value for
-   * @return Const reference to the vertex value
-   * @note Only available when VV is not void
-   * @note No bounds checking is performed. The caller must ensure id < size()
-  */
-  template<typename VV_ = VV>
-  [[nodiscard]] constexpr auto vertex_value(vertex_id_type id) const noexcept 
-    -> std::enable_if_t<!std::is_void_v<VV_>, const VV_&>
-  { 
-    return row_values_base::operator[](static_cast<typename row_values_base::size_type>(id)); 
-  }
-  
-  /**
-   * @brief Get a mutable reference to the vertex value for a given vertex ID.
-   * 
-   * Returns a mutable reference to the user-defined value stored for the vertex
-   * with the specified ID. This allows modification of vertex data by ID without
-   * needing to obtain the vertex object first.
-   * 
-   * @param id The vertex ID to get the value for
-   * @return Mutable reference to the vertex value
-   * @note Only available when VV is not void
-   * @note No bounds checking is performed. The caller must ensure id < size()
-  */
-  template<typename VV_ = VV>
-  [[nodiscard]] constexpr auto vertex_value(vertex_id_type id) noexcept 
-    -> std::enable_if_t<!std::is_void_v<VV_>, VV_&>
-  { 
-    return row_values_base::operator[](static_cast<typename row_values_base::size_type>(id)); 
-  }
 
 public: // Construction/Destruction
   constexpr compressed_graph()                        = default;
