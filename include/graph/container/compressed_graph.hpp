@@ -41,7 +41,7 @@ namespace graph::container {
 */
 template <class VId, class EV, forward_range ERng, class EProj = identity>
 requires copyable_edge<invoke_result_t<EProj, range_value_t<ERng>>, VId, EV>
-constexpr auto max_vertex_id(const ERng& erng, const EProj& eprojection) {
+[[nodiscard]] constexpr auto max_vertex_id(const ERng& erng, const EProj& eprojection) {
   size_t edge_count = 0;
   VId    max_id     = 0;
   for (auto&& edge_data : erng) {
@@ -147,7 +147,7 @@ public:
 public: // Properties
   [[nodiscard]] constexpr size_type size() const noexcept { return static_cast<size_type>(v_.size()); }
   [[nodiscard]] constexpr bool      empty() const noexcept { return v_.empty(); }
-  [[nodiscard]] constexpr size_type capacity() const noexcept { return static_cast<size_type>(v_.size()); }
+  [[nodiscard]] constexpr size_type capacity() const noexcept { return static_cast<size_type>(v_.capacity()); }
 
 public: // Operations
   constexpr void reserve(size_type new_cap) { v_.reserve(new_cap); }
@@ -162,14 +162,19 @@ public: // Operations
   template <forward_range VRng, class VProj = identity>
   //requires views::copyable_vertex<invoke_result_t<VProj, range_value_t<VRng>>, VId, VV>
   constexpr void load_row_values(const VRng& vrng, VProj projection, size_type vertex_count) {
-    if constexpr (sized_range<VRng>)
-      vertex_count = max(vertex_count, std::ranges::size(vrng));
-    
     // Handle empty range gracefully
     if (std::ranges::empty(vrng))
       return;
     
-    resize(std::ranges::size(vrng));
+    if constexpr (sized_range<VRng>)
+      vertex_count = max(vertex_count, std::ranges::size(vrng));
+    else if (vertex_count == 0) // assume 0 means not provided and need to evaluate
+      vertex_count = max(vertex_count, std::ranges::distance(vrng));
+    
+    // Don't shrink if already allocated - only grow if needed
+    if (size() > 0)
+      vertex_count = max(vertex_count, size());
+    resize(vertex_count);
 
     for (auto&& vtx : vrng) {
       const auto& [id, value] = projection(vtx);
@@ -188,14 +193,19 @@ public: // Operations
   template <forward_range VRng, class VProj = identity>
   //requires views::copyable_vertex<invoke_result_t<VProj, range_value_t<VRng>>, VId, VV>
   constexpr void load_row_values(VRng&& vrng, VProj projection, size_type vertex_count) {
-    if constexpr (sized_range<VRng>)
-      vertex_count = max(vertex_count, std::ranges::size(vrng));
-    
     // Handle empty range gracefully
     if (std::ranges::empty(vrng))
       return;
     
-    resize(std::ranges::size(vrng));
+    if constexpr (sized_range<VRng>)
+      vertex_count = max(vertex_count, std::ranges::size(vrng));
+    else if (vertex_count == 0) // assume 0 means not provided and need to evaluate
+      vertex_count = max(vertex_count, std::ranges::distance(vrng));
+    
+    // Don't shrink if already allocated - only grow if needed
+    if (size() > 0)
+      vertex_count = max(vertex_count, size());
+    resize(vertex_count);
 
     for (auto&& vtx : vrng) {
       auto&& [id, value] = projection(vtx);
@@ -212,8 +222,8 @@ public: // Operations
   }
 
 public:
-  constexpr reference       operator[](size_type pos) { return v_[pos]; }
-  constexpr const_reference operator[](size_type pos) const { return v_[pos]; }
+  [[nodiscard]] constexpr reference       operator[](size_type pos) { return v_[pos]; }
+  [[nodiscard]] constexpr const_reference operator[](size_type pos) const { return v_[pos]; }
 
 private:
   vector_type v_;
@@ -326,8 +336,8 @@ public: // Operations
   constexpr void swap(csr_col_values& other) noexcept { swap(v_, other.v_); }
 
 public:
-  constexpr reference       operator[](size_type pos) { return v_[pos]; }
-  constexpr const_reference operator[](size_type pos) const { return v_[pos]; }
+  [[nodiscard]] constexpr reference       operator[](size_type pos) { return v_[pos]; }
+  [[nodiscard]] constexpr const_reference operator[](size_type pos) const { return v_[pos]; }
 
 private:
   vector_type v_;
@@ -378,8 +388,8 @@ public: // Operations
 */
 template <class EV, class VV, class GV, integral VId, integral EIndex, class Alloc>
 class compressed_graph_base
-      : public csr_row_values<EV, VV, GV, VId, EIndex, Alloc>
-      , public csr_col_values<EV, VV, GV, VId, EIndex, Alloc> {
+      : protected csr_row_values<EV, VV, GV, VId, EIndex, Alloc>
+      , protected csr_col_values<EV, VV, GV, VId, EIndex, Alloc> {
   using row_values_base = csr_row_values<EV, VV, GV, VId, EIndex, Alloc>;
   using col_values_base = csr_col_values<EV, VV, GV, VId, EIndex, Alloc>;
 
@@ -557,60 +567,20 @@ public: // Properties - resolve ambiguity from multiple inheritance
 public:
 public: // Operations
   /**
-   * @brief Reserve space for vertices in the graph.
+   * @brief Reserve space for vertices and edges in the graph.
    * 
-   * Pre-allocates memory for the internal row_index_ and row_values_ vectors to avoid
-   * reallocation during graph construction. The actual reservation is for count+1 to
-   * include the terminating row in the CSR structure.
+   * Pre-allocates memory for the internal storage vectors to avoid reallocation
+   * during graph construction. This is an optimization hint for the static CSR structure.
    * 
-   * @param count The number of vertices to reserve space for
+   * @param edge_count The number of edges to reserve space for
+   * @param vertex_count The number of vertices to reserve space for (default: 0, inferred from edge data)
    * @note This is an optimization hint and does not change the graph's size.
   */
-  void reserve_vertices(size_type count) {
-    row_index_.reserve(count + 1); // +1 for terminating row
-    row_values_base::reserve(count);
-  }
-  
-  /**
-   * @brief Reserve space for edges in the graph.
-   * 
-   * Pre-allocates memory for the internal col_index_ and edge values vectors to avoid
-   * reallocation during graph construction.
-   * 
-   * @param count The number of edges to reserve space for
-   * @note This is an optimization hint and does not change the graph's size.
-  */
-  void reserve_edges(size_type count) {
-    col_index_.reserve(count);
-    static_cast<col_values_base&>(*this).reserve(count);
-  }
-
-  /**
-   * @brief Resize the vertex storage to accommodate a specific number of vertices.
-   * 
-   * Resizes the internal row_index_ vector to hold the specified number of vertices
-   * plus one terminating row. Also resizes the vertex values storage if VV is not void.
-   * 
-   * @param count The number of vertices to resize to
-   * @note This changes the actual size of the internal storage, unlike reserve_vertices.
-  */
-  void resize_vertices(size_type count) {
-    row_index_.resize(count + 1); // +1 for terminating row
-    row_values_base::resize(count);
-  }
-  
-  /**
-   * @brief Resize the edge storage to accommodate a specific number of edges.
-   * 
-   * Resizes the internal col_index_ and edge values vectors to hold the specified
-   * number of edges.
-   * 
-   * @param count The number of edges to resize to
-   * @note Currently implemented as reserve (not resize). This may be a bug.
-  */
-  void resize_edges(size_type count) {
-    col_index_.reserve(count);
-    static_cast<col_values_base&>(*this).reserve(count);
+  void reserve(size_type edge_count, size_type vertex_count = 0) {
+    row_index_.reserve(vertex_count + 1); // +1 for terminating row
+    row_values_base::reserve(vertex_count);
+    col_index_.reserve(edge_count);
+    static_cast<col_values_base&>(*this).reserve(edge_count);
   }
 
   /**
@@ -631,7 +601,25 @@ public: // Operations
   template <forward_range VRng, class VProj = identity>
   //requires views::copyable_vertex<invoke_result_t<VProj, range_value_t<VRng>>, VId, VV>
   constexpr void load_vertices(const VRng& vrng, VProj vprojection = {}, size_type vertex_count = 0) {
-    row_values_base::load_row_values(vrng, vprojection, max(vertex_count, std::ranges::size(vrng)));
+    // Scan the vertex data to find the maximum vertex ID
+    vertex_id_type max_id = 0;
+    for (auto&& vtx_data : vrng) {
+      auto&& vtx = vprojection(vtx_data);
+      max_id = max(max_id, static_cast<vertex_id_type>(vtx.id));
+    }
+    
+    // Determine required vertex count: max(provided hint, max_id + 1, existing size)
+    vertex_count = max({vertex_count, static_cast<size_type>(max_id + 1), size()});
+    
+    // If graph structure doesn't exist yet, create it based on vertex count
+    if (row_index_.empty() && vertex_count > 0) {
+      row_index_.resize(vertex_count + 1, vertex_type{0}); // All vertices have 0 edges initially
+    } else if (vertex_count > size()) {
+      // Expand existing structure if needed
+      row_index_.resize(vertex_count + 1, vertex_type{0});
+    }
+    
+    row_values_base::load_row_values(vrng, vprojection, vertex_count);
   }
 
   /**
@@ -644,13 +632,13 @@ public: // Operations
    * number of rows and is used to reserve space in the internal row_index and row_value vectors.
    * If @c erng is an input_range or forward_range that evaluation can't be done and the internal
    * row_index vector is grown and resized normally as needed (the row_value vector is updated by
-   * @c load_vertices(vrng,vproj)). If the caller knows the number of rows/vertices, they can call
-   * @c reserve_vertices(n) to reserve the space.
+   * @c load_vertices(vrng,vproj)). If the caller knows the number of rows/vertices and edges, they
+   * can call @c reserve(vertex_count, edge_count) to reserve the space.
    *
    * If @c erng is a sized_range, @c size(erng) is used to reserve space for the internal col_index and
    * v vectors. If it isn't a sized range, the vectors will be grown and resized normally as needed
-   * as new indexes and values are added. If the caller knows the number of columns/edges, they
-   * can call @c reserve_edges(n) to reserve the space.
+   * as new indexes and values are added. If the caller knows the number of columns/edges and vertices,
+   * they can call @c reserve(vertex_count, edge_count) to reserve the space.
    *
    * If row indexes have been referenced in the edges but there are no edges defined for them
    * (with source_id), rows will be added to fill out the row_index vector to avoid out-of-bounds
@@ -691,12 +679,18 @@ public: // Operations
     // care of at the end of this function.
     vertex_count =
           max(vertex_count, static_cast<size_type>(last_erng_id(erng, eprojection) + 1)); // +1 for zero-based index
-    reserve_vertices(vertex_count);
+    
+    // Reserve space for vertices
+    row_index_.reserve(vertex_count + 1); // +1 for terminating row
+    row_values_base::reserve(vertex_count);
 
     // Eval number of input rows and reserve space for the edges, if possible
     if constexpr (sized_range<ERng>)
       edge_count = max(edge_count, std::ranges::size(erng));
-    reserve_edges(edge_count);
+    
+    // Reserve space for edges
+    col_index_.reserve(edge_count);
+    static_cast<col_values_base&>(*this).reserve(edge_count);
 
     // Add edges
     vertex_id_type last_uid = 0, max_vid = 0;
@@ -749,12 +743,18 @@ public: // Operations
     // care of at the end of this function.
     vertex_count =
           max(vertex_count, static_cast<size_type>(last_erng_id(erng, eprojection) + 1)); // +1 for zero-based index
-    reserve_vertices(vertex_count);
+    
+    // Reserve space for vertices
+    row_index_.reserve(vertex_count + 1); // +1 for terminating row
+    row_values_base::reserve(vertex_count);
 
     // Eval number of input rows and reserve space for the edges, if possible
     if constexpr (sized_range<ERng>)
       edge_count = max(edge_count, std::ranges::size(erng));
-    reserve_edges(edge_count);
+    
+    // Reserve space for edges
+    col_index_.reserve(edge_count);
+    static_cast<col_values_base&>(*this).reserve(edge_count);
 
     // Add edges
 #ifndef NDEBUG
@@ -895,25 +895,31 @@ public: // Operations
   /**
    * @brief Find a vertex by its id.
    * 
-   * Returns an iterator to the vertex in the row_index_ vector. This provides O(1) access
-   * to the vertex's outgoing edges since vertices are stored contiguously by id.
+   * Returns an iterator to the vertex in the row_index_ vector if the ID is valid,
+   * otherwise returns vertices().end(). This provides O(1) access to the vertex's 
+   * outgoing edges since vertices are stored contiguously by id.
    * 
    * @param id The vertex id to find
-   * @return Iterator to the vertex in the internal row index vector
-   * @note No bounds checking is performed. The caller must ensure id is valid.
+   * @return Iterator to the vertex, or vertices().end() if id is out of range
   */
-  constexpr iterator_t<row_index_vector> find_vertex(vertex_id_type id) noexcept { return row_index_.begin() + id; }
+  [[nodiscard]] constexpr iterator_t<row_index_vector> find_vertex(vertex_id_type id) noexcept { 
+    if (id >= size())
+      return vertices().end();
+    return row_index_.begin() + id;
+  }
   
   /**
    * @brief Find a vertex by its id (const version).
    * 
-   * Returns a const iterator to the vertex in the row_index_ vector.
+   * Returns a const iterator to the vertex in the row_index_ vector if the ID is valid,
+   * otherwise returns vertices().end().
    * 
    * @param id The vertex id to find
-   * @return Const iterator to the vertex in the internal row index vector
-   * @note No bounds checking is performed. The caller must ensure id is valid.
+   * @return Const iterator to the vertex, or vertices().end() if id is out of range
   */
-  constexpr iterator_t<const row_index_vector> find_vertex(vertex_id_type id) const noexcept {
+  [[nodiscard]] constexpr iterator_t<const row_index_vector> find_vertex(vertex_id_type id) const noexcept {
+    if (id >= size())
+      return vertices().end();
     return row_index_.begin() + id;
   }
 
@@ -927,7 +933,7 @@ public: // Operations
    * @return The index (vertex_id) of the vertex in the graph
    * @note The vertex reference must be from this graph's row_index_ vector.
   */
-  constexpr edge_index_type index_of(const row_type& u) const noexcept {
+  [[nodiscard]] constexpr edge_index_type index_of(const row_type& u) const noexcept {
     return static_cast<edge_index_type>(&u - row_index_.data());
   }
   
@@ -940,7 +946,7 @@ public: // Operations
    * @return The index of the edge in the graph's edge array
    * @note The edge reference must be from this graph's col_index_ vector.
   */
-  constexpr vertex_id_type index_of(const col_type& v) const noexcept {
+  [[nodiscard]] constexpr vertex_id_type index_of(const col_type& v) const noexcept {
     return static_cast<vertex_id_type>(&v - col_index_.data());
   }
 
@@ -955,7 +961,7 @@ public: // Operators
    * @return Reference to the vertex_type (row_type) at the given id
    * @note No bounds checking is performed. The caller must ensure id < num_vertices.
   */
-  constexpr vertex_type&       operator[](vertex_id_type id) noexcept { return row_index_[id]; }
+  [[nodiscard]] constexpr vertex_type&       operator[](vertex_id_type id) noexcept { return row_index_[id]; }
   
   /**
    * @brief Access a vertex by its id (const version).
@@ -966,7 +972,7 @@ public: // Operators
    * @return Const reference to the vertex_type (row_type) at the given id
    * @note No bounds checking is performed. The caller must ensure id < num_vertices.
   */
-  constexpr const vertex_type& operator[](vertex_id_type id) const noexcept { return row_index_[id]; }
+  [[nodiscard]] constexpr const vertex_type& operator[](vertex_id_type id) const noexcept { return row_index_[id]; }
 
 public: // Vertex range accessors (Issue #2 fix)
   /**
