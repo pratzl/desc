@@ -564,7 +564,6 @@ public: // Properties - resolve ambiguity from multiple inheritance
     terminate_partitions();
   }
 
-public:
 public: // Operations
   /**
    * @brief Reserve space for vertices and edges in the graph.
@@ -1015,6 +1014,46 @@ public: // Vertex range accessors (Issue #2 fix)
   */
   [[nodiscard]] constexpr auto vertex_ids() const noexcept {
     return std::views::iota(vertex_id_type{0}, static_cast<vertex_id_type>(size()));
+  }
+
+  /**
+   * @brief Get a range of edges for a specific vertex by ID.
+   * 
+   * Returns a subrange over the edges in col_index_ for the vertex with the given ID.
+   * This provides direct access to the outgoing edges of a vertex without needing
+   * to obtain the vertex object first.
+   * 
+   * @param id The vertex id to get edges for
+   * @return Subrange of edge objects (csr_col<VId>) for the vertex
+   * @note Returns empty range if id is out of bounds
+  */
+  [[nodiscard]] constexpr auto edges(vertex_id_type id) noexcept {
+    if (id >= size())
+      return std::ranges::subrange(col_index_.end(), col_index_.end());
+    
+    auto start_idx = row_index_[id].index;
+    auto end_idx = row_index_[id + 1].index;
+    return std::ranges::subrange(col_index_.begin() + start_idx, 
+                                  col_index_.begin() + end_idx);
+  }
+  
+  /**
+   * @brief Get a range of edges for a specific vertex by ID (const version).
+   * 
+   * Returns a const subrange over the edges in col_index_ for the vertex with the given ID.
+   * 
+   * @param id The vertex id to get edges for
+   * @return Const subrange of edge objects (csr_col<VId>) for the vertex
+   * @note Returns empty range if id is out of bounds
+  */
+  [[nodiscard]] constexpr auto edges(vertex_id_type id) const noexcept {
+    if (id >= size())
+      return std::ranges::subrange(col_index_.end(), col_index_.end());
+    
+    auto start_idx = row_index_[id].index;
+    auto end_idx = row_index_[id + 1].index;
+    return std::ranges::subrange(col_index_.begin() + start_idx, 
+                                  col_index_.begin() + end_idx);
   }
 
 private:                       // Member variables
