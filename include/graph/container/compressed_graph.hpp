@@ -1091,6 +1091,7 @@ class compressed_graph : public compressed_graph_base<EV, VV, GV, VId, EIndex, A
 public: // Types
   using graph_type = compressed_graph<EV, VV, GV, VId, EIndex, Alloc>;
   using base_type  = compressed_graph_base<EV, VV, GV, VId, EIndex, Alloc>;
+  using row_values_base = csr_row_values<EV, VV, GV, VId, EIndex, Alloc>;
 
   using edge_value_type   = EV;
   using vertex_value_type = VV;
@@ -1122,6 +1123,45 @@ public: // Graph value accessors (Issue #3 fix)
    * @note Only available when GV is not void
   */
   [[nodiscard]] constexpr graph_value_type& value() noexcept { return value_; }
+
+public: // Vertex value accessors
+  /**
+   * @brief Get a const reference to the vertex value for a given vertex ID.
+   * 
+   * Returns a const reference to the user-defined value stored for the vertex
+   * with the specified ID. This provides direct access to vertex data by ID
+   * without needing to obtain the vertex object first.
+   * 
+   * @param id The vertex ID to get the value for
+   * @return Const reference to the vertex value
+   * @note Only available when VV is not void
+   * @note No bounds checking is performed. The caller must ensure id < size()
+  */
+  template<typename VV_ = VV>
+  [[nodiscard]] constexpr auto vertex_value(vertex_id_type id) const noexcept 
+    -> std::enable_if_t<!std::is_void_v<VV_>, const VV_&>
+  { 
+    return row_values_base::operator[](static_cast<typename row_values_base::size_type>(id)); 
+  }
+  
+  /**
+   * @brief Get a mutable reference to the vertex value for a given vertex ID.
+   * 
+   * Returns a mutable reference to the user-defined value stored for the vertex
+   * with the specified ID. This allows modification of vertex data by ID without
+   * needing to obtain the vertex object first.
+   * 
+   * @param id The vertex ID to get the value for
+   * @return Mutable reference to the vertex value
+   * @note Only available when VV is not void
+   * @note No bounds checking is performed. The caller must ensure id < size()
+  */
+  template<typename VV_ = VV>
+  [[nodiscard]] constexpr auto vertex_value(vertex_id_type id) noexcept 
+    -> std::enable_if_t<!std::is_void_v<VV_>, VV_&>
+  { 
+    return row_values_base::operator[](static_cast<typename row_values_base::size_type>(id)); 
+  }
 
 public: // Construction/Destruction
   constexpr compressed_graph()                        = default;
@@ -1256,12 +1296,52 @@ class compressed_graph<EV, VV, void, VId, EIndex, Alloc>
 public: // Types
   using graph_type = compressed_graph<EV, VV, void, VId, EIndex, Alloc>;
   using base_type  = compressed_graph_base<EV, VV, void, VId, EIndex, Alloc>;
+  using row_values_base = csr_row_values<EV, VV, void, VId, EIndex, Alloc>;
 
   using vertex_id_type    = VId;
   using vertex_value_type = VV;
 
   using graph_value_type = void;
   using value_type       = void;
+
+public: // Vertex value accessors
+  /**
+   * @brief Get a const reference to the vertex value for a given vertex ID.
+   * 
+   * Returns a const reference to the user-defined value stored for the vertex
+   * with the specified ID. This provides direct access to vertex data by ID
+   * without needing to obtain the vertex object first.
+   * 
+   * @param id The vertex ID to get the value for
+   * @return Const reference to the vertex value
+   * @note Only available when VV is not void
+   * @note No bounds checking is performed. The caller must ensure id < size()
+  */
+  template<typename VV_ = VV>
+  [[nodiscard]] constexpr auto vertex_value(vertex_id_type id) const noexcept 
+    -> std::enable_if_t<!std::is_void_v<VV_>, const VV_&>
+  { 
+    return row_values_base::operator[](static_cast<typename row_values_base::size_type>(id)); 
+  }
+  
+  /**
+   * @brief Get a mutable reference to the vertex value for a given vertex ID.
+   * 
+   * Returns a mutable reference to the user-defined value stored for the vertex
+   * with the specified ID. This allows modification of vertex data by ID without
+   * needing to obtain the vertex object first.
+   * 
+   * @param id The vertex ID to get the value for
+   * @return Mutable reference to the vertex value
+   * @note Only available when VV is not void
+   * @note No bounds checking is performed. The caller must ensure id < size()
+  */
+  template<typename VV_ = VV>
+  [[nodiscard]] constexpr auto vertex_value(vertex_id_type id) noexcept 
+    -> std::enable_if_t<!std::is_void_v<VV_>, VV_&>
+  { 
+    return row_values_base::operator[](static_cast<typename row_values_base::size_type>(id)); 
+  }
 
 public: // Construction/Destruction
   constexpr compressed_graph()                        = default;

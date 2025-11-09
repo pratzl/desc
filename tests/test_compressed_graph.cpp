@@ -1246,3 +1246,76 @@ TEST_CASE("compressed_graph edges(id) with large vertex IDs", "[api][edges][by_i
     REQUIRE(std::ranges::distance(edges_100) == 1);
     REQUIRE(edges_100.begin()->index == 200);
 }
+
+TEST_CASE("compressed_graph vertex_value(id) returns correct value", "[api][vertex_value]") {
+    using Graph = compressed_graph<void, int, void>;
+    
+    vector<copyable_edge_t<int, void>> edges = {{0, 1}, {0, 2}, {1, 2}, {2, 3}};
+    vector<copyable_vertex_t<int, int>> vertices = {{0, 100}, {1, 200}, {2, 300}, {3, 400}};
+    
+    Graph g;
+    g.load_edges(edges);
+    g.load_vertices(vertices);
+    
+    REQUIRE(g.vertex_value(0) == 100);
+    REQUIRE(g.vertex_value(1) == 200);
+    REQUIRE(g.vertex_value(2) == 300);
+    REQUIRE(g.vertex_value(3) == 400);
+}
+
+TEST_CASE("compressed_graph vertex_value(id) is mutable", "[api][vertex_value]") {
+    using Graph = compressed_graph<void, string, void>;
+    
+    vector<copyable_edge_t<int, void>> edges = {{0, 1}, {1, 2}};
+    vector<copyable_vertex_t<int, string>> vertices = {{0, string("a")}, {1, string("b")}, {2, string("c")}};
+    
+    Graph g;
+    g.load_edges(edges);
+    g.load_vertices(vertices);
+    
+    REQUIRE(g.vertex_value(0) == "a");
+    REQUIRE(g.vertex_value(1) == "b");
+    REQUIRE(g.vertex_value(2) == "c");
+    
+    // Modify values
+    g.vertex_value(0) = "x";
+    g.vertex_value(1) = "y";
+    g.vertex_value(2) = "z";
+    
+    REQUIRE(g.vertex_value(0) == "x");
+    REQUIRE(g.vertex_value(1) == "y");
+    REQUIRE(g.vertex_value(2) == "z");
+}
+
+TEST_CASE("compressed_graph vertex_value(id) works with const graph", "[api][vertex_value]") {
+    using Graph = compressed_graph<int, double, void>;
+    
+    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}, {1, 2, 20}};
+    vector<copyable_vertex_t<int, double>> vertices = {{0, 1.5}, {1, 2.5}, {2, 3.5}};
+    
+    Graph g_temp;
+    g_temp.load_edges(edges);
+    g_temp.load_vertices(vertices);
+    
+    const Graph g = std::move(g_temp);
+    
+    REQUIRE(g.vertex_value(0) == 1.5);
+    REQUIRE(g.vertex_value(1) == 2.5);
+    REQUIRE(g.vertex_value(2) == 3.5);
+}
+
+TEST_CASE("compressed_graph vertex_value(id) with graph value", "[api][vertex_value]") {
+    using Graph = compressed_graph<void, int, string>;
+    
+    vector<copyable_edge_t<int, void>> edges = {{0, 1}, {1, 2}};
+    vector<copyable_vertex_t<int, int>> vertices = {{0, 10}, {1, 20}, {2, 30}};
+    
+    Graph g(string("graph_metadata"));
+    g.load_edges(edges);
+    g.load_vertices(vertices);
+    
+    REQUIRE(g.value() == "graph_metadata");
+    REQUIRE(g.vertex_value(0) == 10);
+    REQUIRE(g.vertex_value(1) == 20);
+    REQUIRE(g.vertex_value(2) == 30);
+}
