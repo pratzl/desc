@@ -1170,7 +1170,6 @@ TEST_CASE("compressed_graph edge_ids() returns all edge IDs", "[api][edge_ids][a
         auto ids = g.edge_ids();
         int count = 0;
         for (auto id : ids) {
-            REQUIRE(id >= 0);
             REQUIRE(id < 6);
             ++count;
         }
@@ -1347,7 +1346,7 @@ TEST_CASE("compressed_graph target_id() works with edge iteration", "[api][targe
         
         for (auto vid : g.vertex_ids()) {
             for (auto edge_id : g.edge_ids(vid)) {
-                REQUIRE(g.target_id(edge_id) == expected_targets[idx]);
+                REQUIRE(g.target_id(edge_id) == static_cast<unsigned>(expected_targets[idx]));
                 ++idx;
             }
         }
@@ -1597,7 +1596,7 @@ TEST_CASE("compressed_graph edge_value() combined with target_id()", "[api][edge
                 auto value = g.edge_value(edge_id);
                 
                 // Verify relationship: value = target * 10
-                REQUIRE(value == target * 10);
+                REQUIRE(value == static_cast<int>(target) * 10);
             }
         }
     }

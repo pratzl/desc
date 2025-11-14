@@ -13,6 +13,8 @@
 #include "graph/detail/graph_using.hpp"
 #include "graph/graph_info.hpp"
 #include "graph/graph.hpp"
+#include "graph/vertex_descriptor_view.hpp"
+#include "graph/edge_descriptor_view.hpp"
 
 // NOTES
 //  have public load_edges(...), load_vertices(...), and load()
@@ -1093,6 +1095,85 @@ private:                       // Member variables
 private:
   friend row_values_base;
   friend col_values_base;
+
+public: // Friend functions
+  /**
+   * @brief Get a view of all vertices with their descriptors.
+   * 
+   * Returns a vertex_descriptor_view that iterates over all vertices in the graph,
+   * yielding vertex_descriptor objects. Each descriptor provides access to the vertex's
+   * ID and optionally its value (via the descriptor's methods when VV is not void).
+   * 
+   * The view is constructed from row_index_, providing access to vertex IDs [0, size()).
+   * Constness of the graph is preserved through the iterator type.
+   * 
+   * @param g The graph to get vertices from (forwarding reference)
+   * @return vertex_descriptor_view over all vertices with appropriate const qualification
+   * @note This is a lightweight view with minimal overhead
+  */
+  template<typename G>
+    requires std::derived_from<std::remove_cvref_t<G>, compressed_graph_base>
+  [[nodiscard]] friend constexpr auto vertices(G&& g) noexcept {
+    // Since row_index_ is a vector of csr_row structs (random access), 
+    // we use the index-based constructor with storage_type (size_t) for vertex IDs
+    using vertex_iter_type = std::conditional_t<
+        std::is_const_v<std::remove_reference_t<G>>,
+        typename row_index_vector::const_iterator,
+        typename row_index_vector::iterator
+    >;
+    
+    if(g.empty()) {
+      return vertex_descriptor_view<vertex_iter_type>(static_cast<std::size_t>(0), static_cast<std::size_t>(0));
+    }
+
+    return vertex_descriptor_view<vertex_iter_type>(static_cast<std::size_t>(0), static_cast<std::size_t>(g.size()));
+  }
+
+  /**
+   * @brief Get a view of all edges for a specific vertex.
+   * 
+   * Returns an edge_descriptor_view that iterates over all outgoing edges from the
+   * specified vertex, yielding edge_descriptor objects. Each descriptor provides access
+   * to the edge's target vertex and value (if EV is not void).
+   * Constness of the graph is preserved through the iterator type.
+   * 
+   * @param g The graph to get edges from (forwarding reference)
+   * @param u The vertex descriptor to get edges for
+   * @return edge_descriptor_view over edges from vertex u with appropriate const qualification
+   * @note This is a lightweight view with minimal overhead
+   * @note Returns empty view if vertex descriptor is out of bounds
+  */
+  template<typename G, typename VertexDesc>
+    requires std::derived_from<std::remove_cvref_t<G>, compressed_graph_base>
+  [[nodiscard]] friend constexpr auto edges(G&& g, VertexDesc u) noexcept {
+    using edge_iter_type = std::conditional_t<
+        std::is_const_v<std::remove_reference_t<G>>,
+        typename col_index_vector::const_iterator,
+        typename col_index_vector::iterator
+    >;
+    using vertex_iter_type = std::conditional_t<
+        std::is_const_v<std::remove_reference_t<G>>,
+        typename row_index_vector::const_iterator,
+        typename row_index_vector::iterator
+    >;
+    using edge_desc_view = edge_descriptor_view<edge_iter_type, vertex_iter_type>;
+    
+    // Get the vertex ID from the descriptor
+    auto vertex_id = static_cast<std::size_t>(u.vertex_id());
+    
+    // Check bounds
+    if (vertex_id >= g.size()) {
+      // Return empty view
+      return edge_desc_view(0, 0, u);
+    }
+    
+    // Get the edge range for this vertex from row_index_
+    auto start_idx = static_cast<std::size_t>(g.row_index_[vertex_id].index);
+    auto end_idx = static_cast<std::size_t>(g.row_index_[vertex_id + 1].index);
+    
+    // Return view over the edge range
+    return edge_desc_view(start_idx, end_idx, u);
+  }
 };
 
 
