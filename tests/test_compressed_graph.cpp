@@ -1039,214 +1039,6 @@ TEST_CASE("compressed_graph vertex_ids() can be used with STL algorithms", "[api
     bool has_zero = std::any_of(ids.begin(), ids.end(), [](auto id) { return id == 0; });
     REQUIRE(has_zero);
 }
-
-// =============================================================================
-// edges(vertex_id_type) tests
-// =============================================================================
-
-TEST_CASE("compressed_graph edges(id) returns correct edge range", "[api][edges][by_id]") {
-    compressed_graph<void, void, void> g;
-    vector<copyable_edge_t<int, void>> edges = {{0, 1}, {0, 2}, {1, 2}, {2, 3}};
-    g.load_edges(edges);
-    
-    // Vertex 0 has edges to 1 and 2
-    auto edges_0 = g.edges(0);
-    REQUIRE(std::ranges::distance(edges_0) == 2);
-    auto it0 = edges_0.begin();
-    REQUIRE(it0->index == 1);
-    ++it0;
-    REQUIRE(it0->index == 2);
-    
-    // Vertex 1 has edge to 2
-    auto edges_1 = g.edges(1);
-    REQUIRE(std::ranges::distance(edges_1) == 1);
-    REQUIRE(edges_1.begin()->index == 2);
-    
-    // Vertex 2 has edge to 3
-    auto edges_2 = g.edges(2);
-    REQUIRE(std::ranges::distance(edges_2) == 1);
-    REQUIRE(edges_2.begin()->index == 3);
-    
-    // Vertex 3 has no edges
-    auto edges_3 = g.edges(3);
-    REQUIRE(std::ranges::distance(edges_3) == 0);
-    REQUIRE(edges_3.begin() == edges_3.end());
-}
-
-TEST_CASE("compressed_graph edges(id) works with const graph", "[api][edges][by_id][const]") {
-    compressed_graph<void, void, void> g;
-    vector<copyable_edge_t<int, void>> edges = {{0, 1}, {0, 2}, {1, 3}};
-    g.load_edges(edges);
-    
-    const auto& cg = g;
-    
-    auto edges_0 = cg.edges(0);
-    REQUIRE(std::ranges::distance(edges_0) == 2);
-    
-    auto edges_1 = cg.edges(1);
-    REQUIRE(std::ranges::distance(edges_1) == 1);
-}
-
-TEST_CASE("compressed_graph edges(id) handles out of bounds gracefully", "[api][edges][by_id][bounds]") {
-    compressed_graph<void, void, void> g;
-    vector<copyable_edge_t<int, void>> edges = {{0, 1}, {1, 2}};
-    g.load_edges(edges);
-    
-    // Out of bounds should return empty range
-    auto edges_999 = g.edges(999);
-    REQUIRE(std::ranges::distance(edges_999) == 0);
-    REQUIRE(edges_999.begin() == edges_999.end());
-    
-    // Just beyond last vertex
-    auto edges_beyond = g.edges(g.size());
-    REQUIRE(std::ranges::distance(edges_beyond) == 0);
-}
-
-TEST_CASE("compressed_graph edges(id) works with empty graph", "[api][edges][by_id][empty]") {
-    compressed_graph<void, void, void> g;
-    
-    auto edges_0 = g.edges(0);
-    REQUIRE(std::ranges::distance(edges_0) == 0);
-    REQUIRE(edges_0.begin() == edges_0.end());
-}
-
-TEST_CASE("compressed_graph edges(id) works with vertex values", "[api][edges][by_id][vertex_values]") {
-    compressed_graph<void, int, void> g;
-    vector<copyable_edge_t<int, void>> edges = {{0, 1}, {0, 2}, {1, 3}};
-    g.load_edges(edges);
-    
-    vector<copyable_vertex_t<int, int>> vertices = {{0, 100}, {1, 200}, {2, 300}, {3, 400}};
-    g.load_vertices(vertices);
-    
-    auto edges_0 = g.edges(0);
-    REQUIRE(std::ranges::distance(edges_0) == 2);
-    
-    auto edges_1 = g.edges(1);
-    REQUIRE(std::ranges::distance(edges_1) == 1);
-}
-
-TEST_CASE("compressed_graph edges(id) works with edge values", "[api][edges][by_id][edge_values]") {
-    compressed_graph<int, void, void> g;
-    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}, {0, 2, 20}, {1, 2, 30}};
-    g.load_edges(edges);
-    
-    auto edges_0 = g.edges(0);
-    REQUIRE(std::ranges::distance(edges_0) == 2);
-    
-    // Edge targets should be 1 and 2
-    auto it = edges_0.begin();
-    REQUIRE(it->index == 1);
-    ++it;
-    REQUIRE(it->index == 2);
-}
-
-TEST_CASE("compressed_graph edges(id) can be iterated multiple times", "[api][edges][by_id][iteration]") {
-    compressed_graph<void, void, void> g;
-    vector<copyable_edge_t<int, void>> edges = {{0, 1}, {0, 2}, {0, 3}};
-    g.load_edges(edges);
-    
-    auto edges_0 = g.edges(0);
-    
-    // First iteration
-    int count1 = 0;
-    for ([[maybe_unused]] auto& e : edges_0) {
-        ++count1;
-    }
-    REQUIRE(count1 == 3);
-    
-    // Second iteration
-    int count2 = 0;
-    for ([[maybe_unused]] auto& e : edges_0) {
-        ++count2;
-    }
-    REQUIRE(count2 == 3);
-}
-
-TEST_CASE("compressed_graph edges(id) works with STL algorithms", "[api][edges][by_id][algorithms]") {
-    compressed_graph<void, void, void> g;
-    vector<copyable_edge_t<int, void>> edges = {{0, 1}, {0, 2}, {0, 3}, {1, 4}};
-    g.load_edges(edges);
-    
-    auto edges_0 = g.edges(0);
-    
-    // Test std::distance
-    REQUIRE(std::distance(edges_0.begin(), edges_0.end()) == 3);
-    
-    // Test std::count_if
-    auto count = std::count_if(edges_0.begin(), edges_0.end(), 
-                                [](const auto& e) { return e.index < 3; });
-    REQUIRE(count == 2); // Edges to 1 and 2
-    
-    // Test std::all_of
-    bool all_valid = std::all_of(edges_0.begin(), edges_0.end(),
-                                  [](const auto& e) { return e.index < 10; });
-    REQUIRE(all_valid);
-}
-
-TEST_CASE("compressed_graph edges(id) works with single edge", "[api][edges][by_id][single]") {
-    compressed_graph<void, void, void> g;
-    vector<copyable_edge_t<int, void>> edges = {{0, 1}};
-    g.load_edges(edges);
-    
-    auto edges_0 = g.edges(0);
-    REQUIRE(std::ranges::distance(edges_0) == 1);
-    REQUIRE(edges_0.begin()->index == 1);
-    
-    auto edges_1 = g.edges(1);
-    REQUIRE(std::ranges::distance(edges_1) == 0);
-}
-
-TEST_CASE("compressed_graph edges(id) works with self-loop", "[api][edges][by_id][self_loop]") {
-    compressed_graph<void, void, void> g;
-    vector<copyable_edge_t<int, void>> edges = {{0, 0}, {0, 1}};
-    g.load_edges(edges);
-    
-    auto edges_0 = g.edges(0);
-    REQUIRE(std::ranges::distance(edges_0) == 2);
-    
-    auto it = edges_0.begin();
-    REQUIRE(it->index == 0); // Self-loop
-    ++it;
-    REQUIRE(it->index == 1);
-}
-
-TEST_CASE("compressed_graph edges(id) consistency with vertices() iteration", "[api][edges][by_id][consistency]") {
-    compressed_graph<void, void, void> g;
-    vector<copyable_edge_t<int, void>> edges = {{0, 1}, {0, 2}, {1, 2}, {2, 3}, {3, 4}};
-    g.load_edges(edges);
-    
-    // Count total edges using vertices() and edges(id)
-    size_t total_edges = 0;
-    for (uint32_t id = 0; id < g.size(); ++id) {
-        auto e = g.edges(id);
-        total_edges += std::ranges::distance(e);
-    }
-    
-    REQUIRE(total_edges == 5);
-}
-
-TEST_CASE("compressed_graph edges(id) with large vertex IDs", "[api][edges][by_id][large_ids]") {
-    compressed_graph<void, void, void> g;
-    vector<copyable_edge_t<int, void>> edges = {{0, 100}, {100, 200}};
-    g.load_edges(edges);
-    
-    // Vertex 0 has edge to 100
-    auto edges_0 = g.edges(0);
-    REQUIRE(std::ranges::distance(edges_0) == 1);
-    REQUIRE(edges_0.begin()->index == 100);
-    
-    // Vertices 1-99 have no edges
-    for (uint32_t id = 1; id < 100; ++id) {
-        auto e = g.edges(id);
-        REQUIRE(std::ranges::distance(e) == 0);
-    }
-    
-    // Vertex 100 has edge to 200
-    auto edges_100 = g.edges(100);
-    REQUIRE(std::ranges::distance(edges_100) == 1);
-    REQUIRE(edges_100.begin()->index == 200);
-}
-
 TEST_CASE("compressed_graph vertex_value(id) returns correct value", "[api][vertex_value]") {
     using Graph = compressed_graph<void, int, void>;
     
@@ -1319,3 +1111,518 @@ TEST_CASE("compressed_graph vertex_value(id) with graph value", "[api][vertex_va
     REQUIRE(g.vertex_value(1) == 20);
     REQUIRE(g.vertex_value(2) == 30);
 }
+
+// =============================================================================
+// Category: edge_ids() Tests
+// =============================================================================
+
+TEST_CASE("compressed_graph edge_ids() returns correct range of indices", "[api][edge_ids]") {
+    using Graph = compressed_graph<int, void, void>;
+    
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {0, 2, 20}, {0, 3, 30},  // vertex 0 has 3 edges (indices 0, 1, 2)
+        {1, 2, 40}, {1, 3, 50},              // vertex 1 has 2 edges (indices 3, 4)
+        {2, 3, 60}                           // vertex 2 has 1 edge (index 5)
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    SECTION("vertex 0 edge indices") {
+        auto ids = g.edge_ids(0);
+        vector<unsigned int> collected(ids.begin(), ids.end());
+        REQUIRE(collected.size() == 3);
+        REQUIRE(collected == vector<unsigned int>{0, 1, 2});
+    }
+    
+    SECTION("vertex 1 edge indices") {
+        auto ids = g.edge_ids(1);
+        vector<unsigned int> collected(ids.begin(), ids.end());
+        REQUIRE(collected.size() == 2);
+        REQUIRE(collected == vector<unsigned int>{3, 4});
+    }
+    
+    SECTION("vertex 2 edge indices") {
+        auto ids = g.edge_ids(2);
+        vector<unsigned int> collected(ids.begin(), ids.end());
+        REQUIRE(collected.size() == 1);
+        REQUIRE(collected == vector<unsigned int>{5});
+    }
+    
+    SECTION("vertex 3 (no edges) has empty range") {
+        auto ids = g.edge_ids(3);
+        REQUIRE(ids.begin() == ids.end());
+        REQUIRE(std::ranges::distance(ids) == 0);
+    }
+}
+
+TEST_CASE("compressed_graph edge_ids() works with empty graph", "[api][edge_ids][empty]") {
+    compressed_graph<int, void, void> g;
+    
+    auto ids = g.edge_ids(0);
+    REQUIRE(ids.begin() == ids.end());
+    REQUIRE(std::ranges::distance(ids) == 0); 
+}
+
+TEST_CASE("compressed_graph edge_ids() handles out of bounds gracefully", "[api][edge_ids][bounds]") {
+    using Graph = compressed_graph<int, void, void>;
+    
+    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}, {0, 2, 20}};
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    SECTION("vertex ID beyond graph size returns empty range") {
+        auto ids = g.edge_ids(100);
+        REQUIRE(ids.begin() == ids.end());
+        REQUIRE(std::ranges::distance(ids) == 0);
+    }
+    
+    SECTION("vertex at boundary with no edges") {
+        auto ids = g.edge_ids(2);  // vertex 2 exists but has no edges
+        REQUIRE(ids.begin() == ids.end());
+    }
+}
+
+TEST_CASE("compressed_graph edge_ids() works with STL algorithms", "[api][edge_ids][algorithms]") {
+    using Graph = compressed_graph<int, void, void>;
+    
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {0, 2, 20}, {0, 3, 30}, {0, 4, 40}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto ids = g.edge_ids(0);
+    
+    SECTION("std::ranges::count works") {
+        auto count = std::ranges::distance(ids);
+        REQUIRE(count == 4);
+    }
+    
+    SECTION("can be used with std::accumulate") {
+        auto sum = std::accumulate(ids.begin(), ids.end(), 0u);
+        REQUIRE(sum == 0 + 1 + 2 + 3);  // sum of indices 0, 1, 2, 3
+    }
+    
+    SECTION("can be used with range-based for") {
+        int count = 0;
+        for (auto id : ids) {
+            (void)id;  // suppress unused warning
+            ++count;
+        }
+        REQUIRE(count == 4);
+    }
+}
+
+TEST_CASE("compressed_graph edge_ids() is lightweight view", "[api][edge_ids][view]") {
+    using Graph = compressed_graph<int, void, void>;
+    
+    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}, {0, 2, 20}, {0, 3, 30}};
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    SECTION("can create multiple views without overhead") {
+        auto ids1 = g.edge_ids(0);
+        auto ids2 = g.edge_ids(0);
+        
+        REQUIRE(std::ranges::distance(ids1) == 3);
+        REQUIRE(std::ranges::distance(ids2) == 3);
+    }
+    
+    SECTION("views are independent") {
+        auto ids1 = g.edge_ids(0);
+        auto it1 = ids1.begin();
+        ++it1;
+        
+        auto ids2 = g.edge_ids(0);
+        auto it2 = ids2.begin();
+        
+        REQUIRE(*it1 == 1);
+        REQUIRE(*it2 == 0);
+    }
+}
+
+// =============================================================================
+// Category: target_id() Tests
+// =============================================================================
+
+TEST_CASE("compressed_graph target_id() returns correct target vertex", "[api][target_id]") {
+    using Graph = compressed_graph<int, void, void>;
+    
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 10, 100}, {0, 20, 200}, {0, 30, 300},  // vertex 0 edges to 10, 20, 30
+        {1, 40, 400}, {1, 50, 500},                // vertex 1 edges to 40, 50
+        {2, 60, 600}                               // vertex 2 edge to 60
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    SECTION("vertex 0 edge targets") {
+        auto edge_ids = g.edge_ids(0);
+        vector<unsigned int> ids(edge_ids.begin(), edge_ids.end());
+        
+        REQUIRE(ids.size() == 3);
+        REQUIRE(g.target_id(ids[0]) == 10);
+        REQUIRE(g.target_id(ids[1]) == 20);
+        REQUIRE(g.target_id(ids[2]) == 30);
+    }
+    
+    SECTION("vertex 1 edge targets") {
+        auto edge_ids = g.edge_ids(1);
+        vector<unsigned int> ids(edge_ids.begin(), edge_ids.end());
+        
+        REQUIRE(ids.size() == 2);
+        REQUIRE(g.target_id(ids[0]) == 40);
+        REQUIRE(g.target_id(ids[1]) == 50);
+    }
+    
+    SECTION("vertex 2 edge target") {
+        auto edge_ids = g.edge_ids(2);
+        vector<unsigned int> ids(edge_ids.begin(), edge_ids.end());
+        
+        REQUIRE(ids.size() == 1);
+        REQUIRE(g.target_id(ids[0]) == 60);
+    }
+}
+
+TEST_CASE("compressed_graph target_id() works with edge iteration", "[api][target_id][iteration]") {
+    using Graph = compressed_graph<void, void, void>;
+    
+    vector<copyable_edge_t<int, void>> edges = {
+        {0, 1}, {0, 2}, {1, 3}, {2, 3}, {3, 4}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    SECTION("iterate edges and get targets") {
+        vector<int> expected_targets = {1, 2, 3, 3, 4};
+        size_t idx = 0;
+        
+        for (auto vid : g.vertex_ids()) {
+            for (auto edge_id : g.edge_ids(vid)) {
+                REQUIRE(g.target_id(edge_id) == expected_targets[idx]);
+                ++idx;
+            }
+        }
+        
+        REQUIRE(idx == expected_targets.size());
+    }
+}
+
+TEST_CASE("compressed_graph target_id() with self-loops", "[api][target_id][self_loop]") {
+    using Graph = compressed_graph<void, void, void>;
+    
+    vector<copyable_edge_t<int, void>> edges = {{0, 0}, {0, 1}, {1, 1}};
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto ids_0 = g.edge_ids(0);
+    vector<unsigned int> v0(ids_0.begin(), ids_0.end());
+    REQUIRE(g.target_id(v0[0]) == 0);  // self-loop
+    REQUIRE(g.target_id(v0[1]) == 1);
+    
+    auto ids_1 = g.edge_ids(1);
+    vector<unsigned int> v1(ids_1.begin(), ids_1.end());
+    REQUIRE(g.target_id(v1[0]) == 1);  // self-loop
+}
+
+TEST_CASE("compressed_graph target_id() consistency", "[api][target_id][consistency]") {
+    using Graph = compressed_graph<void, void, void>;
+    
+    vector<copyable_edge_t<int, void>> edges = {
+        {0, 10}, {0, 20}, {1, 30}, {2, 40}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    // Verify target_id() returns correct targets
+    auto ids_0 = g.edge_ids(0);
+    vector<unsigned int> collected_0(ids_0.begin(), ids_0.end());
+    REQUIRE(collected_0.size() == 2);
+    REQUIRE(g.target_id(collected_0[0]) == 10);
+    REQUIRE(g.target_id(collected_0[1]) == 20);
+    
+    auto ids_1 = g.edge_ids(1);
+    vector<unsigned int> collected_1(ids_1.begin(), ids_1.end());
+    REQUIRE(collected_1.size() == 1);
+    REQUIRE(g.target_id(collected_1[0]) == 30);
+    
+    auto ids_2 = g.edge_ids(2);
+    vector<unsigned int> collected_2(ids_2.begin(), ids_2.end());
+    REQUIRE(collected_2.size() == 1);
+    REQUIRE(g.target_id(collected_2[0]) == 40);
+}
+
+TEST_CASE("compressed_graph target_id() with large vertex IDs", "[api][target_id][large_ids]") {
+    using Graph = compressed_graph<void, void, void, uint64_t, uint64_t>;
+    
+    vector<copyable_edge_t<uint64_t, void>> edges = {
+        {0, 1000000}, {1000000, 2000000}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto ids_0 = g.edge_ids(0);
+    REQUIRE(g.target_id(*ids_0.begin()) == 1000000);
+    
+    auto ids_1m = g.edge_ids(1000000);
+    REQUIRE(g.target_id(*ids_1m.begin()) == 2000000);
+}
+
+// =============================================================================
+// Category: edge_value() Tests
+// =============================================================================
+
+TEST_CASE("compressed_graph edge_value() returns correct value", "[api][edge_value]") {
+    using Graph = compressed_graph<int, void, void>;
+    
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 100}, {0, 2, 200}, {0, 3, 300},  // vertex 0 edges with values
+        {1, 2, 400}, {1, 3, 500},                // vertex 1 edges with values
+        {2, 3, 600}                              // vertex 2 edge with value
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    SECTION("vertex 0 edge values") {
+        auto edge_ids = g.edge_ids(0);
+        vector<unsigned int> ids(edge_ids.begin(), edge_ids.end());
+        
+        REQUIRE(ids.size() == 3);
+        REQUIRE(g.edge_value(ids[0]) == 100);
+        REQUIRE(g.edge_value(ids[1]) == 200);
+        REQUIRE(g.edge_value(ids[2]) == 300);
+    }
+    
+    SECTION("vertex 1 edge values") {
+        auto edge_ids = g.edge_ids(1);
+        vector<unsigned int> ids(edge_ids.begin(), edge_ids.end());
+        
+        REQUIRE(ids.size() == 2);
+        REQUIRE(g.edge_value(ids[0]) == 400);
+        REQUIRE(g.edge_value(ids[1]) == 500);
+    }
+    
+    SECTION("vertex 2 edge value") {
+        auto edge_ids = g.edge_ids(2);
+        vector<unsigned int> ids(edge_ids.begin(), edge_ids.end());
+        
+        REQUIRE(ids.size() == 1);
+        REQUIRE(g.edge_value(ids[0]) == 600);
+    }
+}
+
+TEST_CASE("compressed_graph edge_value() is mutable", "[api][edge_value][mutable]") {
+    using Graph = compressed_graph<string, void, void>;
+    
+    vector<copyable_edge_t<int, string>> edges = {
+        {0, 1, string("a")}, {0, 2, string("b")}, {1, 2, string("c")}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto ids = g.edge_ids(0);
+    vector<unsigned int> vid(ids.begin(), ids.end());
+    
+    REQUIRE(g.edge_value(vid[0]) == "a");
+    
+    // Modify the edge value
+    g.edge_value(vid[0]) = "modified";
+    REQUIRE(g.edge_value(vid[0]) == "modified");
+    
+    // Verify other values unchanged
+    REQUIRE(g.edge_value(vid[1]) == "b");
+}
+
+TEST_CASE("compressed_graph edge_value() const correctness", "[api][edge_value][const]") {
+    using Graph = compressed_graph<double, void, void>;
+    
+    vector<copyable_edge_t<int, double>> edges = {
+        {0, 1, 1.5}, {0, 2, 2.5}, {1, 2, 3.5}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    const auto& cg = g;
+    
+    auto ids = cg.edge_ids(0);
+    vector<unsigned int> vid(ids.begin(), ids.end());
+    
+    REQUIRE(cg.edge_value(vid[0]) == 1.5);
+    REQUIRE(cg.edge_value(vid[1]) == 2.5);
+}
+
+TEST_CASE("compressed_graph edge_value() with complex types", "[api][edge_value][types]") {
+    using Graph = compressed_graph<string, void, void>;
+    
+    vector<copyable_edge_t<int, string>> edges = {
+        {0, 1, string("edge_0_1")},
+        {0, 2, string("edge_0_2")},
+        {1, 3, string("edge_1_3")}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto ids_0 = g.edge_ids(0);
+    vector<unsigned int> v0(ids_0.begin(), ids_0.end());
+    
+    REQUIRE(g.edge_value(v0[0]) == "edge_0_1");
+    REQUIRE(g.edge_value(v0[1]) == "edge_0_2");
+    
+    auto ids_1 = g.edge_ids(1);
+    REQUIRE(g.edge_value(*ids_1.begin()) == "edge_1_3");
+}
+
+TEST_CASE("compressed_graph edge_value() iteration over all edges", "[api][edge_value][iteration]") {
+    using Graph = compressed_graph<int, void, void>;
+    
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {0, 2, 20}, {1, 3, 30}, {2, 3, 40}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    vector<int> expected_values = {10, 20, 30, 40};
+    size_t idx = 0;
+    
+    for (auto vid : g.vertex_ids()) {
+        for (auto edge_id : g.edge_ids(vid)) {
+            REQUIRE(g.edge_value(edge_id) == expected_values[idx]);
+            ++idx;
+        }
+    }
+    
+    REQUIRE(idx == expected_values.size());
+}
+
+TEST_CASE("compressed_graph edge_value() with self-loops", "[api][edge_value][self_loop]") {
+    using Graph = compressed_graph<int, void, void>;
+    
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 0, 100}, {0, 1, 200}, {1, 1, 300}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto ids_0 = g.edge_ids(0);
+    vector<unsigned int> v0(ids_0.begin(), ids_0.end());
+    REQUIRE(g.edge_value(v0[0]) == 100);  // self-loop value
+    REQUIRE(g.edge_value(v0[1]) == 200);
+    
+    auto ids_1 = g.edge_ids(1);
+    REQUIRE(g.edge_value(*ids_1.begin()) == 300);  // self-loop value
+}
+
+TEST_CASE("compressed_graph edge_value() combined with target_id()", "[api][edge_value][combined]") {
+    using Graph = compressed_graph<int, void, void>;
+    
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 10, 100}, {0, 20, 200}, {1, 30, 300}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    SECTION("verify both target and value for vertex 0") {
+        auto ids = g.edge_ids(0);
+        vector<unsigned int> vid(ids.begin(), ids.end());
+        
+        REQUIRE(g.target_id(vid[0]) == 10);
+        REQUIRE(g.edge_value(vid[0]) == 100);
+        
+        REQUIRE(g.target_id(vid[1]) == 20);
+        REQUIRE(g.edge_value(vid[1]) == 200);
+    }
+    
+    SECTION("iterate and verify both") {
+        for (auto vertex_id : g.vertex_ids()) {
+            for (auto edge_id : g.edge_ids(vertex_id)) {
+                auto target = g.target_id(edge_id);
+                auto value = g.edge_value(edge_id);
+                
+                // Verify relationship: value = target * 10
+                REQUIRE(value == target * 10);
+            }
+        }
+    }
+}
+
+TEST_CASE("compressed_graph edge_value() modification test", "[api][edge_value][modify]") {
+    using Graph = compressed_graph<int, void, void>;
+    
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {0, 2, 20}, {1, 3, 30}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    // Modify all edge values
+    for (auto vid : g.vertex_ids()) {
+        for (auto edge_id : g.edge_ids(vid)) {
+            g.edge_value(edge_id) *= 2;
+        }
+    }
+    
+    // Verify modifications
+    auto ids_0 = g.edge_ids(0);
+    vector<unsigned int> v0(ids_0.begin(), ids_0.end());
+    REQUIRE(g.edge_value(v0[0]) == 20);
+    REQUIRE(g.edge_value(v0[1]) == 40);
+    
+    auto ids_1 = g.edge_ids(1);
+    REQUIRE(g.edge_value(*ids_1.begin()) == 60);
+}
+
+TEST_CASE("compressed_graph edge_value() with single edge", "[api][edge_value][single]") {
+    using Graph = compressed_graph<int, void, void>;
+    
+    vector<copyable_edge_t<int, int>> edges = {{0, 1, 42}};
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto ids = g.edge_ids(0);
+    REQUIRE(g.edge_value(*ids.begin()) == 42);
+}
+
+TEST_CASE("compressed_graph edge_value() with multiple edge types", "[api][edge_value][types]") {
+    SECTION("int edge values") {
+        using Graph = compressed_graph<int, void, void>;
+        vector<copyable_edge_t<int, int>> edges = {{0, 1, 100}};
+        Graph g;
+        g.load_edges(edges);
+        REQUIRE(g.edge_value(*g.edge_ids(0).begin()) == 100);
+    }
+    
+    SECTION("double edge values") {
+        using Graph = compressed_graph<double, void, void>;
+        vector<copyable_edge_t<int, double>> edges = {{0, 1, 3.14}};
+        Graph g;
+        g.load_edges(edges);
+        REQUIRE(g.edge_value(*g.edge_ids(0).begin()) == 3.14);
+    }
+    
+    SECTION("string edge values") {
+        using Graph = compressed_graph<string, void, void>;
+        vector<copyable_edge_t<int, string>> edges = {{0, 1, string("test")}};
+        Graph g;
+        g.load_edges(edges);
+        REQUIRE(g.edge_value(*g.edge_ids(0).begin()) == "test");
+    }
+}
+

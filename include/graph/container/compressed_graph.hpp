@@ -300,6 +300,7 @@ public:
   using vector_type     = std::vector<edge_value_type, allocator_type>;
 
   using value_type      = EV;
+  using edge_id_type    = EIndex;
   using size_type       = size_t; //VId;
   using difference_type = typename vector_type::difference_type;
   using reference       = value_type&;
@@ -336,8 +337,8 @@ public: // Operations
   constexpr void swap(csr_col_values& other) noexcept { swap(v_, other.v_); }
 
 public:
-  [[nodiscard]] constexpr reference       operator[](size_type pos) { return v_[pos]; }
-  [[nodiscard]] constexpr const_reference operator[](size_type pos) const { return v_[pos]; }
+  [[nodiscard]] constexpr reference       operator[](edge_id_type pos) { return v_[static_cast<size_t>(pos)]; }
+  [[nodiscard]] constexpr const_reference operator[](edge_id_type pos) const { return v_[static_cast<size_t>(pos)]; }
 
 private:
   vector_type v_;
@@ -416,6 +417,7 @@ public: // Types
   using edge_type        = col_type; // index into v_
   using edge_value_type  = EV;
   using edge_index_type  = EIndex;
+  using edge_id_type     = EIndex; // Alias for edge_index_type (semantic name for edge identifiers)
   using edges_type       = subrange<iterator_t<col_index_vector>>;
   using const_edges_type = subrange<iterator_t<const col_index_vector>>;
 
@@ -1017,43 +1019,24 @@ public: // Vertex range accessors (Issue #2 fix)
   }
 
   /**
-   * @brief Get a range of edges for a specific vertex by ID.
+   * @brief Get a range of edge indices for a specific vertex by ID.
    * 
-   * Returns a subrange over the edges in col_index_ for the vertex with the given ID.
-   * This provides direct access to the outgoing edges of a vertex without needing
-   * to obtain the vertex object first.
+   * Returns an iota view generating edge indices that can be used to index into
+   * col_index_ (for target vertex IDs) and the edge value array. This is useful
+   * when you need the edge index rather than the edge object itself.
    * 
-   * @param id The vertex id to get edges for
-   * @return Subrange of edge objects (csr_col<VId>) for the vertex
+   * @param id The vertex id to get edge indices for
+   * @return Iota view generating edge indices [start_idx, end_idx)
    * @note Returns empty range if id is out of bounds
+   * @note This is a lightweight view with no storage overhead
   */
-  [[nodiscard]] constexpr auto edges(vertex_id_type id) noexcept {
+  [[nodiscard]] constexpr auto edge_ids(vertex_id_type id) const noexcept {
     if (id >= size())
-      return std::ranges::subrange(col_index_.end(), col_index_.end());
+      return std::views::iota(edge_index_type{0}, edge_index_type{0});
     
     auto start_idx = row_index_[id].index;
     auto end_idx = row_index_[id + 1].index;
-    return std::ranges::subrange(col_index_.begin() + start_idx, 
-                                  col_index_.begin() + end_idx);
-  }
-  
-  /**
-   * @brief Get a range of edges for a specific vertex by ID (const version).
-   * 
-   * Returns a const subrange over the edges in col_index_ for the vertex with the given ID.
-   * 
-   * @param id The vertex id to get edges for
-   * @return Const subrange of edge objects (csr_col<VId>) for the vertex
-   * @note Returns empty range if id is out of bounds
-  */
-  [[nodiscard]] constexpr auto edges(vertex_id_type id) const noexcept {
-    if (id >= size())
-      return std::ranges::subrange(col_index_.end(), col_index_.end());
-    
-    auto start_idx = row_index_[id].index;
-    auto end_idx = row_index_[id + 1].index;
-    return std::ranges::subrange(col_index_.begin() + start_idx, 
-                                  col_index_.begin() + end_idx);
+    return std::views::iota(start_idx, end_idx);
   }
 
   /**
@@ -1092,6 +1075,58 @@ public: // Vertex range accessors (Issue #2 fix)
     -> std::enable_if_t<!std::is_void_v<VV_>, VV_&>
   { 
     return row_values_base::operator[](static_cast<typename row_values_base::size_type>(id)); 
+  }
+
+  /**
+   * @brief Get the target vertex ID for a given edge ID.
+   * 
+   * Returns the target vertex ID for the edge at the specified edge index.
+   * Edge IDs are indices into the col_index_ array and can be obtained from
+   * edge_ids() or by iterating through edges.
+   * 
+   * @param edge_id The edge ID (index into col_index_)
+   * @return The target vertex ID for this edge
+   * @note No bounds checking is performed. The caller must ensure edge_id is valid.
+  */
+  [[nodiscard]] constexpr vertex_id_type target_id(edge_id_type edge_id) const noexcept {
+    return col_index_[edge_id].index;
+  }
+
+  /**
+   * @brief Get a const reference to the edge value for a given edge ID.
+   * 
+   * Returns a const reference to the user-defined value stored for the edge
+   * at the specified edge index. Edge IDs are indices that can be obtained
+   * from edge_ids() or by iterating through edges.
+   * 
+   * @param edge_id The edge ID (index into edge value array)
+   * @return Const reference to the edge value
+   * @note Only available when EV is not void
+   * @note No bounds checking is performed. The caller must ensure edge_id is valid.
+  */
+  template<typename EV_ = EV>
+  [[nodiscard]] constexpr auto edge_value(edge_id_type edge_id) const noexcept
+    -> std::enable_if_t<!std::is_void_v<EV_>, const EV_&>
+  {
+    return col_values_base::operator[](static_cast<typename col_values_base::size_type>(edge_id));
+  }
+
+  /**
+   * @brief Get a mutable reference to the edge value for a given edge ID.
+   * 
+   * Returns a mutable reference to the user-defined value stored for the edge
+   * at the specified edge index. This allows modification of edge data by edge ID.
+   * 
+   * @param edge_id The edge ID (index into edge value array)
+   * @return Mutable reference to the edge value
+   * @note Only available when EV is not void
+   * @note No bounds checking is performed. The caller must ensure edge_id is valid.
+  */
+  template<typename EV_ = EV>
+  [[nodiscard]] constexpr auto edge_value(edge_id_type edge_id) noexcept
+    -> std::enable_if_t<!std::is_void_v<EV_>, EV_&>
+  {
+    return col_values_base::operator[](static_cast<typename col_values_base::size_type>(edge_id));
   }
 
 private:                       // Member variables
