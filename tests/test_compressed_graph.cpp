@@ -1143,6 +1143,150 @@ TEST_CASE("compressed_graph edge_ids() is lightweight view", "[api][edge_ids][vi
     }
 }
 
+TEST_CASE("compressed_graph edge_ids() returns all edge IDs", "[api][edge_ids][all]") {
+    using Graph = compressed_graph<int, void, void>;
+    
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {0, 2, 20}, {0, 3, 30},  // 3 edges
+        {1, 2, 40}, {1, 3, 50},              // 2 edges
+        {2, 3, 60}                           // 1 edge
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    SECTION("returns range with correct size") {
+        auto ids = g.edge_ids();
+        REQUIRE(std::ranges::distance(ids) == 6);
+    }
+    
+    SECTION("returns indices 0 through n-1") {
+        auto ids = g.edge_ids();
+        vector<unsigned int> collected(ids.begin(), ids.end());
+        REQUIRE(collected == vector<unsigned int>{0, 1, 2, 3, 4, 5});
+    }
+    
+    SECTION("can iterate with range-based for") {
+        auto ids = g.edge_ids();
+        int count = 0;
+        for (auto id : ids) {
+            REQUIRE(id >= 0);
+            REQUIRE(id < 6);
+            ++count;
+        }
+        REQUIRE(count == 6);
+    }
+}
+
+TEST_CASE("compressed_graph edge_ids() with empty graph", "[api][edge_ids][all][empty]") {
+    compressed_graph<int, void, void> g;
+    
+    auto ids = g.edge_ids();
+    REQUIRE(ids.begin() == ids.end());
+    REQUIRE(std::ranges::distance(ids) == 0);
+}
+
+TEST_CASE("compressed_graph edge_ids() with single edge", "[api][edge_ids][all][single]") {
+    using Graph = compressed_graph<int, void, void>;
+    
+    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}};
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto ids = g.edge_ids();
+    vector<unsigned int> collected(ids.begin(), ids.end());
+    REQUIRE(collected.size() == 1);
+    REQUIRE(collected == vector<unsigned int>{0});
+}
+
+TEST_CASE("compressed_graph edge_ids() works with STL algorithms", "[api][edge_ids][all][algorithms]") {
+    using Graph = compressed_graph<int, void, void>;
+    
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {0, 2, 20}, {1, 3, 30}, {2, 3, 40}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto ids = g.edge_ids();
+    
+    SECTION("std::ranges::count works") {
+        auto count = std::ranges::distance(ids);
+        REQUIRE(count == 4);
+    }
+    
+    SECTION("can be used with std::accumulate") {
+        auto sum = std::accumulate(ids.begin(), ids.end(), 0u);
+        REQUIRE(sum == 0 + 1 + 2 + 3);
+    }
+    
+    SECTION("can filter with std::views::filter") {
+        auto even_ids = ids | std::views::filter([](auto id) { return id % 2 == 0; });
+        vector<unsigned int> collected(even_ids.begin(), even_ids.end());
+        REQUIRE(collected == vector<unsigned int>{0, 2});
+    }
+}
+
+TEST_CASE("compressed_graph edge_ids() can access edge data", "[api][edge_ids][all][access]") {
+    using Graph = compressed_graph<int, void, void>;
+    
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 10, 100}, {0, 20, 200}, {1, 30, 300}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    SECTION("can use edge_ids() to access target_id()") {
+        auto ids = g.edge_ids();
+        vector<unsigned int> targets;
+        for (auto edge_id : ids) {
+            targets.push_back(g.target_id(edge_id));
+        }
+        REQUIRE(targets == vector<unsigned int>{10, 20, 30});
+    }
+    
+    SECTION("can use edge_ids() to access edge values") {
+        auto ids = g.edge_ids();
+        vector<int> values;
+        for (auto edge_id : ids) {
+            values.push_back(g.edge_value(edge_id));
+        }
+        REQUIRE(values == vector<int>{100, 200, 300});
+    }
+}
+
+TEST_CASE("compressed_graph edge_ids() is lightweight view", "[api][edge_ids][all][view]") {
+    using Graph = compressed_graph<int, void, void>;
+    
+    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}, {0, 2, 20}, {1, 3, 30}};
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    SECTION("can create multiple views without overhead") {
+        auto ids1 = g.edge_ids();
+        auto ids2 = g.edge_ids();
+        
+        REQUIRE(std::ranges::distance(ids1) == 3);
+        REQUIRE(std::ranges::distance(ids2) == 3);
+    }
+    
+    SECTION("views are independent") {
+        auto ids1 = g.edge_ids();
+        auto it1 = ids1.begin();
+        ++it1;
+        
+        auto ids2 = g.edge_ids();
+        auto it2 = ids2.begin();
+        
+        REQUIRE(*it1 == 1);
+        REQUIRE(*it2 == 0);
+    }
+}
+
 // =============================================================================
 // Category: target_id() Tests
 // =============================================================================

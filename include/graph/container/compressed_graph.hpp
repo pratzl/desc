@@ -944,6 +944,20 @@ public: // Vertex range accessors
   }
 
   /**
+   * @brief Get a range of all edge IDs in the graph.
+   * 
+   * Returns an iota view generating edge IDs from 0 to the total number of edges.
+   * Edge IDs are indices into col_index_ and the edge value array, useful for
+   * direct edge access without needing vertex context.
+   * 
+   * @return Iota view generating edge IDs [0, total_edges)
+   * @note This is a lightweight view with no storage overhead
+  */
+  [[nodiscard]] constexpr auto edge_ids() const noexcept {
+    return std::views::iota(edge_index_type{0}, static_cast<edge_index_type>(col_index_.size()));
+  }
+
+  /**
    * @brief Get a range of edge indices for a specific vertex by ID.
    * 
    * Returns an iota view generating edge indices that can be used to index into
