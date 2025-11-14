@@ -2003,3 +2003,453 @@ TEST_CASE("degree(g,uid) with disconnected components", "[degree][api]") {
     REQUIRE(degree(g, 4) == 1);
     REQUIRE(degree(g, 5) == 0);
 }
+
+// =============================================================================
+// contains_edge(g, u, v) and contains_edge(g, uid, vid) CPO Tests
+// =============================================================================
+
+TEST_CASE("contains_edge(g, u, v) with vertex descriptors - basic edge existence", "[contains_edge][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 10}, {0, 2, 20}, {1, 2, 30}, {2, 3, 40}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    auto v0 = *find_vertex(g, 0);
+    auto v1 = *find_vertex(g, 1);
+    auto v2 = *find_vertex(g, 2);
+    auto v3 = *find_vertex(g, 3);
+    
+    // Existing edges
+    REQUIRE(contains_edge(g, v0, v1) == true);
+    REQUIRE(contains_edge(g, v0, v2) == true);
+    REQUIRE(contains_edge(g, v1, v2) == true);
+    REQUIRE(contains_edge(g, v2, v3) == true);
+    
+    // Non-existing edges
+    REQUIRE(contains_edge(g, v1, v0) == false);
+    REQUIRE(contains_edge(g, v2, v0) == false);
+    REQUIRE(contains_edge(g, v3, v2) == false);
+    REQUIRE(contains_edge(g, v0, v3) == false);
+    REQUIRE(contains_edge(g, v1, v3) == false);
+}
+
+TEST_CASE("contains_edge(g, uid, vid) with vertex IDs - basic edge existence", "[contains_edge][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 10}, {0, 2, 20}, {1, 2, 30}, {2, 3, 40}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    // Existing edges
+    REQUIRE(contains_edge(g, 0, 1) == true);
+    REQUIRE(contains_edge(g, 0, 2) == true);
+    REQUIRE(contains_edge(g, 1, 2) == true);
+    REQUIRE(contains_edge(g, 2, 3) == true);
+    
+    // Non-existing edges
+    REQUIRE(contains_edge(g, 1, 0) == false);
+    REQUIRE(contains_edge(g, 2, 0) == false);
+    REQUIRE(contains_edge(g, 3, 2) == false);
+    REQUIRE(contains_edge(g, 0, 3) == false);
+    REQUIRE(contains_edge(g, 1, 3) == false);
+}
+
+TEST_CASE("contains_edge(g, u, v) consistency between descriptor and ID versions", "[contains_edge][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 10}, {0, 2, 20}, {1, 2, 30}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    for (size_t src = 0; src < g.size(); ++src) {
+        auto u = *find_vertex(g, src);
+        for (size_t tgt = 0; tgt < g.size(); ++tgt) {
+            auto v = *find_vertex(g, tgt);
+            // Both versions should return the same result
+            REQUIRE(contains_edge(g, u, v) == contains_edge(g, src, tgt));
+        }
+    }
+}
+
+TEST_CASE("contains_edge(g, u, v) with const graph", "[contains_edge][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 10}, {1, 2, 20}
+    };
+    
+    Graph temp_g;
+    temp_g.load_edges(edges_data);
+    const Graph g = std::move(temp_g);
+    
+    auto v0 = *find_vertex(g, 0);
+    auto v1 = *find_vertex(g, 1);
+    auto v2 = *find_vertex(g, 2);
+    
+    REQUIRE(contains_edge(g, v0, v1) == true);
+    REQUIRE(contains_edge(g, v1, v2) == true);
+    REQUIRE(contains_edge(g, v0, v2) == false);
+    REQUIRE(contains_edge(g, 0, 1) == true);
+    REQUIRE(contains_edge(g, 1, 2) == true);
+    REQUIRE(contains_edge(g, 0, 2) == false);
+}
+
+TEST_CASE("contains_edge(g, u, v) with self-loops", "[contains_edge][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 0, 10}, {0, 1, 30}, {1, 1, 20}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    auto v0 = *find_vertex(g, 0);
+    auto v1 = *find_vertex(g, 1);
+    
+    // Self-loops exist
+    REQUIRE(contains_edge(g, v0, v0) == true);
+    REQUIRE(contains_edge(g, v1, v1) == true);
+    REQUIRE(contains_edge(g, 0, 0) == true);
+    REQUIRE(contains_edge(g, 1, 1) == true);
+    
+    // Regular edge
+    REQUIRE(contains_edge(g, v0, v1) == true);
+    REQUIRE(contains_edge(g, 0, 1) == true);
+}
+
+TEST_CASE("contains_edge(g, u, v) with zero out-degree vertices", "[contains_edge][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 10}, {0, 2, 20}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    auto v1 = *find_vertex(g, 1);
+    auto v2 = *find_vertex(g, 2);
+    auto v0 = *find_vertex(g, 0);
+    
+    // Vertices with zero out-degree have no outgoing edges
+    REQUIRE(contains_edge(g, v1, v0) == false);
+    REQUIRE(contains_edge(g, v1, v2) == false);
+    REQUIRE(contains_edge(g, v2, v0) == false);
+    REQUIRE(contains_edge(g, v2, v1) == false);
+    REQUIRE(contains_edge(g, 1, 0) == false);
+    REQUIRE(contains_edge(g, 1, 2) == false);
+    REQUIRE(contains_edge(g, 2, 0) == false);
+    REQUIRE(contains_edge(g, 2, 1) == false);
+}
+
+TEST_CASE("contains_edge(g, u, v) with void vertex values", "[contains_edge][api]") {
+    using Graph = compressed_graph<int, void, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 10}, {1, 2, 20}, {2, 0, 30}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    auto v0 = *find_vertex(g, 0);
+    auto v1 = *find_vertex(g, 1);
+    auto v2 = *find_vertex(g, 2);
+    
+    // Cycle 0 -> 1 -> 2 -> 0
+    REQUIRE(contains_edge(g, v0, v1) == true);
+    REQUIRE(contains_edge(g, v1, v2) == true);
+    REQUIRE(contains_edge(g, v2, v0) == true);
+    REQUIRE(contains_edge(g, 0, 1) == true);
+    REQUIRE(contains_edge(g, 1, 2) == true);
+    REQUIRE(contains_edge(g, 2, 0) == true);
+    
+    // Non-existent reverse edges
+    REQUIRE(contains_edge(g, v1, v0) == false);
+    REQUIRE(contains_edge(g, v2, v1) == false);
+    REQUIRE(contains_edge(g, v0, v2) == false);
+}
+
+TEST_CASE("contains_edge(g, u, v) with void graph values", "[contains_edge][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 10}, {1, 2, 20}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    auto v0 = *find_vertex(g, 0);
+    auto v1 = *find_vertex(g, 1);
+    auto v2 = *find_vertex(g, 2);
+    
+    REQUIRE(contains_edge(g, v0, v1) == true);
+    REQUIRE(contains_edge(g, v1, v2) == true);
+    REQUIRE(contains_edge(g, v2, v0) == false);
+    REQUIRE(contains_edge(g, 0, 1) == true);
+    REQUIRE(contains_edge(g, 1, 2) == true);
+    REQUIRE(contains_edge(g, 2, 0) == false);
+}
+
+TEST_CASE("contains_edge(g, u, v) with string values", "[contains_edge][api]") {
+    using Graph = compressed_graph<string, string, void>;
+    vector<copyable_edge_t<int, string>> edges_data = {
+        {0, 1, "edge01"}, {1, 2, "edge12"}
+    };
+    vector<copyable_vertex_t<int, string>> vertex_values = {
+        {0, "v0"}, {1, "v1"}, {2, "v2"}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    g.load_vertices(vertex_values);
+    
+    auto v0 = *find_vertex(g, 0);
+    auto v1 = *find_vertex(g, 1);
+    auto v2 = *find_vertex(g, 2);
+    
+    REQUIRE(contains_edge(g, v0, v1) == true);
+    REQUIRE(contains_edge(g, v1, v2) == true);
+    REQUIRE(contains_edge(g, v0, v2) == false);
+    REQUIRE(contains_edge(g, 0, 1) == true);
+    REQUIRE(contains_edge(g, 1, 2) == true);
+    REQUIRE(contains_edge(g, 0, 2) == false);
+}
+
+TEST_CASE("contains_edge(g, u, v) return type is bool", "[contains_edge][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 10}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    auto v0 = *find_vertex(g, 0);
+    auto v1 = *find_vertex(g, 1);
+    
+    auto result_desc = contains_edge(g, v0, v1);
+    auto result_id = contains_edge(g, 0, 1);
+    
+    REQUIRE(std::is_same_v<decltype(result_desc), bool>);
+    REQUIRE(std::is_same_v<decltype(result_id), bool>);
+}
+
+TEST_CASE("contains_edge(g, u, v) with multiple edges to same target", "[contains_edge][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    // Note: compressed_graph typically stores one edge per (src, target) pair
+    // but let's test the first edge is found
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 10}, {0, 1, 20}, {0, 2, 30}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    auto v0 = *find_vertex(g, 0);
+    auto v1 = *find_vertex(g, 1);
+    auto v2 = *find_vertex(g, 2);
+    
+    // Should find at least one edge from 0 to 1
+    REQUIRE(contains_edge(g, v0, v1) == true);
+    REQUIRE(contains_edge(g, v0, v2) == true);
+    REQUIRE(contains_edge(g, 0, 1) == true);
+    REQUIRE(contains_edge(g, 0, 2) == true);
+}
+
+TEST_CASE("contains_edge(g, u, v) with complete graph", "[contains_edge][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    // Complete graph on 4 vertices
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 1}, {0, 2, 1}, {0, 3, 1},
+        {1, 0, 1}, {1, 2, 1}, {1, 3, 1},
+        {2, 0, 1}, {2, 1, 1}, {2, 3, 1},
+        {3, 0, 1}, {3, 1, 1}, {3, 2, 1}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    // Every vertex should have an edge to every other vertex
+    for (size_t src = 0; src < g.size(); ++src) {
+        auto u = *find_vertex(g, src);
+        for (size_t tgt = 0; tgt < g.size(); ++tgt) {
+            if (src != tgt) {
+                auto v = *find_vertex(g, tgt);
+                REQUIRE(contains_edge(g, u, v) == true);
+                REQUIRE(contains_edge(g, src, tgt) == true);
+            }
+        }
+    }
+}
+
+TEST_CASE("contains_edge(g, u, v) with disconnected components", "[contains_edge][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 10}, {1, 2, 20},  // Component 1
+        {3, 4, 30}, {4, 5, 40}   // Component 2
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    // Within component 1
+    REQUIRE(contains_edge(g, 0, 1) == true);
+    REQUIRE(contains_edge(g, 1, 2) == true);
+    
+    // Within component 2
+    REQUIRE(contains_edge(g, 3, 4) == true);
+    REQUIRE(contains_edge(g, 4, 5) == true);
+    
+    // Between components (should not exist)
+    REQUIRE(contains_edge(g, 0, 3) == false);
+    REQUIRE(contains_edge(g, 0, 4) == false);
+    REQUIRE(contains_edge(g, 1, 3) == false);
+    REQUIRE(contains_edge(g, 2, 4) == false);
+    REQUIRE(contains_edge(g, 3, 0) == false);
+    REQUIRE(contains_edge(g, 4, 1) == false);
+}
+
+TEST_CASE("contains_edge(g, u, v) with single vertex graph", "[contains_edge][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 0, 10}  // Self-loop
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    auto v0 = *find_vertex(g, 0);
+    
+    REQUIRE(contains_edge(g, v0, v0) == true);
+    REQUIRE(contains_edge(g, 0, 0) == true);
+}
+
+TEST_CASE("contains_edge(g, u, v) with empty graph", "[contains_edge][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    
+    Graph g;
+    // Empty graph has vertices 0..N-1 but no edges loaded
+    // Actually, an empty graph has no vertices either until edges are loaded
+    
+    // If graph is truly empty, we can't test much
+    // Let's test a graph with vertices but no edges
+    vector<copyable_edge_t<int, int>> edges_data = {};
+    g.load_edges(edges_data);
+    
+    // No edges exist in empty graph
+    // Note: empty graph may have 0 vertices, so this test may not be meaningful
+    // But if we had vertices, none would have edges
+}
+
+TEST_CASE("contains_edge(g, u, v) with linear chain", "[contains_edge][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 10}, {1, 2, 20}, {2, 3, 30}, {3, 4, 40}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    // Forward edges exist
+    REQUIRE(contains_edge(g, 0, 1) == true);
+    REQUIRE(contains_edge(g, 1, 2) == true);
+    REQUIRE(contains_edge(g, 2, 3) == true);
+    REQUIRE(contains_edge(g, 3, 4) == true);
+    
+    // Reverse edges don't exist
+    REQUIRE(contains_edge(g, 1, 0) == false);
+    REQUIRE(contains_edge(g, 2, 1) == false);
+    REQUIRE(contains_edge(g, 3, 2) == false);
+    REQUIRE(contains_edge(g, 4, 3) == false);
+    
+    // Skip edges don't exist
+    REQUIRE(contains_edge(g, 0, 2) == false);
+    REQUIRE(contains_edge(g, 0, 3) == false);
+    REQUIRE(contains_edge(g, 1, 3) == false);
+    REQUIRE(contains_edge(g, 2, 4) == false);
+}
+
+TEST_CASE("contains_edge(g, u, v) with star graph", "[contains_edge][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    // Star graph with center at vertex 0
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 10}, {0, 2, 20}, {0, 3, 30}, {0, 4, 40}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    // Center has edges to all spokes
+    REQUIRE(contains_edge(g, 0, 1) == true);
+    REQUIRE(contains_edge(g, 0, 2) == true);
+    REQUIRE(contains_edge(g, 0, 3) == true);
+    REQUIRE(contains_edge(g, 0, 4) == true);
+    
+    // Spokes have no edges to each other
+    REQUIRE(contains_edge(g, 1, 2) == false);
+    REQUIRE(contains_edge(g, 1, 3) == false);
+    REQUIRE(contains_edge(g, 2, 3) == false);
+    REQUIRE(contains_edge(g, 2, 4) == false);
+    
+    // Spokes have no edges back to center
+    REQUIRE(contains_edge(g, 1, 0) == false);
+    REQUIRE(contains_edge(g, 2, 0) == false);
+    REQUIRE(contains_edge(g, 3, 0) == false);
+    REQUIRE(contains_edge(g, 4, 0) == false);
+}
+
+TEST_CASE("contains_edge(g, u, v) with bidirectional edges", "[contains_edge][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 10}, {1, 0, 15},
+        {1, 2, 20}, {2, 1, 25}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    auto v0 = *find_vertex(g, 0);
+    auto v1 = *find_vertex(g, 1);
+    auto v2 = *find_vertex(g, 2);
+    
+    // Both directions exist
+    REQUIRE(contains_edge(g, v0, v1) == true);
+    REQUIRE(contains_edge(g, v1, v0) == true);
+    REQUIRE(contains_edge(g, v1, v2) == true);
+    REQUIRE(contains_edge(g, v2, v1) == true);
+    REQUIRE(contains_edge(g, 0, 1) == true);
+    REQUIRE(contains_edge(g, 1, 0) == true);
+    REQUIRE(contains_edge(g, 1, 2) == true);
+    REQUIRE(contains_edge(g, 2, 1) == true);
+    
+    // But not the third edge
+    REQUIRE(contains_edge(g, v0, v2) == false);
+    REQUIRE(contains_edge(g, v2, v0) == false);
+}
+
+TEST_CASE("contains_edge(g, u, v) with high degree vertex", "[contains_edge][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 1}, {0, 2, 1}, {0, 3, 1}, {0, 4, 1},
+        {0, 5, 1}, {0, 6, 1}, {0, 7, 1}, {0, 8, 1}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    // Vertex 0 has edges to vertices 1-8
+    for (size_t i = 1; i <= 8; ++i) {
+        REQUIRE(contains_edge(g, 0, i) == true);
+    }
+    
+    // But not to any other vertex (if it existed)
+    // And none of the target vertices have edges back
+    for (size_t i = 1; i <= 8; ++i) {
+        REQUIRE(contains_edge(g, i, 0) == false);
+    }
+}
