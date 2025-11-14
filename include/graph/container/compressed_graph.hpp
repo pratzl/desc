@@ -1256,6 +1256,24 @@ public: // Friend functions
     auto edge_idx = uv.value();
     return g.col_index_[edge_idx].index;
   }
+
+  /**
+   * @brief Get the total number of edges in the graph
+   * 
+   * Returns the total count of edges in the compressed sparse row structure.
+   * For compressed_graph, this is simply the size of col_index_, which stores
+   * one entry per edge.
+   * 
+   * @param g The graph (forwarding reference)
+   * @return The total number of edges
+   * @note Complexity: O(1) - direct size access
+   * @note This is the ADL customization point for the num_edges(g) CPO
+  */
+  template<typename G>
+    requires std::derived_from<std::remove_cvref_t<G>, compressed_graph_base>
+  [[nodiscard]] friend constexpr auto num_edges(G&& g) noexcept {
+    return static_cast<size_type>(g.col_index_.size());
+  }
 };
 
 
