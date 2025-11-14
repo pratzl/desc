@@ -1157,14 +1157,18 @@ public: // Friend functions
         typename row_index_vector::iterator
     >;
     using edge_desc_view = edge_descriptor_view<edge_iter_type, vertex_iter_type>;
+    using vertex_desc = vertex_descriptor<vertex_iter_type>;
     
     // Get the vertex ID from the descriptor
     auto vertex_id = static_cast<std::size_t>(u.vertex_id());
     
+    // Create a vertex descriptor with the correct iterator type for this graph
+    vertex_desc source_vd(vertex_id);
+    
     // Check bounds
     if (vertex_id >= g.size()) {
       // Return empty view
-      return edge_desc_view(0, 0, u);
+      return edge_desc_view(static_cast<std::size_t>(0), static_cast<std::size_t>(0), source_vd);
     }
     
     // Get the edge range for this vertex from row_index_
@@ -1172,7 +1176,7 @@ public: // Friend functions
     auto end_idx = static_cast<std::size_t>(g.row_index_[vertex_id + 1].index);
     
     // Return view over the edge range
-    return edge_desc_view(start_idx, end_idx, u);
+    return edge_desc_view(start_idx, end_idx, source_vd);
   }
 };
 
