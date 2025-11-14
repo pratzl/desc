@@ -19,6 +19,14 @@
 //  allow separation of construction and load
 //  allow multiple calls to load edges as long as subsequent edges have uid >= last vertex (append)
 //  VId must be large enough for the total edges and the total vertices.
+//  
+// API Design:
+//  - vertex_ids() returns iota view of all vertex IDs [0, size())
+//  - edge_ids() returns iota view of all edge IDs [0, total_edges)
+//  - edge_ids(vertex_id) returns iota view of edge IDs for specific vertex
+//  - Vertex ID validity: check with id < g.size() (no find_vertex() needed)
+//  - operator[] accesses edge values by edge ID (only when EV != void)
+//  - Direct access via vertex_value(id), edge_value(id), target_id(id)
 
 namespace graph::container {
 
@@ -370,6 +378,14 @@ public: // Operations
 /**
  * @ingroup graph_containers
  * @brief Base class for compressed sparse row adjacency graph
+ * 
+ * This is a static CSR (Compressed Sparse Row) graph structure optimized for read-heavy operations.
+ * The graph is loaded once and provides efficient random access to vertices and edges.
+ * 
+ * Key Access Patterns:
+ * - Vertex access: Use vertex_ids() for all vertices, check validity with id < size()
+ * - Edge access: Use edge_ids() for all edges, edge_ids(vid) for per-vertex edges
+ * - Direct data access: vertex_value(id), edge_value(id), target_id(id), operator[](edge_id)
  * 
  * For constructors that accept a partition function, the function must return a partition id for a vertex id.
  * When used, the range of input edges must be ordered by the partition id they're in. Partions may be skipped
