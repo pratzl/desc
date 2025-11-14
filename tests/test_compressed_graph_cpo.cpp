@@ -790,3 +790,177 @@ TEST_CASE("find_vertex(g,uid) with string vertex values", "[find_vertex][api]") 
         REQUIRE(g.vertex_value(vertex_id(g, *v_iter)) == "Charlie");
     }
 }
+
+// =============================================================================
+// target_id(g, uv) CPO Tests
+// =============================================================================
+
+TEST_CASE("target_id(g,uv) returns correct target ID", "[target_id][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 10}, {0, 2, 20}, {1, 2, 30}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    SECTION("edges from vertex 0") {
+        auto v = vertices(g);
+        auto v0 = *v.begin();
+        auto e = edges(g, v0);
+        
+        auto it = e.begin();
+        REQUIRE(target_id(g, *it) == 1);
+        ++it;
+        REQUIRE(target_id(g, *it) == 2);
+    }
+    
+    SECTION("edges from vertex 1") {
+        auto v = vertices(g);
+        auto it = v.begin();
+        ++it;
+        auto v1 = *it;
+        auto e = edges(g, v1);
+        
+        auto e_it = e.begin();
+        REQUIRE(target_id(g, *e_it) == 2);
+    }
+}
+
+TEST_CASE("target_id(g,uv) with const graph", "[target_id][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 10}, {0, 2, 20}
+    };
+    
+    Graph g_temp;
+    g_temp.load_edges(edges_data);
+    const Graph g = std::move(g_temp);
+    
+    auto v = vertices(g);
+    auto v0 = *v.begin();
+    auto e = edges(g, v0);
+    
+    vector<int> targets;
+    for (auto ed : e) {
+        targets.push_back(target_id(g, ed));
+    }
+    
+    REQUIRE(targets == vector<int>{1, 2});
+}
+
+TEST_CASE("target_id(g,uv) with void edge values", "[target_id][api]") {
+    using Graph = compressed_graph<void, int, void>;
+    vector<copyable_edge_t<int, void>> edges_data = {
+        {0, 1}, {0, 2}, {0, 3}, {1, 2}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    auto v = vertices(g);
+    auto v0 = *v.begin();
+    auto e = edges(g, v0);
+    
+    vector<int> targets;
+    for (auto ed : e) {
+        targets.push_back(target_id(g, ed));
+    }
+    
+    REQUIRE(targets == vector<int>{1, 2, 3});
+}
+
+TEST_CASE("target_id(g,uv) with self-loops", "[target_id][api]") {
+    using Graph = compressed_graph<int, void, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 0, 5}, {0, 1, 10}, {1, 1, 15}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    SECTION("vertex 0 with self-loop") {
+        auto v = vertices(g);
+        auto v0 = *v.begin();
+        auto e = edges(g, v0);
+        
+        vector<int> targets;
+        for (auto ed : e) {
+            targets.push_back(target_id(g, ed));
+        }
+        REQUIRE(targets == vector<int>{0, 1});
+    }
+    
+    SECTION("vertex 1 with self-loop") {
+        auto v = vertices(g);
+        auto it = v.begin();
+        ++it;
+        auto v1 = *it;
+        auto e = edges(g, v1);
+        
+        auto e_it = e.begin();
+        REQUIRE(target_id(g, *e_it) == 1);
+    }
+}
+
+TEST_CASE("target_id(g,uv) all edges in graph", "[target_id][api]") {
+    using Graph = compressed_graph<int, void, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 10}, {1, 2, 20}, {2, 3, 30}, {3, 0, 40}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    // Collect all edge targets by iterating through all vertices
+    vector<int> all_targets;
+    for (auto vd : vertices(g)) {
+        for (auto ed : edges(g, vd)) {
+            all_targets.push_back(target_id(g, ed));
+        }
+    }
+    
+    REQUIRE(all_targets == vector<int>{1, 2, 3, 0});
+}
+
+TEST_CASE("target_id(g,uv) with string edge values", "[target_id][api]") {
+    using Graph = compressed_graph<string, void, void>;
+    vector<copyable_edge_t<int, string>> edges_data = {
+        {0, 1, "edge_a"}, {0, 2, "edge_b"}, {1, 2, "edge_c"}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    auto v = vertices(g);
+    auto v0 = *v.begin();
+    auto e = edges(g, v0);
+    
+    // Verify target_id works independently of edge value type
+    vector<int> targets;
+    for (auto ed : e) {
+        targets.push_back(target_id(g, ed));
+    }
+    
+    REQUIRE(targets == vector<int>{1, 2});
+}
+
+TEST_CASE("target_id(g,uv) consistency with direct access", "[target_id][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 10}, {0, 2, 20}, {1, 3, 30}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    // Compare CPO target_id(g, uv) with direct g.target_id(edge_id)
+    auto v = vertices(g);
+    auto v0 = *v.begin();
+    auto e = edges(g, v0);
+    
+    for (auto ed : e) {
+        auto edge_idx = ed.value();
+        REQUIRE(target_id(g, ed) == g.target_id(edge_idx));
+    }
+}

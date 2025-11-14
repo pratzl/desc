@@ -1205,6 +1205,27 @@ public: // Friend functions
     // Return view over the edge range
     return edge_desc_view(start_idx, end_idx, source_vd);
   }
+
+  /**
+   * @brief Get the target vertex ID from an edge descriptor
+   * 
+   * Returns the target vertex ID for the given edge descriptor. For compressed_graph,
+   * the edge descriptor's value() method returns the edge index into col_index_,
+   * which stores the target vertex IDs.
+   * 
+   * @param g The graph (forwarding reference)
+   * @param uv The edge descriptor
+   * @return The target vertex ID
+   * @note Complexity: O(1) - direct indexed access
+   * @note No bounds checking is performed; edge descriptor must be valid
+  */
+  template<typename G, typename EdgeDesc>
+    requires std::derived_from<std::remove_cvref_t<G>, compressed_graph_base>
+  [[nodiscard]] friend constexpr auto target_id(G&& g, const EdgeDesc& uv) noexcept {
+    // Edge descriptor's value() returns the edge index into col_index_
+    auto edge_idx = uv.value();
+    return g.col_index_[edge_idx].index;
+  }
 };
 
 
