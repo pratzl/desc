@@ -13,6 +13,7 @@
 #include "graph/detail/graph_using.hpp"
 #include "graph/graph_info.hpp"
 #include "graph/graph.hpp"
+#include "graph/descriptor_traits.hpp"
 #include "graph/vertex_descriptor_view.hpp"
 #include "graph/edge_descriptor_view.hpp"
 
@@ -1154,6 +1155,23 @@ public: // Friend functions
     
     // Construct iterator directly from the vertex ID (which is the storage_type)
     return vertex_desc_iterator{uid};
+  }
+
+  /**
+   * @brief Get the vertex ID from a vertex descriptor
+   * 
+   * Returns the vertex ID for the given vertex descriptor. For compressed_graph,
+   * vertex IDs are sequential indices [0, size()).
+   * 
+   * @param g The graph (forwarding reference) - unused but required by CPO signature
+   * @param u The vertex descriptor
+   * @return The vertex ID
+   * @note Complexity: O(1) - direct access to stored ID
+  */
+  template<typename G, vertex_descriptor_type VertexDesc>
+    requires std::derived_from<std::remove_cvref_t<G>, compressed_graph_base>
+  [[nodiscard]] friend constexpr auto vertex_id([[maybe_unused]] G&& g, const VertexDesc& u) noexcept {
+    return u.vertex_id();
   }
 
   /**
