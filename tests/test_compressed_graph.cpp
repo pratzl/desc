@@ -320,6 +320,125 @@ TEST_CASE("compressed_graph operator subscript accesses edge values by index", "
     REQUIRE(g[0] == 15);
 }
 
+TEST_CASE("compressed_graph graph_value() accesses graph value", "[api][graph_value]") {
+    SECTION("int graph value") {
+        compressed_graph<void, void, int> g(42);
+        
+        // Test const accessor
+        const auto& cg = g;
+        REQUIRE(cg.graph_value() == 42);
+        
+        // Test non-const accessor
+        REQUIRE(g.graph_value() == 42);
+        
+        // Test mutability
+        g.graph_value() = 100;
+        REQUIRE(g.graph_value() == 100);
+        REQUIRE(cg.graph_value() == 100);
+    }
+    
+    SECTION("string graph value") {
+        compressed_graph<void, void, string> g(string("initial"));
+        
+        REQUIRE(g.graph_value() == "initial");
+        
+        // Test modification
+        g.graph_value() = "modified";
+        REQUIRE(g.graph_value() == "modified");
+        
+        // Test const correctness
+        const auto& cg = g;
+        REQUIRE(cg.graph_value() == "modified");
+    }
+    
+    SECTION("double graph value") {
+        compressed_graph<void, void, double> g(3.14);
+        
+        REQUIRE(g.graph_value() == 3.14);
+        
+        g.graph_value() = 2.71;
+        REQUIRE(g.graph_value() == 2.71);
+    }
+    
+    SECTION("graph_value() and value() are equivalent") {
+        compressed_graph<void, void, int> g(999);
+        
+        REQUIRE(g.graph_value() == g.value());
+        REQUIRE(g.graph_value() == 999);
+        
+        g.graph_value() = 111;
+        REQUIRE(g.value() == 111);
+        REQUIRE(g.graph_value() == g.value());
+        
+        g.value() = 222;
+        REQUIRE(g.graph_value() == 222);
+        REQUIRE(g.graph_value() == g.value());
+    }
+    
+    SECTION("graph_value() with edges and vertices") {
+        compressed_graph<int, int, string> g(string("metadata"));
+        
+        vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}, {1, 2, 20}};
+        g.load_edges(edges);
+        
+        vector<copyable_vertex_t<int, int>> vertices = {{0, 100}, {1, 200}, {2, 300}};
+        g.load_vertices(vertices);
+        
+        REQUIRE(g.graph_value() == "metadata");
+        REQUIRE(g.size() == 3);
+        
+        // Modify graph value independently
+        g.graph_value() = "updated";
+        REQUIRE(g.graph_value() == "updated");
+        REQUIRE(g.size() == 3); // Structure unchanged
+    }
+}
+
+TEST_CASE("compressed_graph graph_value() with copy and move", "[api][graph_value][copy][move]") {
+    SECTION("copy preserves graph_value") {
+        compressed_graph<void, void, int> g1(42);
+        vector<copyable_edge_t<int, void>> edges = {{0, 1}, {1, 2}};
+        g1.load_edges(edges);
+        
+        compressed_graph<void, void, int> g2(g1);
+        
+        REQUIRE(g2.graph_value() == 42);
+        REQUIRE(g2.size() == g1.size());
+        
+        // Modify copy's graph value
+        g2.graph_value() = 100;
+        REQUIRE(g2.graph_value() == 100);
+        REQUIRE(g1.graph_value() == 42); // Original unchanged
+    }
+    
+    SECTION("move transfers graph_value") {
+        compressed_graph<void, void, string> g1(string("original"));
+        vector<copyable_edge_t<int, void>> edges = {{0, 1}, {1, 2}};
+        g1.load_edges(edges);
+        
+        compressed_graph<void, void, string> g2(std::move(g1));
+        
+        REQUIRE(g2.graph_value() == "original");
+    }
+    
+    SECTION("copy assignment preserves graph_value") {
+        compressed_graph<void, void, int> g1(42);
+        compressed_graph<void, void, int> g2(999);
+        
+        g2 = g1;
+        REQUIRE(g2.graph_value() == 42);
+        REQUIRE(g1.graph_value() == 42);
+    }
+    
+    SECTION("move assignment transfers graph_value") {
+        compressed_graph<void, void, string> g1(string("source"));
+        compressed_graph<void, void, string> g2(string("dest"));
+        
+        g2 = std::move(g1);
+        REQUIRE(g2.graph_value() == "source");
+    }
+}
+
 // =============================================================================
 // Category 5: Boundary Condition Tests
 // =============================================================================
