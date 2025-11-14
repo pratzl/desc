@@ -1394,3 +1394,612 @@ TEST_CASE("num_vertices(g) consistency with vertices(g)", "[num_vertices][api]")
     REQUIRE(count == manual_count);
     REQUIRE(count == 5);
 }
+
+// =============================================================================
+// num_edges(g) CPO Tests
+// =============================================================================
+
+TEST_CASE("num_edges(g) returns edge count", "[num_edges][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {0, 2, 20}, {1, 2, 30}, {2, 3, 40}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto count = num_edges(g);
+    REQUIRE(count == 4);
+}
+
+TEST_CASE("num_edges(g) works with const graph", "[num_edges][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {1, 2, 20}, {2, 3, 30}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    const Graph& cg = g;
+    auto count = num_edges(cg);
+    REQUIRE(count == 3);
+}
+
+TEST_CASE("num_edges(g) with empty graph", "[num_edges][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    
+    Graph g;
+    auto count = num_edges(g);
+    REQUIRE(count == 0);
+}
+
+TEST_CASE("num_edges(g) with single edge", "[num_edges][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto count = num_edges(g);
+    REQUIRE(count == 1);
+}
+
+TEST_CASE("num_edges(g) with self-loop", "[num_edges][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 0, 10}, {0, 1, 20}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto count = num_edges(g);
+    REQUIRE(count == 2);
+}
+
+TEST_CASE("num_edges(g) with void edge values", "[num_edges][api]") {
+    using Graph = compressed_graph<void, int, void>;
+    vector<copyable_edge_t<int, void>> edges = {
+        {0, 1}, {1, 2}, {2, 3}, {3, 4}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto count = num_edges(g);
+    REQUIRE(count == 4);
+}
+
+TEST_CASE("num_edges(g) with void vertex values", "[num_edges][api]") {
+    using Graph = compressed_graph<int, void, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {1, 2, 20}, {2, 0, 30}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto count = num_edges(g);
+    REQUIRE(count == 3);
+}
+
+TEST_CASE("num_edges(g) with string values", "[num_edges][api]") {
+    using Graph = compressed_graph<string, string, void>;
+    vector<copyable_edge_t<int, string>> edges = {
+        {0, 1, "edge_a"}, {1, 2, "edge_b"}, {2, 3, "edge_c"}
+    };
+    vector<copyable_vertex_t<int, string>> vertices = {
+        {0, "Alice"}, {1, "Bob"}, {2, "Charlie"}, {3, "David"}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    g.load_vertices(vertices);
+    
+    auto count = num_edges(g);
+    REQUIRE(count == 3);
+}
+
+TEST_CASE("num_edges(g) with large graph", "[num_edges][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    
+    // Create graph with 1000 edges
+    vector<copyable_edge_t<int, int>> edges;
+    for (int i = 0; i < 1000; ++i) {
+        edges.push_back({i, i + 1, i});
+    }
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto count = num_edges(g);
+    REQUIRE(count == 1000);
+}
+
+TEST_CASE("num_edges(g) with multiple edges per vertex", "[num_edges][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {0, 2, 20}, {0, 3, 30},
+        {1, 2, 40}, {1, 3, 50},
+        {2, 3, 60}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto count = num_edges(g);
+    REQUIRE(count == 6);
+}
+
+TEST_CASE("num_edges(g) return type is integral", "[num_edges][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto count = num_edges(g);
+    static_assert(std::integral<decltype(count)>, "num_edges must return integral type");
+    REQUIRE(count == 1);
+}
+
+TEST_CASE("num_edges(g) consistency with edge iteration", "[num_edges][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 10}, {0, 2, 20}, {1, 2, 30}, {2, 3, 40}, {3, 4, 50}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    auto count = num_edges(g);
+    
+    // Count edges manually by iterating through all vertices
+    size_t manual_count = 0;
+    for (auto v : vertices(g)) {
+        auto e = edges(g, v);
+        for ([[maybe_unused]] auto ed : e) {
+            ++manual_count;
+        }
+    }
+    
+    REQUIRE(count == manual_count);
+    REQUIRE(count == 5);
+}
+
+TEST_CASE("num_edges(g) with disconnected components", "[num_edges][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {1, 2, 20},  // Component 1
+        {3, 4, 30}, {4, 5, 40}   // Component 2
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto count = num_edges(g);
+    REQUIRE(count == 4);
+}
+
+TEST_CASE("num_edges(g) efficiency test - uses ADL not default", "[num_edges][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    
+    // Create a larger graph to ensure ADL version is used (O(1))
+    // rather than default iteration (O(V+E))
+    vector<copyable_edge_t<int, int>> edges;
+    for (int i = 0; i < 500; ++i) {
+        edges.push_back({i, i + 1, i});
+        edges.push_back({i, i + 2, i + 1000});
+    }
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    // This should be O(1) using the ADL friend function
+    auto count = num_edges(g);
+    REQUIRE(count == 1000);
+    
+    // Verify it matches edge_ids() size (which accesses col_index_.size())
+    auto edge_id_count = std::ranges::distance(g.edge_ids());
+    REQUIRE(count == static_cast<size_t>(edge_id_count));
+}
+
+// =============================================================================
+// degree(g,u) and degree(g,uid) CPO Tests
+// =============================================================================
+
+TEST_CASE("degree(g,u) returns edge count for vertex descriptor", "[degree][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {0, 2, 20}, {0, 3, 30},
+        {1, 2, 40},
+        {2, 3, 50}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto v = vertices(g);
+    auto v0 = *v.begin();
+    auto deg = degree(g, v0);
+    REQUIRE(deg == 3); // vertex 0 has 3 outgoing edges
+}
+
+TEST_CASE("degree(g,uid) returns edge count for vertex ID", "[degree][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {0, 2, 20}, {0, 3, 30},
+        {1, 2, 40},
+        {2, 3, 50}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto deg0 = degree(g, 0);
+    auto deg1 = degree(g, 1);
+    auto deg2 = degree(g, 2);
+    
+    REQUIRE(deg0 == 3);
+    REQUIRE(deg1 == 1);
+    REQUIRE(deg2 == 1);
+}
+
+TEST_CASE("degree(g,u) and degree(g,uid) consistency", "[degree][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {0, 2, 20},
+        {1, 2, 30}, {1, 3, 40}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    // Compare degree via descriptor and via ID
+    auto v = vertices(g);
+    for (auto vd : v) {
+        auto vid = vertex_id(g, vd);
+        auto deg_desc = degree(g, vd);
+        auto deg_id = degree(g, vid);
+        REQUIRE(deg_desc == deg_id);
+    }
+}
+
+TEST_CASE("degree(g,u) works with const graph", "[degree][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {0, 2, 20}, {1, 2, 30}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    const Graph& cg = g;
+    auto v = vertices(cg);
+    auto v0 = *v.begin();
+    auto deg = degree(cg, v0);
+    REQUIRE(deg == 2);
+}
+
+TEST_CASE("degree(g,uid) works with const graph", "[degree][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {0, 2, 20}, {1, 2, 30}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    const Graph& cg = g;
+    auto deg = degree(cg, 0);
+    REQUIRE(deg == 2);
+}
+
+TEST_CASE("degree(g,u) with zero degree vertex", "[degree][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {1, 2, 20}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto v = vertices(g);
+    auto v_iter = v.begin();
+    ++v_iter; ++v_iter; // vertex 2
+    auto v2 = *v_iter;
+    auto deg = degree(g, v2);
+    REQUIRE(deg == 0); // vertex 2 has no outgoing edges
+}
+
+TEST_CASE("degree(g,uid) with zero degree vertex", "[degree][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {1, 2, 20}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto deg = degree(g, 2);
+    REQUIRE(deg == 0); // vertex 2 has no outgoing edges
+}
+
+TEST_CASE("degree(g,u) with self-loop", "[degree][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 0, 10}, {0, 1, 20}, {0, 2, 30}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto v = vertices(g);
+    auto v0 = *v.begin();
+    auto deg = degree(g, v0);
+    REQUIRE(deg == 3); // self-loop counts as one edge
+}
+
+TEST_CASE("degree(g,uid) with self-loop", "[degree][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 0, 10}, {0, 1, 20}, {0, 2, 30}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto deg = degree(g, 0);
+    REQUIRE(deg == 3); // self-loop counts as one edge
+}
+
+TEST_CASE("degree(g,u) with void edge values", "[degree][api]") {
+    using Graph = compressed_graph<void, int, void>;
+    vector<copyable_edge_t<int, void>> edges = {
+        {0, 1}, {0, 2}, {1, 2}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto v = vertices(g);
+    auto v0 = *v.begin();
+    auto deg = degree(g, v0);
+    REQUIRE(deg == 2);
+}
+
+TEST_CASE("degree(g,uid) with void edge values", "[degree][api]") {
+    using Graph = compressed_graph<void, int, void>;
+    vector<copyable_edge_t<int, void>> edges = {
+        {0, 1}, {0, 2}, {1, 2}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto deg = degree(g, 0);
+    REQUIRE(deg == 2);
+}
+
+TEST_CASE("degree(g,u) with void vertex values", "[degree][api]") {
+    using Graph = compressed_graph<int, void, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {0, 2, 20}, {1, 2, 30}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto v = vertices(g);
+    auto v1 = *++v.begin();
+    auto deg = degree(g, v1);
+    REQUIRE(deg == 1);
+}
+
+TEST_CASE("degree(g,uid) with void vertex values", "[degree][api]") {
+    using Graph = compressed_graph<int, void, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {0, 2, 20}, {1, 2, 30}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto deg = degree(g, 1);
+    REQUIRE(deg == 1);
+}
+
+TEST_CASE("degree(g,u) with string values", "[degree][api]") {
+    using Graph = compressed_graph<string, string, void>;
+    vector<copyable_edge_t<int, string>> edges = {
+        {0, 1, "edge_a"}, {0, 2, "edge_b"}, {1, 2, "edge_c"}
+    };
+    vector<copyable_vertex_t<int, string>> vertices_data = {
+        {0, "Alice"}, {1, "Bob"}, {2, "Charlie"}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    g.load_vertices(vertices_data);
+    
+    auto v = vertices(g);
+    auto v0 = *v.begin();
+    auto deg = degree(g, v0);
+    REQUIRE(deg == 2);
+}
+
+TEST_CASE("degree(g,uid) with string values", "[degree][api]") {
+    using Graph = compressed_graph<string, string, void>;
+    vector<copyable_edge_t<int, string>> edges = {
+        {0, 1, "edge_a"}, {0, 2, "edge_b"}, {1, 2, "edge_c"}
+    };
+    vector<copyable_vertex_t<int, string>> vertices_data = {
+        {0, "Alice"}, {1, "Bob"}, {2, "Charlie"}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    g.load_vertices(vertices_data);
+    
+    auto deg = degree(g, 0);
+    REQUIRE(deg == 2);
+}
+
+TEST_CASE("degree(g,u) return type is integral", "[degree][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {0, 2, 20}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto v = vertices(g);
+    auto v0 = *v.begin();
+    auto deg = degree(g, v0);
+    static_assert(std::integral<decltype(deg)>, "degree must return integral type");
+    REQUIRE(deg == 2);
+}
+
+TEST_CASE("degree(g,uid) return type is integral", "[degree][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {0, 2, 20}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto deg = degree(g, 0);
+    static_assert(std::integral<decltype(deg)>, "degree must return integral type");
+    REQUIRE(deg == 2);
+}
+
+TEST_CASE("degree(g,u) with various vertex degrees", "[degree][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {0, 2, 20}, {0, 3, 30}, {0, 4, 40}, // vertex 0: degree 4
+        {1, 2, 50}, {1, 3, 60}, {1, 4, 70},              // vertex 1: degree 3
+        {2, 3, 80}, {2, 4, 90},                          // vertex 2: degree 2
+        {3, 4, 100}                                      // vertex 3: degree 1
+                                                         // vertex 4: degree 0
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    vector<size_t> degrees;
+    for (auto v : vertices(g)) {
+        degrees.push_back(degree(g, v));
+    }
+    
+    REQUIRE(degrees == vector<size_t>{4, 3, 2, 1, 0});
+}
+
+TEST_CASE("degree(g,uid) with various vertex degrees", "[degree][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {0, 2, 20}, {0, 3, 30}, {0, 4, 40}, // vertex 0: degree 4
+        {1, 2, 50}, {1, 3, 60}, {1, 4, 70},              // vertex 1: degree 3
+        {2, 3, 80}, {2, 4, 90},                          // vertex 2: degree 2
+        {3, 4, 100}                                      // vertex 3: degree 1
+                                                         // vertex 4: degree 0
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    REQUIRE(degree(g, 0) == 4);
+    REQUIRE(degree(g, 1) == 3);
+    REQUIRE(degree(g, 2) == 2);
+    REQUIRE(degree(g, 3) == 1);
+    REQUIRE(degree(g, 4) == 0);
+}
+
+TEST_CASE("degree(g,u) consistency with edges(g,u)", "[degree][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 10}, {0, 2, 20}, {0, 3, 30},
+        {1, 2, 40}, {1, 3, 50},
+        {2, 3, 60}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    for (auto v : vertices(g)) {
+        auto deg = degree(g, v);
+        auto e = edges(g, v);
+        size_t manual_count = 0;
+        for ([[maybe_unused]] auto ed : e) {
+            ++manual_count;
+        }
+        REQUIRE(deg == manual_count);
+    }
+}
+
+TEST_CASE("degree(g,uid) consistency with edges(g,u)", "[degree][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 10}, {0, 2, 20}, {0, 3, 30},
+        {1, 2, 40}, {1, 3, 50},
+        {2, 3, 60}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    for (size_t vid = 0; vid < g.size(); ++vid) {
+        auto deg = degree(g, vid);
+        auto v_desc = *find_vertex(g, vid);
+        auto e = edges(g, v_desc);
+        size_t manual_count = 0;
+        for ([[maybe_unused]] auto ed : e) {
+            ++manual_count;
+        }
+        REQUIRE(deg == manual_count);
+    }
+}
+
+TEST_CASE("degree(g,u) with disconnected components", "[degree][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {1, 2, 20},  // Component 1
+        {3, 4, 30}, {4, 5, 40}   // Component 2
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto v = vertices(g);
+    auto v_iter = v.begin();
+    REQUIRE(degree(g, *v_iter) == 1);     // vertex 0
+    REQUIRE(degree(g, *(++v_iter)) == 1); // vertex 1
+    REQUIRE(degree(g, *(++v_iter)) == 0); // vertex 2
+    REQUIRE(degree(g, *(++v_iter)) == 1); // vertex 3
+    REQUIRE(degree(g, *(++v_iter)) == 1); // vertex 4
+    REQUIRE(degree(g, *(++v_iter)) == 0); // vertex 5
+}
+
+TEST_CASE("degree(g,uid) with disconnected components", "[degree][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {1, 2, 20},  // Component 1
+        {3, 4, 30}, {4, 5, 40}   // Component 2
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    REQUIRE(degree(g, 0) == 1);
+    REQUIRE(degree(g, 1) == 1);
+    REQUIRE(degree(g, 2) == 0);
+    REQUIRE(degree(g, 3) == 1);
+    REQUIRE(degree(g, 4) == 1);
+    REQUIRE(degree(g, 5) == 0);
+}
