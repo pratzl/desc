@@ -1130,6 +1130,33 @@ public: // Friend functions
   }
 
   /**
+   * @brief Find a vertex by its ID
+   * 
+   * Returns an iterator to the vertex descriptor for the given vertex ID.
+   * For compressed_graph, vertex IDs are sequential indices [0, size()).
+   * 
+   * @param g The graph to search in (forwarding reference)
+   * @param uid The vertex ID to find
+   * @return Iterator to the vertex descriptor at position uid
+   * @note Complexity: O(1) - direct indexed access
+   * @note No bounds checking is performed; uid must be valid
+  */
+  template<typename G>
+    requires std::derived_from<std::remove_cvref_t<G>, compressed_graph_base>
+  [[nodiscard]] friend constexpr auto find_vertex(G&& g, vertex_id_type uid) noexcept {
+    using vertex_iter_type = std::conditional_t<
+        std::is_const_v<std::remove_reference_t<G>>,
+        typename row_index_vector::const_iterator,
+        typename row_index_vector::iterator
+    >;
+    using vertex_desc_view = vertex_descriptor_view<vertex_iter_type>;
+    using vertex_desc_iterator = typename vertex_desc_view::iterator;
+    
+    // Construct iterator directly from the vertex ID (which is the storage_type)
+    return vertex_desc_iterator{uid};
+  }
+
+  /**
    * @brief Get a view of all edges for a specific vertex.
    * 
    * Returns an edge_descriptor_view that iterates over all outgoing edges from the

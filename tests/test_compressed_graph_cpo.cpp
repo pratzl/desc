@@ -609,3 +609,184 @@ TEST_CASE("vertex_id(g,u) with const graph", "[vertex_id][api]") {
     ++it;
     REQUIRE(vertex_id(g, *it) == 2);
 }
+
+// =============================================================================
+// find_vertex(g, uid) CPO Tests
+// =============================================================================
+
+TEST_CASE("find_vertex(g,uid) finds vertex by ID", "[find_vertex][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {{0, 1, 10}, {1, 2, 20}};
+    vector<copyable_vertex_t<int, int>> vertex_values = {{0, 100}, {1, 200}, {2, 300}};
+    
+    Graph g;
+    g.load_edges(edges_data);
+    g.load_vertices(vertex_values);
+    
+    SECTION("find vertex 0") {
+        auto v_iter = find_vertex(g, 0);
+        REQUIRE(vertex_id(g, *v_iter) == 0);
+        REQUIRE(g.vertex_value(vertex_id(g, *v_iter)) == 100);
+    }
+    
+    SECTION("find vertex 1") {
+        auto v_iter = find_vertex(g, 1);
+        REQUIRE(vertex_id(g, *v_iter) == 1);
+        REQUIRE(g.vertex_value(vertex_id(g, *v_iter)) == 200);
+    }
+    
+    SECTION("find vertex 2") {
+        auto v_iter = find_vertex(g, 2);
+        REQUIRE(vertex_id(g, *v_iter) == 2);
+        REQUIRE(g.vertex_value(vertex_id(g, *v_iter)) == 300);
+    }
+}
+
+TEST_CASE("find_vertex(g,uid) with const graph", "[find_vertex][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {{0, 1, 10}, {1, 2, 20}};
+    vector<copyable_vertex_t<int, int>> vertex_values = {{0, 100}, {1, 200}, {2, 300}};
+    
+    Graph g_temp;
+    g_temp.load_edges(edges_data);
+    g_temp.load_vertices(vertex_values);
+    const Graph g = std::move(g_temp);
+    
+    auto v_iter = find_vertex(g, 1);
+    REQUIRE(vertex_id(g, *v_iter) == 1);
+    REQUIRE(g.vertex_value(vertex_id(g, *v_iter)) == 200);
+}
+
+TEST_CASE("find_vertex(g,uid) with void vertex values", "[find_vertex][api]") {
+    using Graph = compressed_graph<int, void, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {{0, 1, 10}, {1, 2, 20}, {2, 3, 30}};
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    SECTION("find first vertex") {
+        auto v_iter = find_vertex(g, 0);
+        auto verts = vertices(g);
+        REQUIRE(v_iter == verts.begin());
+    }
+    
+    SECTION("find middle vertex") {
+        auto v_iter = find_vertex(g, 2);
+        auto verts = vertices(g);
+        auto expected = verts.begin();
+        ++expected;
+        ++expected;
+        REQUIRE(v_iter == expected);
+    }
+    
+    SECTION("find last vertex") {
+        auto v_iter = find_vertex(g, 3);
+        auto verts = vertices(g);
+        auto expected = verts.begin();
+        ++expected;
+        ++expected;
+        ++expected;
+        REQUIRE(v_iter == expected);
+    }
+}
+
+TEST_CASE("find_vertex(g,uid) can access edges", "[find_vertex][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 10}, {0, 2, 20}, {1, 3, 30}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    // Find vertex 0 and iterate its edges
+    auto v0_iter = find_vertex(g, 0);
+    auto e = edges(g, *v0_iter);
+    
+    vector<int> targets;
+    vector<int> values;
+    for (auto ed : e) {
+        targets.push_back(g.target_id(ed.value()));
+        values.push_back(g.edge_value(ed.value()));
+    }
+    
+    REQUIRE(targets == vector<int>{1, 2});
+    REQUIRE(values == vector<int>{10, 20});
+}
+
+TEST_CASE("find_vertex(g,uid) iterator equivalence", "[find_vertex][api]") {
+    using Graph = compressed_graph<int, void, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {{0, 1, 10}, {1, 2, 20}};
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    // find_vertex should return same iterator as advancing begin by uid
+    auto verts = vertices(g);
+    auto v1_find = find_vertex(g, 1);
+    auto v1_manual = verts.begin();
+    ++v1_manual;
+    
+    REQUIRE(v1_find == v1_manual);
+}
+
+TEST_CASE("find_vertex(g,uid) all vertices findable", "[find_vertex][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 10}, {1, 2, 20}, {2, 3, 30}, {3, 4, 40}
+    };
+    vector<copyable_vertex_t<int, int>> vertex_values = {
+        {0, 100}, {1, 200}, {2, 300}, {3, 400}, {4, 500}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    g.load_vertices(vertex_values);
+    
+    // Verify every vertex ID can be found
+    for (size_t uid = 0; uid < g.size(); ++uid) {
+        auto v_iter = find_vertex(g, uid);
+        REQUIRE(vertex_id(g, *v_iter) == uid);
+        REQUIRE(g.vertex_value(uid) == static_cast<int>((uid + 1) * 100));
+    }
+}
+
+TEST_CASE("find_vertex(g,uid) with single vertex", "[find_vertex][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {};  // No edges
+    vector<copyable_vertex_t<int, int>> vertex_values = {{0, 42}};
+    
+    Graph g;
+    g.load_vertices(vertex_values);
+    
+    auto v_iter = find_vertex(g, 0);
+    REQUIRE(vertex_id(g, *v_iter) == 0);
+    REQUIRE(g.vertex_value(0) == 42);
+}
+
+TEST_CASE("find_vertex(g,uid) with string vertex values", "[find_vertex][api]") {
+    using Graph = compressed_graph<int, string, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {{0, 1, 10}, {1, 2, 20}};
+    vector<copyable_vertex_t<int, string>> vertex_values = {
+        {0, "Alice"}, {1, "Bob"}, {2, "Charlie"}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    g.load_vertices(vertex_values);
+    
+    SECTION("find Alice") {
+        auto v_iter = find_vertex(g, 0);
+        REQUIRE(g.vertex_value(vertex_id(g, *v_iter)) == "Alice");
+    }
+    
+    SECTION("find Bob") {
+        auto v_iter = find_vertex(g, 1);
+        REQUIRE(g.vertex_value(vertex_id(g, *v_iter)) == "Bob");
+    }
+    
+    SECTION("find Charlie") {
+        auto v_iter = find_vertex(g, 2);
+        REQUIRE(g.vertex_value(vertex_id(g, *v_iter)) == "Charlie");
+    }
+}
