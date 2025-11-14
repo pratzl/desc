@@ -474,6 +474,18 @@ public: // Properties - resolve ambiguity from multiple inheritance
   }
   
   /**
+   * @brief Get the number of vertices in the graph (alias for size()).
+   * 
+   * Returns the count of vertices in the graph. This is an alias for size() that
+   * provides compatibility with the num_vertices(g) CPO.
+   * 
+   * @return The number of vertices in the graph
+  */
+  [[nodiscard]] constexpr size_type num_vertices() const noexcept { 
+    return size();
+  }
+  
+  /**
    * @brief Check if the graph has no vertices.
    * 
    * Returns true if the graph contains no vertices. This explicitly calls the row
@@ -1171,7 +1183,7 @@ public: // Friend functions
   template<typename G, vertex_descriptor_type VertexDesc>
     requires std::derived_from<std::remove_cvref_t<G>, compressed_graph_base>
   [[nodiscard]] friend constexpr auto vertex_id([[maybe_unused]] G&& g, const VertexDesc& u) noexcept {
-    return u.vertex_id();
+    return static_cast<vertex_id_type>(u.vertex_id());
   }
 
   /**

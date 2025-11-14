@@ -1232,3 +1232,165 @@ TEST_CASE("target(g,uv) with string vertex values", "[target][api]") {
     
     REQUIRE(target_names == vector<string>{"Bob", "Charlie"});
 }
+
+// =============================================================================
+// num_vertices(g) CPO Tests
+// =============================================================================
+
+TEST_CASE("num_vertices(g) returns vertex count", "[num_vertices][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {0, 2, 20}, {1, 2, 30}, {2, 3, 40}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto count = num_vertices(g);
+    REQUIRE(count == 4);
+    REQUIRE(count == g.size());
+}
+
+TEST_CASE("num_vertices(g) works with const graph", "[num_vertices][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {1, 2, 20}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    const Graph& cg = g;
+    auto count = num_vertices(cg);
+    REQUIRE(count == 3);
+}
+
+TEST_CASE("num_vertices(g) with empty graph", "[num_vertices][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    
+    Graph g;
+    auto count = num_vertices(g);
+    REQUIRE(count == 0);
+}
+
+TEST_CASE("num_vertices(g) with single vertex", "[num_vertices][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 0, 10}  // Self-loop
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto count = num_vertices(g);
+    REQUIRE(count == 1);
+}
+
+TEST_CASE("num_vertices(g) with void edge values", "[num_vertices][api]") {
+    using Graph = compressed_graph<void, int, void>;
+    vector<copyable_edge_t<int, void>> edges = {
+        {0, 1}, {1, 2}, {2, 3}, {3, 4}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto count = num_vertices(g);
+    REQUIRE(count == 5);
+}
+
+TEST_CASE("num_vertices(g) with void vertex values", "[num_vertices][api]") {
+    using Graph = compressed_graph<int, void, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {1, 2, 20}, {2, 0, 30}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto count = num_vertices(g);
+    REQUIRE(count == 3);
+}
+
+TEST_CASE("num_vertices(g) with string values", "[num_vertices][api]") {
+    using Graph = compressed_graph<string, string, void>;
+    vector<copyable_edge_t<int, string>> edges = {
+        {0, 1, "edge_a"}, {1, 2, "edge_b"}
+    };
+    vector<copyable_vertex_t<int, string>> vertices = {
+        {0, "Alice"}, {1, "Bob"}, {2, "Charlie"}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    g.load_vertices(vertices);
+    
+    auto count = num_vertices(g);
+    REQUIRE(count == 3);
+}
+
+TEST_CASE("num_vertices(g) with large graph", "[num_vertices][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    
+    // Create graph with 1000 vertices
+    vector<copyable_edge_t<int, int>> edges;
+    for (int i = 0; i < 999; ++i) {
+        edges.push_back({i, i + 1, i});
+    }
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto count = num_vertices(g);
+    REQUIRE(count == 1000);
+}
+
+TEST_CASE("num_vertices(g) with disconnected vertices", "[num_vertices][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {2, 3, 20}, {4, 5, 30}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    // Graph has vertices 0-5 (6 total)
+    auto count = num_vertices(g);
+    REQUIRE(count == 6);
+}
+
+TEST_CASE("num_vertices(g) return type is integral", "[num_vertices][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto count = num_vertices(g);
+    static_assert(std::integral<decltype(count)>, "num_vertices must return integral type");
+    REQUIRE(count == 2);
+}
+
+TEST_CASE("num_vertices(g) consistency with vertices(g)", "[num_vertices][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {0, 2, 20}, {1, 2, 30}, {2, 3, 40}, {3, 4, 50}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto count = num_vertices(g);
+    
+    // Count vertices manually using vertices(g)
+    auto v = vertices(g);
+    size_t manual_count = 0;
+    for ([[maybe_unused]] auto vd : v) {
+        ++manual_count;
+    }
+    
+    REQUIRE(count == manual_count);
+    REQUIRE(count == 5);
+}
