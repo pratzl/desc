@@ -418,6 +418,7 @@ public: // Types
   using edge_value_type  = EV;
   using edge_index_type  = EIndex;
   using edge_id_type     = EIndex; // Alias for edge_index_type (semantic name for edge identifiers)
+  using column_id_type   = EIndex; // Alias for indexing into col_index_ (column array)
   using edges_type       = subrange<iterator_t<col_index_vector>>;
   using const_edges_type = subrange<iterator_t<const col_index_vector>>;
 
@@ -892,119 +893,43 @@ protected:
     partition_.push_back(static_cast<partition_id_type>(row_index_.size()));
   }
 
-public: // Operations
-  /**
-   * @brief Find a vertex by its id.
-   * 
-   * Returns an iterator to the vertex in the row_index_ vector if the ID is valid,
-   * otherwise returns vertices().end(). This provides O(1) access to the vertex's 
-   * outgoing edges since vertices are stored contiguously by id.
-   * 
-   * @param id The vertex id to find
-   * @return Iterator to the vertex, or vertices().end() if id is out of range
-  */
-  [[nodiscard]] constexpr iterator_t<row_index_vector> find_vertex(vertex_id_type id) noexcept { 
-    if (id >= size())
-      return vertices().end();
-    return row_index_.begin() + id;
-  }
-  
-  /**
-   * @brief Find a vertex by its id (const version).
-   * 
-   * Returns a const iterator to the vertex in the row_index_ vector if the ID is valid,
-   * otherwise returns vertices().end().
-   * 
-   * @param id The vertex id to find
-   * @return Const iterator to the vertex, or vertices().end() if id is out of range
-  */
-  [[nodiscard]] constexpr iterator_t<const row_index_vector> find_vertex(vertex_id_type id) const noexcept {
-    if (id >= size())
-      return vertices().end();
-    return row_index_.begin() + id;
-  }
-
-  /**
-   * @brief Get the index of a vertex in the row_index_ vector.
-   * 
-   * Calculates the position of a vertex reference within the internal row_index_ vector.
-   * This is the inverse operation of find_vertex().
-   * 
-   * @param u Reference to a vertex (row_type)
-   * @return The index (vertex_id) of the vertex in the graph
-   * @note The vertex reference must be from this graph's row_index_ vector.
-  */
-  [[nodiscard]] constexpr edge_index_type index_of(const row_type& u) const noexcept {
-    return static_cast<edge_index_type>(&u - row_index_.data());
-  }
-  
-  /**
-   * @brief Get the index of an edge in the col_index_ vector.
-   * 
-   * Calculates the position of an edge reference within the internal col_index_ vector.
-   * 
-   * @param v Reference to an edge (col_type)
-   * @return The index of the edge in the graph's edge array
-   * @note The edge reference must be from this graph's col_index_ vector.
-  */
-  [[nodiscard]] constexpr vertex_id_type index_of(const col_type& v) const noexcept {
-    return static_cast<vertex_id_type>(&v - col_index_.data());
-  }
-
 public: // Operators
   /**
-   * @brief Access a vertex by its id.
+   * @brief Access an edge value by its edge id.
    * 
-   * Provides direct access to the vertex (row) in the CSR structure. The returned
-   * row_type contains the index to the first edge for this vertex in col_index_.
+   * Provides direct access to the edge value in the CSR structure. This is a
+   * convenience accessor equivalent to edge_value(id).
    * 
-   * @param id The vertex id
-   * @return Reference to the vertex_type (row_type) at the given id
-   * @note No bounds checking is performed. The caller must ensure id < num_vertices.
+   * @param id The edge id (edge index into the edge value array)
+   * @return Mutable reference to the edge value
+   * @note Only available when EV is not void
+   * @note No bounds checking is performed. The caller must ensure id < total_edges.
   */
-  [[nodiscard]] constexpr vertex_type&       operator[](vertex_id_type id) noexcept { return row_index_[id]; }
+  template<typename EV_ = EV>
+  [[nodiscard]] constexpr auto operator[](column_id_type id) noexcept
+    -> std::enable_if_t<!std::is_void_v<EV_>, EV_&>
+  {
+    return col_values_base::operator[](static_cast<typename col_values_base::size_type>(id));
+  }
   
   /**
-   * @brief Access a vertex by its id (const version).
+   * @brief Access an edge value by its edge id (const version).
    * 
-   * Provides direct const access to the vertex (row) in the CSR structure.
+   * Provides direct const access to the edge value in the CSR structure.
    * 
-   * @param id The vertex id
-   * @return Const reference to the vertex_type (row_type) at the given id
-   * @note No bounds checking is performed. The caller must ensure id < num_vertices.
+   * @param id The edge id (edge index into the edge value array)
+   * @return Const reference to the edge value
+   * @note Only available when EV is not void
+   * @note No bounds checking is performed. The caller must ensure id < total_edges.
   */
-  [[nodiscard]] constexpr const vertex_type& operator[](vertex_id_type id) const noexcept { return row_index_[id]; }
+  template<typename EV_ = EV>
+  [[nodiscard]] constexpr auto operator[](column_id_type id) const noexcept
+    -> std::enable_if_t<!std::is_void_v<EV_>, const EV_&>
+  {
+    return col_values_base::operator[](static_cast<typename col_values_base::size_type>(id));
+  }
 
-public: // Vertex range accessors (Issue #2 fix)
-  /**
-   * @brief Get a range of all vertices in the graph.
-   * 
-   * Returns a subrange over the internal row_index_ vector, excluding the terminating row.
-   * This allows iteration over all vertices using range-based for loops and standard algorithms.
-   * 
-   * @return Subrange of vertex objects (csr_row<EIndex>)
-   * @note The returned range has size() elements (excludes the n+1 terminating row)
-  */
-  [[nodiscard]] constexpr auto vertices() noexcept {
-    return std::ranges::subrange(row_index_.begin(), 
-                                  row_index_.empty() ? row_index_.end() 
-                                                     : row_index_.end() - 1);
-  }
-  
-  /**
-   * @brief Get a const range of all vertices in the graph.
-   * 
-   * Returns a const subrange over the internal row_index_ vector, excluding the terminating row.
-   * 
-   * @return Const subrange of vertex objects (csr_row<EIndex>)
-   * @note The returned range has size() elements (excludes the n+1 terminating row)
-  */
-  [[nodiscard]] constexpr auto vertices() const noexcept {
-    return std::ranges::subrange(row_index_.begin(), 
-                                  row_index_.empty() ? row_index_.end() 
-                                                     : row_index_.end() - 1);
-  }
-  
+public: // Vertex range accessors  
   /**
    * @brief Get a range of all vertex IDs in the graph.
    * 
@@ -1134,9 +1059,6 @@ private:                       // Member variables
   col_index_vector col_index_; // col_index_[n] holds the column index (aka target)
   partition_vector partition_; // partition_[n] holds the first vertex id for each partition n
                                // holds +1 extra terminating partition
-
-  //v_vector_type    v_;         // v_[n]         holds the edge value for col_index_[n]
-  //row_values_type  row_value_; // row_value_[r] holds the value for row_index_[r], for VV!=void
 
 private:
   friend row_values_base;

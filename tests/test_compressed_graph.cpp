@@ -305,46 +305,19 @@ TEST_CASE("compressed_graph reserve allocates space", "[api][reserve]") {
     REQUIRE(g.size() == 0);
 }
 
-TEST_CASE("compressed_graph find_vertex locates vertices", "[api][find_vertex]") {
-    compressed_graph<void, int, void> g;
-    vector<copyable_vertex_t<int, int>> vertices = {{0, 100}, {5, 500}, {10, 1000}};
-    g.load_vertices(vertices);
+TEST_CASE("compressed_graph operator subscript accesses edge values by index", "[api][operator_subscript]") {
+    compressed_graph<int, int, void> g;
+    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}, {0, 2, 20}, {1, 3, 30}};
+    g.load_edges(edges);
     
-    auto it = g.find_vertex(5);
-    REQUIRE(it != g.vertices().end());
-    // Verify we can dereference the iterator (it points to a valid vertex)
-    [[maybe_unused]] auto& vertex = *it;
-}
-
-TEST_CASE("compressed_graph find_vertex returns end for missing vertices", "[api][find_vertex]") {
-    compressed_graph<void, int, void> g;
-    vector<copyable_vertex_t<int, int>> vertices = {{0, 100}, {5, 500}};
-    g.load_vertices(vertices);
+    // operator[] with edge id 0, 1, 2 gives us the edge values
+    REQUIRE(g[0] == 10); // First edge: 0->1 with value 10
+    REQUIRE(g[1] == 20); // Second edge: 0->2 with value 20
+    REQUIRE(g[2] == 30); // Third edge: 1->3 with value 30
     
-    auto it = g.find_vertex(999);
-    REQUIRE(it == g.vertices().end());
-}
-
-TEST_CASE("compressed_graph index_of returns correct index", "[api][index_of]") {
-    compressed_graph<void, int, void> g;
-    vector<copyable_vertex_t<int, int>> vertices = {{0, 100}, {5, 500}, {10, 1000}};
-    g.load_vertices(vertices);
-    
-    // index_of takes a reference to a vertex/row object, not an ID
-    auto& vertex_row = g[5];
-    auto idx = g.index_of(vertex_row);
-    REQUIRE(idx == 5);
-}
-
-TEST_CASE("compressed_graph operator subscript accesses vertices by index", "[api][operator_subscript]") {
-    compressed_graph<void, int, void> g;
-    vector<copyable_vertex_t<int, int>> vertices = {{0, 100}, {5, 500}, {10, 1000}};
-    g.load_vertices(vertices);
-    
-    // operator[] with vertex id 5 gives us the vertex at position 5
-    [[maybe_unused]] auto& v = g[5];
-    // csr_row doesn't have id() - the id is implicit from the array position
-    REQUIRE(g.size() > 5);
+    // Test mutability
+    g[0] = 15;
+    REQUIRE(g[0] == 15);
 }
 
 // =============================================================================
@@ -357,9 +330,9 @@ TEST_CASE("compressed_graph handles empty graph", "[boundary][empty]") {
     REQUIRE(g.empty());
     REQUIRE(g.size() == 0);
     
-    // Test vertices() on empty graph
+    // Test vertex_ids() on empty graph
     size_t count = 0;
-    for ([[maybe_unused]] auto& v : g.vertices()) {
+    for ([[maybe_unused]] auto id : g.vertex_ids()) {
         ++count;
     }
     REQUIRE(count == 0);
@@ -416,37 +389,30 @@ TEST_CASE("compressed_graph const methods work correctly", "[const][api]") {
     REQUIRE_FALSE(cg.empty());
     REQUIRE(cg.size() == 2);
     
-    // Test const vertices()
+    // Test const vertex_ids()
     size_t count = 0;
-    for ([[maybe_unused]] const auto& v : cg.vertices()) {
+    for ([[maybe_unused]] auto id : cg.vertex_ids()) {
         ++count;
     }
     REQUIRE(count == 2);
 }
 
-TEST_CASE("compressed_graph const find_vertex", "[const][find_vertex]") {
-    compressed_graph<void, int, void> g;
-    vector<copyable_vertex_t<int, int>> vertices = {{0, 100}, {5, 500}};
-    g.load_vertices(vertices);
-    
-    const auto& cg = g;
-    auto it = cg.find_vertex(5);
-    
-    REQUIRE(it != cg.vertices().end());
-    // Verify we can dereference the iterator
-    [[maybe_unused]] const auto& vertex = *it;
-}
-
 TEST_CASE("compressed_graph const operator subscript", "[const][operator_subscript]") {
-    compressed_graph<void, int, void> g;
-    vector<copyable_vertex_t<int, int>> vertices = {{0, 100}, {5, 500}};
-    g.load_vertices(vertices);
+    compressed_graph<string, int, void> g;
+    vector<copyable_edge_t<int, string>> edges = {
+        {0, 1, string("edge0")},
+        {0, 2, string("edge1")},
+        {1, 3, string("edge2")},
+        {2, 4, string("edge3")},
+        {3, 5, string("edge4")}
+    };
+    g.load_edges(edges);
     
     const auto& cg = g;
-    [[maybe_unused]] const auto& v = cg[5];
-    
-    // Verify the graph has the expected size
-    REQUIRE(cg.size() > 5);
+    // Access edge values by edge index
+    REQUIRE(cg[0] == "edge0");
+    REQUIRE(cg[2] == "edge2");
+    REQUIRE(cg[4] == "edge4");
 }
 
 // =============================================================================
@@ -532,7 +498,7 @@ TEST_CASE("compressed_graph iteration over vertices", "[api][iteration]") {
     g.load_vertices(vertices);
     
     size_t count = 0;
-    for ([[maybe_unused]] auto& v : g.vertices()) {
+    for ([[maybe_unused]] auto id : g.vertex_ids()) {
         ++count;
     }
     
@@ -545,7 +511,7 @@ TEST_CASE("compressed_graph range-based for loop", "[api][iteration][range]") {
     g.load_vertices(vertices);
     
     size_t count = 0;
-    for ([[maybe_unused]] const auto& v : g.vertices()) {
+    for ([[maybe_unused]] auto id : g.vertex_ids()) {
         ++count;
     }
     
@@ -829,66 +795,8 @@ TEST_CASE("compressed_graph const-correctness of size/empty", "[api][const][issu
 }
 
 // =============================================================================
-// Category: vertices() and vertex_ids() Tests (Issue #2 Fix)
+// Category: vertex_ids() Tests (Issue #2 Fix)
 // =============================================================================
-
-TEST_CASE("compressed_graph vertices() returns correct range", "[api][vertices][issue2]") {
-    SECTION("empty graph") {
-        compressed_graph<void, void, void> g;
-        
-        size_t count = 0;
-        for ([[maybe_unused]] auto& v : g.vertices()) {
-            ++count;
-        }
-        
-        REQUIRE(count == 0);
-        REQUIRE(g.vertices().empty());
-    }
-    
-    SECTION("graph with vertices from edges") {
-        compressed_graph<void, void, void> g;
-        vector<copyable_edge_t<int, void>> edges = {{0, 1}, {0, 2}, {1, 2}, {1, 3}};
-        g.load_edges(edges);
-        
-        size_t count = 0;
-        for ([[maybe_unused]] auto& v : g.vertices()) {
-            ++count;
-        }
-        
-        REQUIRE(count == g.size());
-        REQUIRE(count == 4); // vertices 0, 1, 2, 3
-    }
-    
-    SECTION("graph with explicit vertex values") {
-        compressed_graph<void, int, void> g;
-        vector<copyable_vertex_t<int, int>> vertices = {{0, 100}, {1, 200}, {2, 300}};
-        g.load_vertices(vertices);
-        
-        size_t count = 0;
-        for ([[maybe_unused]] auto& v : g.vertices()) {
-            ++count;
-        }
-        
-        REQUIRE(count == 3);
-        REQUIRE(count == g.size());
-    }
-}
-
-TEST_CASE("compressed_graph vertices() const version", "[api][vertices][const][issue2]") {
-    compressed_graph<void, int, void> g;
-    vector<copyable_edge_t<int, void>> edges = {{0, 1}, {1, 2}, {2, 3}};
-    g.load_edges(edges);
-    
-    const auto& cg = g;
-    
-    size_t count = 0;
-    for ([[maybe_unused]] const auto& v : cg.vertices()) {
-        ++count;
-    }
-    
-    REQUIRE(count == cg.size());
-    REQUIRE(count == 4);
-}
 
 TEST_CASE("compressed_graph vertex_ids() returns correct range", "[api][vertex_ids][issue2]") {
     SECTION("empty graph") {
@@ -918,23 +826,48 @@ TEST_CASE("compressed_graph vertex_ids() returns correct range", "[api][vertex_i
         REQUIRE(ids == vector<int>{0, 1, 2, 3, 4});
     }
     
-    SECTION("vertex_ids match vertices count") {
+    SECTION("graph with explicit vertex values") {
         compressed_graph<void, int, void> g;
-        vector<copyable_vertex_t<int, int>> vertices = {{0, 100}, {1, 200}, {2, 300}, {3, 400}};
+        vector<copyable_vertex_t<int, int>> vertices = {{0, 100}, {1, 200}, {2, 300}};
         g.load_vertices(vertices);
         
-        size_t id_count = 0;
+        size_t count = 0;
         for ([[maybe_unused]] auto id : g.vertex_ids()) {
-            ++id_count;
+            ++count;
         }
         
-        size_t vertex_count = 0;
-        for ([[maybe_unused]] auto& v : g.vertices()) {
-            ++vertex_count;
+        REQUIRE(count == 3);
+        REQUIRE(count == g.size());
+    }
+    
+    SECTION("graph with vertices from edges") {
+        compressed_graph<void, void, void> g;
+        vector<copyable_edge_t<int, void>> edges = {{0, 1}, {0, 2}, {1, 2}, {1, 3}};
+        g.load_edges(edges);
+        
+        size_t count = 0;
+        for ([[maybe_unused]] auto id : g.vertex_ids()) {
+            ++count;
         }
         
-        REQUIRE(id_count == vertex_count);
-        REQUIRE(id_count == g.size());
+        REQUIRE(count == g.size());
+        REQUIRE(count == 4); // vertices 0, 1, 2, 3
+    }
+    
+    SECTION("const version") {
+        compressed_graph<void, int, void> g;
+        vector<copyable_edge_t<int, void>> edges = {{0, 1}, {1, 2}, {2, 3}};
+        g.load_edges(edges);
+        
+        const auto& cg = g;
+        
+        size_t count = 0;
+        for ([[maybe_unused]] auto id : cg.vertex_ids()) {
+            ++count;
+        }
+        
+        REQUIRE(count == cg.size());
+        REQUIRE(count == 4);
     }
 }
 
@@ -943,21 +876,20 @@ TEST_CASE("compressed_graph vertex_ids() can access vertices", "[api][vertex_ids
     vector<copyable_vertex_t<int, int>> vertices = {{0, 100}, {1, 200}, {2, 300}};
     g.load_vertices(vertices);
     
-    // Use vertex_ids() to iterate and access vertex values
+    // Use vertex_ids() to iterate and verify all IDs are valid
     for (auto id : g.vertex_ids()) {
-        auto it = g.find_vertex(id);
-        REQUIRE(it != g.vertices().end()); // Not past end
+        REQUIRE(id < g.size()); // Verify ID is within valid range
     }
 }
 
-TEST_CASE("compressed_graph vertices() with different template parameters", "[api][vertices][types][issue2]") {
+TEST_CASE("compressed_graph vertex_ids() with different template parameters", "[api][vertex_ids][types][issue2]") {
     SECTION("void/void/void") {
         compressed_graph<void, void, void> g;
         vector<copyable_edge_t<int, void>> edges = {{0, 1}, {1, 2}};
         g.load_edges(edges);
         
         size_t count = 0;
-        for ([[maybe_unused]] auto& v : g.vertices()) {
+        for ([[maybe_unused]] auto id : g.vertex_ids()) {
             ++count;
         }
         REQUIRE(count == 3);
@@ -969,7 +901,7 @@ TEST_CASE("compressed_graph vertices() with different template parameters", "[ap
         g.load_edges(edges);
         
         size_t count = 0;
-        for ([[maybe_unused]] auto& v : g.vertices()) {
+        for ([[maybe_unused]] auto id : g.vertex_ids()) {
             ++count;
         }
         REQUIRE(count == 3);
@@ -981,46 +913,12 @@ TEST_CASE("compressed_graph vertices() with different template parameters", "[ap
         g.load_edges(edges);
         
         size_t count = 0;
-        for ([[maybe_unused]] auto& v : g.vertices()) {
+        for ([[maybe_unused]] auto id : g.vertex_ids()) {
             ++count;
         }
         REQUIRE(count == 3);
         REQUIRE(g.value() == "test graph");
     }
-}
-
-TEST_CASE("compressed_graph vertices() excludes terminating row", "[api][vertices][internals][issue2]") {
-    compressed_graph<void, void, void> g;
-    vector<copyable_edge_t<int, void>> edges = {{0, 1}, {1, 2}, {2, 3}};
-    g.load_edges(edges);
-    
-    // CSR stores n+1 rows (including terminating row)
-    // vertices() should return exactly n vertices
-    size_t vertex_count = 0;
-    for ([[maybe_unused]] auto& v : g.vertices()) {
-        ++vertex_count;
-    }
-    
-    REQUIRE(vertex_count == g.size());
-    REQUIRE(vertex_count == 4); // Not 5 (which would include terminator)
-}
-
-TEST_CASE("compressed_graph vertices() can be used with STL algorithms", "[api][vertices][algorithms][issue2]") {
-    compressed_graph<void, void, void> g;
-    vector<copyable_edge_t<int, void>> edges = {{0, 1}, {1, 2}, {2, 3}, {3, 4}};
-    g.load_edges(edges);
-    
-    auto verts = g.vertices();
-    
-    // Test std::distance
-    size_t dist = std::distance(verts.begin(), verts.end());
-    REQUIRE(dist == g.size());
-    REQUIRE(dist == 5);
-    
-    // Test std::count_if (count all vertices - trivial but tests compatibility)
-    size_t count = std::count_if(verts.begin(), verts.end(), 
-                                  [](const auto&) { return true; });
-    REQUIRE(count == 5);
 }
 
 TEST_CASE("compressed_graph vertex_ids() can be used with STL algorithms", "[api][vertex_ids][algorithms][issue2]") {
