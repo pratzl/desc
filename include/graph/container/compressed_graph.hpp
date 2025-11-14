@@ -1205,7 +1205,7 @@ public: // Types
 
   using vertex_id_type = VId;
 
-public: // Graph value accessors (Issue #3 fix)
+public: // Graph value accessors
   /**
    * @brief Get a const reference to the graph value.
    * 
@@ -1216,35 +1216,13 @@ public: // Graph value accessors (Issue #3 fix)
    * @return Const reference to the graph value
    * @note Only available when GV is not void
   */
-  [[nodiscard]] constexpr const graph_value_type& value() const noexcept { return value_; }
+  [[nodiscard]] constexpr const graph_value_type& graph_value() const noexcept { return value_; }
   
   /**
    * @brief Get a mutable reference to the graph value.
    * 
    * Returns a mutable reference to the user-defined graph value stored in the graph.
    * This allows modification of graph-level metadata without affecting the graph structure.
-   * 
-   * @return Mutable reference to the graph value
-   * @note Only available when GV is not void
-  */
-  [[nodiscard]] constexpr graph_value_type& value() noexcept { return value_; }
-
-  /**
-   * @brief Get a const reference to the graph value (alternative accessor).
-   * 
-   * Returns a const reference to the user-defined graph value stored in the graph.
-   * This is an alternative to value() for consistency with graph_value(g) CPO.
-   * 
-   * @return Const reference to the graph value
-   * @note Only available when GV is not void
-  */
-  [[nodiscard]] constexpr const graph_value_type& graph_value() const noexcept { return value_; }
-  
-  /**
-   * @brief Get a mutable reference to the graph value (alternative accessor).
-   * 
-   * Returns a mutable reference to the user-defined graph value stored in the graph.
-   * This is an alternative to value() for consistency with graph_value(g) CPO.
    * 
    * @return Mutable reference to the graph value
    * @note Only available when GV is not void

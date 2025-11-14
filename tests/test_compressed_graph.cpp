@@ -22,13 +22,13 @@ TEST_CASE("compressed_graph default constructor", "[constructors]") {
     SECTION("int/int/int") {
         compressed_graph<int, int, int> g(42);
         REQUIRE(g.empty());
-        REQUIRE(g.value() == 42);
+        REQUIRE(g.graph_value() == 42);
     }
     
     SECTION("string/string/string") {
         compressed_graph<string, string, string> g(string("test"));
         REQUIRE(g.empty());
-        REQUIRE(g.value() == "test");
+        REQUIRE(g.graph_value() == "test");
     }
 }
 
@@ -258,13 +258,13 @@ TEST_CASE("compressed_graph default constructor creates empty graph", "[construc
 TEST_CASE("compressed_graph constructor with graph value", "[constructors][graph_value]") {
     SECTION("int graph value") {
         compressed_graph<void, void, int> g(42);
-        REQUIRE(g.value() == 42);
+        REQUIRE(g.graph_value() == 42);
         REQUIRE(g.empty());
     }
     
     SECTION("string graph value") {
         compressed_graph<void, void, string> g(string("graph1"));
-        REQUIRE(g.value() == "graph1");
+        REQUIRE(g.graph_value() == "graph1");
         REQUIRE(g.empty());
     }
 }
@@ -276,7 +276,7 @@ TEST_CASE("compressed_graph copy constructor", "[constructors][copy]") {
     
     compressed_graph<int, int, int> g2(g1);
     
-    REQUIRE(g2.value() == 100);
+    REQUIRE(g2.graph_value() == 100);
     REQUIRE(g2.size() == g1.size());
     REQUIRE_FALSE(g2.empty());
 }
@@ -289,7 +289,7 @@ TEST_CASE("compressed_graph move constructor", "[constructors][move]") {
     auto original_size = g1.size();
     compressed_graph<int, int, int> g2(std::move(g1));
     
-    REQUIRE(g2.value() == 100);
+    REQUIRE(g2.graph_value() == 100);
     REQUIRE(g2.size() == original_size);
 }
 
@@ -360,19 +360,16 @@ TEST_CASE("compressed_graph graph_value() accesses graph value", "[api][graph_va
         REQUIRE(g.graph_value() == 2.71);
     }
     
-    SECTION("graph_value() and value() are equivalent") {
+    SECTION("graph_value() mutability") {
         compressed_graph<void, void, int> g(999);
         
-        REQUIRE(g.graph_value() == g.value());
         REQUIRE(g.graph_value() == 999);
         
         g.graph_value() = 111;
-        REQUIRE(g.value() == 111);
-        REQUIRE(g.graph_value() == g.value());
+        REQUIRE(g.graph_value() == 111);
         
-        g.value() = 222;
+        g.graph_value() = 222;
         REQUIRE(g.graph_value() == 222);
-        REQUIRE(g.graph_value() == g.value());
     }
     
     SECTION("graph_value() with edges and vertices") {
@@ -546,7 +543,7 @@ TEST_CASE("compressed_graph copy assignment", "[copy][assignment]") {
     compressed_graph<int, int, int> g2(200);
     g2 = g1;
     
-    REQUIRE(g2.value() == 100);
+    REQUIRE(g2.graph_value() == 100);
     REQUIRE(g2.size() == g1.size());
 }
 
@@ -559,7 +556,7 @@ TEST_CASE("compressed_graph move assignment", "[move][assignment]") {
     compressed_graph<int, int, int> g2(200);
     g2 = std::move(g1);
     
-    REQUIRE(g2.value() == 100);
+    REQUIRE(g2.graph_value() == 100);
     REQUIRE(g2.size() == original_size);
 }
 
@@ -1036,7 +1033,7 @@ TEST_CASE("compressed_graph vertex_ids() with different template parameters", "[
             ++count;
         }
         REQUIRE(count == 3);
-        REQUIRE(g.value() == "test graph");
+        REQUIRE(g.graph_value() == "test graph");
     }
 }
 
@@ -1123,7 +1120,7 @@ TEST_CASE("compressed_graph vertex_value(id) with graph value", "[api][vertex_va
     g.load_edges(edges);
     g.load_vertices(vertices);
     
-    REQUIRE(g.value() == "graph_metadata");
+    REQUIRE(g.graph_value() == "graph_metadata");
     REQUIRE(g.vertex_value(0) == 10);
     REQUIRE(g.vertex_value(1) == 20);
     REQUIRE(g.vertex_value(2) == 30);
