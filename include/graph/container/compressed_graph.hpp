@@ -1274,6 +1274,24 @@ public: // Friend functions
   [[nodiscard]] friend constexpr auto num_edges(G&& g) noexcept {
     return static_cast<size_type>(g.col_index_.size());
   }
+
+  /**
+   * @brief Check if the graph has any edges
+   * 
+   * Returns true if the graph contains at least one edge, false otherwise.
+   * For compressed_graph, this is an O(1) operation that checks if col_index_
+   * is non-empty.
+   * 
+   * @param g The graph (forwarding reference)
+   * @return true if the graph has at least one edge, false otherwise
+   * @note Complexity: O(1) - direct size check
+   * @note This is the ADL customization point for the has_edge(g) CPO
+  */
+  template<typename G>
+    requires std::derived_from<std::remove_cvref_t<G>, compressed_graph_base>
+  [[nodiscard]] friend constexpr bool has_edge(const G& g) noexcept {
+    return !g.col_index_.empty();
+  }
 };
 
 
