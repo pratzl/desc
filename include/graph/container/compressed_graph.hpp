@@ -1292,6 +1292,31 @@ public: // Friend functions
   [[nodiscard]] friend constexpr bool has_edge(const G& g) noexcept {
     return !g.col_index_.empty();
   }
+
+  /**
+   * @brief Get the user-defined value associated with a vertex
+   * 
+   * Returns a reference to the user-defined value stored for the given vertex.
+   * For compressed_graph, extracts the vertex ID from the descriptor and uses
+   * it to directly access the vertex value storage.
+   * 
+   * @param g The graph (forwarding reference for const preservation)
+   * @param u The vertex descriptor
+   * @return Reference to the vertex value (const if g is const)
+   * @note Complexity: O(1) - direct array access by vertex ID
+   * @note This is the ADL customization point for the vertex_value(g, u) CPO
+   * @note Only available when VV is not void
+  */
+  template<typename G, typename U>
+    requires std::derived_from<std::remove_cvref_t<G>, compressed_graph_base> && 
+             (!std::is_void_v<VV>)
+  [[nodiscard]] friend constexpr decltype(auto) vertex_value(G&& g, const U& u) noexcept {
+    if constexpr (std::is_const_v<std::remove_reference_t<G>>) {
+      return g.vertex_value(u.vertex_id());
+    } else {
+      return g.vertex_value(u.vertex_id());
+    }
+  }
 };
 
 
