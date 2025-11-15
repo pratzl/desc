@@ -3342,3 +3342,214 @@ TEST_CASE("edge_value(g, uv) with mixed edge and vertex values", "[edge_value][a
     REQUIRE(vertex_value(g, v0) == "v0");
     REQUIRE(vertex_value(g, v1) == "v1");
 }
+
+// =============================================================================
+// partition_id(g, u) Friend Function Tests
+// =============================================================================
+
+TEST_CASE("partition_id(g, u) returns 0 for single-partition graph", "[partition_id][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {0, 2, 20}, {1, 2, 30}, {2, 3, 40}
+    };
+    vector<copyable_vertex_t<int, int>> vertex_values = {
+        {0, 100}, {1, 200}, {2, 300}, {3, 400}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    g.load_vertices(vertex_values);
+    
+    SECTION("all vertices in partition 0") {
+        auto v0 = *find_vertex(g, 0);
+        auto v1 = *find_vertex(g, 1);
+        auto v2 = *find_vertex(g, 2);
+        auto v3 = *find_vertex(g, 3);
+        
+        REQUIRE(partition_id(g, v0) == 0);
+        REQUIRE(partition_id(g, v1) == 0);
+        REQUIRE(partition_id(g, v2) == 0);
+        REQUIRE(partition_id(g, v3) == 0);
+    }
+    
+    SECTION("consistent across multiple calls") {
+        auto v1 = *find_vertex(g, 1);
+        REQUIRE(partition_id(g, v1) == partition_id(g, v1));
+    }
+}
+
+TEST_CASE("partition_id(g, u) with const graph", "[partition_id][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}};
+    vector<copyable_vertex_t<int, int>> vertex_values = {{0, 100}, {1, 200}};
+    
+    Graph g_mutable;
+    g_mutable.load_edges(edges);
+    g_mutable.load_vertices(vertex_values);
+    
+    const Graph& g = g_mutable;
+    
+    auto v0 = *find_vertex(g, 0);
+    auto v1 = *find_vertex(g, 1);
+    
+    REQUIRE(partition_id(g, v0) == 0);
+    REQUIRE(partition_id(g, v1) == 0);
+}
+
+TEST_CASE("partition_id(g, u) with void edge values", "[partition_id][api]") {
+    using Graph = compressed_graph<void, int, void>;
+    vector<copyable_edge_t<int, void>> edges = {{0, 1}, {1, 2}, {2, 3}};
+    vector<copyable_vertex_t<int, int>> vertex_values = {{0, 10}, {1, 20}, {2, 30}, {3, 40}};
+    
+    Graph g;
+    g.load_edges(edges);
+    g.load_vertices(vertex_values);
+    
+    auto verts = vertices(g);
+    for (auto v : verts) {
+        REQUIRE(partition_id(g, v) == 0);
+    }
+}
+
+TEST_CASE("partition_id(g, u) with void vertex values", "[partition_id][api]") {
+    using Graph = compressed_graph<int, void, void>;
+    vector<copyable_edge_t<int, int>> edges = {{0, 1, 100}, {1, 2, 200}};
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto v0 = *find_vertex(g, 0);
+    auto v1 = *find_vertex(g, 1);
+    auto v2 = *find_vertex(g, 2);
+    
+    REQUIRE(partition_id(g, v0) == 0);
+    REQUIRE(partition_id(g, v1) == 0);
+    REQUIRE(partition_id(g, v2) == 0);
+}
+
+TEST_CASE("partition_id(g, u) with empty graph", "[partition_id][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    Graph g;
+    
+    // Empty graph has no vertices to test
+    auto verts = vertices(g);
+    REQUIRE(ranges::begin(verts) == ranges::end(verts));
+}
+
+TEST_CASE("partition_id(g, u) with single vertex", "[partition_id][api]") {
+    using Graph = compressed_graph<void, int, void>;
+    vector<copyable_vertex_t<int, int>> vertex_values = {{0, 100}};
+    
+    Graph g;
+    g.load_vertices(vertex_values);
+    
+    auto v0 = *find_vertex(g, 0);
+    REQUIRE(partition_id(g, v0) == 0);
+}
+
+TEST_CASE("partition_id(g, u) integration with vertex_id", "[partition_id][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {1, 2, 20}, {2, 3, 30}
+    };
+    vector<copyable_vertex_t<int, int>> vertex_values = {
+        {0, 100}, {1, 200}, {2, 300}, {3, 400}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    g.load_vertices(vertex_values);
+    
+    // All vertices have different IDs but same partition (0)
+    vector<pair<int, int>> id_partition_pairs;
+    for (auto v : vertices(g)) {
+        auto vid = vertex_id(g, v);
+        auto pid = partition_id(g, v);
+        id_partition_pairs.emplace_back(vid, pid);
+    }
+    
+    REQUIRE(id_partition_pairs.size() == 4);
+    
+    // Different vertex IDs
+    REQUIRE(id_partition_pairs[0].first == 0);
+    REQUIRE(id_partition_pairs[1].first == 1);
+    REQUIRE(id_partition_pairs[2].first == 2);
+    REQUIRE(id_partition_pairs[3].first == 3);
+    
+    // Same partition for all
+    REQUIRE(id_partition_pairs[0].second == 0);
+    REQUIRE(id_partition_pairs[1].second == 0);
+    REQUIRE(id_partition_pairs[2].second == 0);
+    REQUIRE(id_partition_pairs[3].second == 0);
+}
+
+TEST_CASE("partition_id(g, u) return type is integral", "[partition_id][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}};
+    vector<copyable_vertex_t<int, int>> vertex_values = {{0, 100}, {1, 200}};
+    
+    Graph g;
+    g.load_edges(edges);
+    g.load_vertices(vertex_values);
+    
+    auto v0 = *find_vertex(g, 0);
+    auto pid = partition_id(g, v0);
+    
+    STATIC_REQUIRE(std::integral<decltype(pid)>);
+}
+
+TEST_CASE("partition_id(g, u) is noexcept", "[partition_id][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}};
+    vector<copyable_vertex_t<int, int>> vertex_values = {{0, 100}, {1, 200}};
+    
+    Graph g;
+    g.load_edges(edges);
+    g.load_vertices(vertex_values);
+    
+    auto v0 = *find_vertex(g, 0);
+    
+    STATIC_REQUIRE(noexcept(partition_id(g, v0)));
+}
+
+TEST_CASE("partition_id(g, u) with string edge values", "[partition_id][api]") {
+    using Graph = compressed_graph<string, int, void>;
+    vector<copyable_edge_t<int, string>> edges = {
+        {0, 1, "edge01"}, {1, 2, "edge12"}
+    };
+    vector<copyable_vertex_t<int, int>> vertex_values = {
+        {0, 10}, {1, 20}, {2, 30}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    g.load_vertices(vertex_values);
+    
+    auto v0 = *find_vertex(g, 0);
+    auto v1 = *find_vertex(g, 1);
+    auto v2 = *find_vertex(g, 2);
+    
+    // All in partition 0 regardless of edge value type
+    REQUIRE(partition_id(g, v0) == 0);
+    REQUIRE(partition_id(g, v1) == 0);
+    REQUIRE(partition_id(g, v2) == 0);
+}
+
+TEST_CASE("partition_id(g, u) works with all vertices", "[partition_id][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {0, 2, 20}, {1, 2, 30}, {1, 3, 40}, {2, 3, 50}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    // Iterate all vertices and verify partition_id works
+    size_t count = 0;
+    for (auto v : vertices(g)) {
+        REQUIRE(partition_id(g, v) == 0);
+        ++count;
+    }
+    
+    REQUIRE(count == 4);  // vertices 0, 1, 2, 3
+}

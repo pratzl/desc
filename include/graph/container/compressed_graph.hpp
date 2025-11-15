@@ -1342,6 +1342,39 @@ public: // Friend functions
       return g.edge_value(uv.value());
     }
   }
+
+  /**
+   * @brief Get the partition ID for a vertex.
+   * 
+   * Returns the partition ID (0-based index) of the partition containing the given vertex.
+   * Partitions divide vertices into contiguous ranges, typically for distributed computing
+   * or NUMA-aware processing.
+   * 
+   * @param g The graph (forwarding reference for const preservation)
+   * @param u The vertex descriptor
+   * @return Partition ID (integral type, 0 if single partition)
+   * @note Complexity: O(log P) where P is the number of partitions (binary search)
+   * @note For single-partition graphs, returns 0
+   * @note This is the ADL customization point for the partition_id(g, u) CPO
+  */
+  template<typename G, typename VertexDesc>
+    requires std::derived_from<std::remove_cvref_t<G>, compressed_graph_base>
+  [[nodiscard]] friend constexpr auto partition_id(G&& g, const VertexDesc& u) noexcept
+    -> partition_id_type {
+    const auto vid = u.vertex_id();
+    
+    // Handle empty or single partition case
+    if (g.partition_.size() <= 2) {
+      return 0;
+    }
+    
+    // Binary search: find the largest partition index i where partition_[i] <= vid
+    // Note: partition_.back() is the terminating element (total vertex count), not a real partition
+    auto it = std::upper_bound(g.partition_.begin(), g.partition_.end() - 1, vid);
+    --it;  // Move back to the last partition where partition_[i] <= vid
+    
+    return static_cast<partition_id_type>(std::distance(g.partition_.begin(), it));
+  }
 };
 
 
