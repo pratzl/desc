@@ -74,6 +74,9 @@ public:
     // Default constructor
     constexpr vertex_descriptor_view() noexcept = default;
     
+    // Copy constructor
+    constexpr vertex_descriptor_view(const vertex_descriptor_view&) noexcept = default;
+    
     /**
      * @brief Construct view from iterator range
      * @param begin_val Starting iterator/index
