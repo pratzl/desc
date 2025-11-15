@@ -1317,6 +1317,31 @@ public: // Friend functions
       return g.vertex_value(u.vertex_id());
     }
   }
+
+  /**
+   * @brief Get the user-defined value associated with an edge
+   * 
+   * Returns a reference to the user-defined value stored for the given edge.
+   * For compressed_graph, extracts the edge ID from the edge descriptor and uses
+   * it to directly access the edge value storage.
+   * 
+   * @param g The graph (forwarding reference for const preservation)
+   * @param uv The edge descriptor
+   * @return Reference to the edge value (const if g is const)
+   * @note Complexity: O(1) - direct array access by edge ID
+   * @note This is the ADL customization point for the edge_value(g, uv) CPO
+   * @note Only available when EV is not void
+  */
+  template<typename G, typename E>
+    requires std::derived_from<std::remove_cvref_t<G>, compressed_graph_base> && 
+             (!std::is_void_v<EV>)
+  [[nodiscard]] friend constexpr decltype(auto) edge_value(G&& g, const E& uv) noexcept {
+    if constexpr (std::is_const_v<std::remove_reference_t<G>>) {
+      return g.edge_value(uv.value());
+    } else {
+      return g.edge_value(uv.value());
+    }
+  }
 };
 
 

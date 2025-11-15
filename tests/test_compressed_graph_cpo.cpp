@@ -3023,3 +3023,322 @@ TEST_CASE("vertex_value(g, u) with vector values", "[vertex_value][api]") {
     REQUIRE(vertex_value(g, v0) == vector<int>{1, 2, 3});
     REQUIRE(vertex_value(g, v1) == vector<int>{4, 5, 6});
 }
+
+// =============================================================================
+// edge_value(g, uv) CPO Tests
+// =============================================================================
+
+TEST_CASE("edge_value(g, uv) basic access with int values", "[edge_value][api]") {
+    using Graph = compressed_graph<int, void, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 10}, {1, 2, 20}, {2, 3, 30}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    auto uv0 = *edges(g, *find_vertex(g, 0)).begin();
+    auto uv1 = *edges(g, *find_vertex(g, 1)).begin();
+    auto uv2 = *edges(g, *find_vertex(g, 2)).begin();
+    
+    REQUIRE(edge_value(g, uv0) == 10);
+    REQUIRE(edge_value(g, uv1) == 20);
+    REQUIRE(edge_value(g, uv2) == 30);
+}
+
+TEST_CASE("edge_value(g, uv) with string values", "[edge_value][api]") {
+    using Graph = compressed_graph<string, void, void>;
+    vector<copyable_edge_t<int, string>> edges_data = {
+        {0, 1, "edge01"}, {1, 2, "edge12"}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    auto uv0 = *edges(g, *find_vertex(g, 0)).begin();
+    auto uv1 = *edges(g, *find_vertex(g, 1)).begin();
+    
+    REQUIRE(edge_value(g, uv0) == "edge01");
+    REQUIRE(edge_value(g, uv1) == "edge12");
+}
+
+TEST_CASE("edge_value(g, uv) returns reference", "[edge_value][api]") {
+    using Graph = compressed_graph<int, void, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 10}, {1, 2, 20}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    auto uv0 = *edges(g, *find_vertex(g, 0)).begin();
+    
+    // Get reference and modify
+    edge_value(g, uv0) = 999;
+    
+    // Verify modification
+    REQUIRE(edge_value(g, uv0) == 999);
+}
+
+TEST_CASE("edge_value(g, uv) with const graph", "[edge_value][api]") {
+    using Graph = compressed_graph<int, void, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 100}, {1, 2, 200}
+    };
+    
+    Graph temp_g;
+    temp_g.load_edges(edges_data);
+    const Graph g = std::move(temp_g);
+    
+    auto uv0 = *edges(g, *find_vertex(g, 0)).begin();
+    auto uv1 = *edges(g, *find_vertex(g, 1)).begin();
+    
+    REQUIRE(edge_value(g, uv0) == 100);
+    REQUIRE(edge_value(g, uv1) == 200);
+}
+
+TEST_CASE("edge_value(g, uv) with double values", "[edge_value][api]") {
+    using Graph = compressed_graph<double, void, void>;
+    vector<copyable_edge_t<int, double>> edges_data = {
+        {0, 1, 3.14}, {1, 2, 2.71}, {2, 3, 1.41}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    auto uv0 = *edges(g, *find_vertex(g, 0)).begin();
+    auto uv1 = *edges(g, *find_vertex(g, 1)).begin();
+    auto uv2 = *edges(g, *find_vertex(g, 2)).begin();
+    
+    REQUIRE(edge_value(g, uv0) == 3.14);
+    REQUIRE(edge_value(g, uv1) == 2.71);
+    REQUIRE(edge_value(g, uv2) == 1.41);
+}
+
+TEST_CASE("edge_value(g, uv) with struct values", "[edge_value][api]") {
+    struct EdgeData {
+        int weight;
+        string label;
+        
+        bool operator==(const EdgeData& other) const {
+            return weight == other.weight && label == other.label;
+        }
+    };
+    
+    using Graph = compressed_graph<EdgeData, void, void>;
+    vector<copyable_edge_t<int, EdgeData>> edges_data = {
+        {0, 1, {10, "fast"}}, {1, 2, {20, "slow"}}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    auto uv0 = *edges(g, *find_vertex(g, 0)).begin();
+    auto uv1 = *edges(g, *find_vertex(g, 1)).begin();
+    
+    REQUIRE(edge_value(g, uv0).weight == 10);
+    REQUIRE(edge_value(g, uv0).label == "fast");
+    REQUIRE(edge_value(g, uv1).weight == 20);
+    REQUIRE(edge_value(g, uv1).label == "slow");
+}
+
+TEST_CASE("edge_value(g, uv) with all edges", "[edge_value][api]") {
+    using Graph = compressed_graph<int, void, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 10}, {0, 2, 20}, {1, 2, 30}, {1, 3, 40}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    // Verify all edges have correct values
+    vector<int> expected_values = {10, 20, 30, 40};
+    size_t idx = 0;
+    
+    for (auto u : vertices(g)) {
+        for (auto uv : edges(g, u)) {
+            REQUIRE(edge_value(g, uv) == expected_values[idx]);
+            ++idx;
+        }
+    }
+    REQUIRE(idx == 4);
+}
+
+TEST_CASE("edge_value(g, uv) modify through iteration", "[edge_value][api]") {
+    using Graph = compressed_graph<int, void, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 0}, {1, 2, 0}, {2, 3, 0}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    // Set values through iteration
+    int value = 100;
+    for (auto u : vertices(g)) {
+        for (auto uv : edges(g, u)) {
+            edge_value(g, uv) = value;
+            value += 100;
+        }
+    }
+    
+    // Verify values
+    auto uv0 = *edges(g, *find_vertex(g, 0)).begin();
+    auto uv1 = *edges(g, *find_vertex(g, 1)).begin();
+    auto uv2 = *edges(g, *find_vertex(g, 2)).begin();
+    
+    REQUIRE(edge_value(g, uv0) == 100);
+    REQUIRE(edge_value(g, uv1) == 200);
+    REQUIRE(edge_value(g, uv2) == 300);
+}
+
+TEST_CASE("edge_value(g, uv) with negative values", "[edge_value][api]") {
+    using Graph = compressed_graph<int, void, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, -100}, {1, 2, -200}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    auto uv0 = *edges(g, *find_vertex(g, 0)).begin();
+    auto uv1 = *edges(g, *find_vertex(g, 1)).begin();
+    
+    REQUIRE(edge_value(g, uv0) == -100);
+    REQUIRE(edge_value(g, uv1) == -200);
+}
+
+TEST_CASE("edge_value(g, uv) with zero values", "[edge_value][api]") {
+    using Graph = compressed_graph<int, void, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 0}, {1, 2, 0}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    auto uv0 = *edges(g, *find_vertex(g, 0)).begin();
+    auto uv1 = *edges(g, *find_vertex(g, 1)).begin();
+    
+    REQUIRE(edge_value(g, uv0) == 0);
+    REQUIRE(edge_value(g, uv1) == 0);
+}
+
+TEST_CASE("edge_value(g, uv) return type is reference", "[edge_value][api]") {
+    using Graph = compressed_graph<int, void, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 100}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    auto uv0 = *edges(g, *find_vertex(g, 0)).begin();
+    
+    // Check that we get a reference
+    auto& val_ref = edge_value(g, uv0);
+    REQUIRE(std::is_reference_v<decltype(edge_value(g, uv0))>);
+    
+    // Modify through reference
+    val_ref = 999;
+    REQUIRE(edge_value(g, uv0) == 999);
+}
+
+TEST_CASE("edge_value(g, uv) with const return for const graph", "[edge_value][api]") {
+    using Graph = compressed_graph<int, void, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 100}
+    };
+    
+    Graph temp_g;
+    temp_g.load_edges(edges_data);
+    const Graph g = std::move(temp_g);
+    
+    auto uv0 = *edges(g, *find_vertex(g, 0)).begin();
+    
+    // Should return const reference for const graph
+    auto& val_ref = edge_value(g, uv0);
+    REQUIRE(std::is_const_v<std::remove_reference_t<decltype(val_ref)>>);
+    REQUIRE(val_ref == 100);
+}
+
+TEST_CASE("edge_value(g, uv) with large values", "[edge_value][api]") {
+    using Graph = compressed_graph<int, void, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 1000000}, {1, 2, 2000000}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    auto uv0 = *edges(g, *find_vertex(g, 0)).begin();
+    auto uv1 = *edges(g, *find_vertex(g, 1)).begin();
+    
+    REQUIRE(edge_value(g, uv0) == 1000000);
+    REQUIRE(edge_value(g, uv1) == 2000000);
+}
+
+TEST_CASE("edge_value(g, uv) with multiple edges from same vertex", "[edge_value][api]") {
+    using Graph = compressed_graph<int, void, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 10}, {0, 2, 20}, {0, 3, 30}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    auto v0 = *find_vertex(g, 0);
+    auto edge_range = edges(g, v0);
+    auto it = edge_range.begin();
+    
+    auto uv0 = *it++;
+    auto uv1 = *it++;
+    auto uv2 = *it++;
+    
+    REQUIRE(edge_value(g, uv0) == 10);
+    REQUIRE(edge_value(g, uv1) == 20);
+    REQUIRE(edge_value(g, uv2) == 30);
+}
+
+TEST_CASE("edge_value(g, uv) with vector values", "[edge_value][api]") {
+    using Graph = compressed_graph<vector<int>, void, void>;
+    vector<copyable_edge_t<int, vector<int>>> edges_data = {
+        {0, 1, {1, 2, 3}}, {1, 2, {4, 5, 6}}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    
+    auto uv0 = *edges(g, *find_vertex(g, 0)).begin();
+    auto uv1 = *edges(g, *find_vertex(g, 1)).begin();
+    
+    REQUIRE(edge_value(g, uv0) == vector<int>{1, 2, 3});
+    REQUIRE(edge_value(g, uv1) == vector<int>{4, 5, 6});
+}
+
+TEST_CASE("edge_value(g, uv) with mixed edge and vertex values", "[edge_value][api]") {
+    using Graph = compressed_graph<int, string, void>;
+    vector<copyable_edge_t<int, int>> edges_data = {
+        {0, 1, 10}, {1, 2, 20}
+    };
+    vector<copyable_vertex_t<int, string>> vertex_values = {
+        {0, "v0"}, {1, "v1"}, {2, "v2"}
+    };
+    
+    Graph g;
+    g.load_edges(edges_data);
+    g.load_vertices(vertex_values);
+    
+    auto uv0 = *edges(g, *find_vertex(g, 0)).begin();
+    auto uv1 = *edges(g, *find_vertex(g, 1)).begin();
+    
+    // Verify edge values work independently of vertex values
+    REQUIRE(edge_value(g, uv0) == 10);
+    REQUIRE(edge_value(g, uv1) == 20);
+    
+    // Verify vertex values still work
+    auto v0 = *find_vertex(g, 0);
+    auto v1 = *find_vertex(g, 1);
+    REQUIRE(vertex_value(g, v0) == "v0");
+    REQUIRE(vertex_value(g, v1) == "v1");
+}
