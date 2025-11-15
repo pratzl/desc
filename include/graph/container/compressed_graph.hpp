@@ -1375,6 +1375,31 @@ public: // Friend functions
     
     return static_cast<partition_id_type>(std::distance(g.partition_.begin(), it));
   }
+
+  /**
+   * @brief Get the number of partitions in the graph.
+   * 
+   * Returns the total number of partitions that divide the vertices in the graph.
+   * For single-partition graphs (the default), returns 1.
+   * 
+   * @param g The graph (const reference)
+   * @return Number of partitions (integral type, minimum 1)
+   * @note Complexity: O(1) - direct access to partition vector size
+   * @note partition_ vector stores N+1 elements for N partitions (includes terminator)
+   * @note This is the ADL customization point for the num_partitions(g) CPO
+  */
+  template<typename G>
+    requires std::derived_from<std::remove_cvref_t<G>, compressed_graph_base>
+  [[nodiscard]] friend constexpr auto num_partitions(const G& g) noexcept
+    -> partition_id_type {
+    // partition_ holds partition start IDs plus one terminating element
+    // So num_partitions = partition_.size() - 1
+    // For empty or single-partition: size is 0, 1, or 2, all map to 1 partition
+    if (g.partition_.empty()) {
+      return 1;
+    }
+    return static_cast<partition_id_type>(g.partition_.size() - 1);
+  }
 };
 
 

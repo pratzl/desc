@@ -3553,3 +3553,175 @@ TEST_CASE("partition_id(g, u) works with all vertices", "[partition_id][api]") {
     
     REQUIRE(count == 4);  // vertices 0, 1, 2, 3
 }
+
+// =============================================================================
+// num_partitions(g) Friend Function Tests
+// =============================================================================
+
+TEST_CASE("num_partitions(g) returns 1 for single-partition graph", "[num_partitions][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {0, 2, 20}, {1, 2, 30}, {2, 3, 40}
+    };
+    vector<copyable_vertex_t<int, int>> vertex_values = {
+        {0, 100}, {1, 200}, {2, 300}, {3, 400}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    g.load_vertices(vertex_values);
+    
+    SECTION("default single partition") {
+        REQUIRE(num_partitions(g) == 1);
+    }
+    
+    SECTION("consistent across multiple calls") {
+        REQUIRE(num_partitions(g) == num_partitions(g));
+    }
+}
+
+TEST_CASE("num_partitions(g) with const graph", "[num_partitions][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}};
+    vector<copyable_vertex_t<int, int>> vertex_values = {{0, 100}, {1, 200}};
+    
+    Graph g_mutable;
+    g_mutable.load_edges(edges);
+    g_mutable.load_vertices(vertex_values);
+    
+    const Graph& g = g_mutable;
+    
+    REQUIRE(num_partitions(g) == 1);
+}
+
+TEST_CASE("num_partitions(g) with void edge values", "[num_partitions][api]") {
+    using Graph = compressed_graph<void, int, void>;
+    vector<copyable_edge_t<int, void>> edges = {{0, 1}, {1, 2}, {2, 3}};
+    vector<copyable_vertex_t<int, int>> vertex_values = {{0, 10}, {1, 20}, {2, 30}, {3, 40}};
+    
+    Graph g;
+    g.load_edges(edges);
+    g.load_vertices(vertex_values);
+    
+    REQUIRE(num_partitions(g) == 1);
+}
+
+TEST_CASE("num_partitions(g) with void vertex values", "[num_partitions][api]") {
+    using Graph = compressed_graph<int, void, void>;
+    vector<copyable_edge_t<int, int>> edges = {{0, 1, 100}, {1, 2, 200}};
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    REQUIRE(num_partitions(g) == 1);
+}
+
+TEST_CASE("num_partitions(g) with empty graph", "[num_partitions][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    Graph g;
+    
+    // Empty graph still has 1 partition (the default partition 0)
+    REQUIRE(num_partitions(g) == 1);
+}
+
+TEST_CASE("num_partitions(g) with single vertex", "[num_partitions][api]") {
+    using Graph = compressed_graph<void, int, void>;
+    vector<copyable_vertex_t<int, int>> vertex_values = {{0, 100}};
+    
+    Graph g;
+    g.load_vertices(vertex_values);
+    
+    REQUIRE(num_partitions(g) == 1);
+}
+
+TEST_CASE("num_partitions(g) integration with partition_id", "[num_partitions][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {1, 2, 20}, {2, 3, 30}
+    };
+    vector<copyable_vertex_t<int, int>> vertex_values = {
+        {0, 100}, {1, 200}, {2, 300}, {3, 400}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    g.load_vertices(vertex_values);
+    
+    auto num_parts = num_partitions(g);
+    REQUIRE(num_parts == 1);
+    
+    // All partition IDs should be in range [0, num_partitions)
+    for (auto v : vertices(g)) {
+        auto pid = partition_id(g, v);
+        REQUIRE(pid >= 0);
+        REQUIRE(pid < num_parts);
+    }
+}
+
+TEST_CASE("num_partitions(g) return type is integral", "[num_partitions][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}};
+    vector<copyable_vertex_t<int, int>> vertex_values = {{0, 100}, {1, 200}};
+    
+    Graph g;
+    g.load_edges(edges);
+    g.load_vertices(vertex_values);
+    
+    auto num_parts = num_partitions(g);
+    
+    STATIC_REQUIRE(std::integral<decltype(num_parts)>);
+}
+
+TEST_CASE("num_partitions(g) is noexcept", "[num_partitions][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}};
+    vector<copyable_vertex_t<int, int>> vertex_values = {{0, 100}, {1, 200}};
+    
+    Graph g;
+    g.load_edges(edges);
+    g.load_vertices(vertex_values);
+    
+    STATIC_REQUIRE(noexcept(num_partitions(g)));
+}
+
+TEST_CASE("num_partitions(g) with string edge values", "[num_partitions][api]") {
+    using Graph = compressed_graph<string, int, void>;
+    vector<copyable_edge_t<int, string>> edges = {
+        {0, 1, "edge01"}, {1, 2, "edge12"}
+    };
+    vector<copyable_vertex_t<int, int>> vertex_values = {
+        {0, 10}, {1, 20}, {2, 30}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    g.load_vertices(vertex_values);
+    
+    // Single partition regardless of edge value type
+    REQUIRE(num_partitions(g) == 1);
+}
+
+TEST_CASE("num_partitions(g) with large graph", "[num_partitions][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges;
+    
+    // Create a chain of 100 vertices
+    for (int i = 0; i < 99; ++i) {
+        edges.push_back({i, i + 1, i * 10});
+    }
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    // Still single partition by default
+    REQUIRE(num_partitions(g) == 1);
+}
+
+TEST_CASE("num_partitions(g) guarantees minimum of 1", "[num_partitions][api]") {
+    using Graph = compressed_graph<void, void, void>;
+    Graph g;
+    
+    // Even empty graph has at least 1 partition
+    auto num_parts = num_partitions(g);
+    REQUIRE(num_parts >= 1);
+}
