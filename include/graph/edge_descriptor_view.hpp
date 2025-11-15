@@ -77,6 +77,9 @@ public:
     // Default constructor
     constexpr edge_descriptor_view() noexcept = default;
     
+    // Copy constructor
+    constexpr edge_descriptor_view(const edge_descriptor_view&) noexcept = default;
+    
     /**
      * @brief Construct view from edge storage range and source vertex
      * @param begin_val Starting edge iterator/index
