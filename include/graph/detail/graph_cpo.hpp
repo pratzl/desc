@@ -1173,23 +1173,146 @@ namespace _cpo_impls {
                 }
             }
         };
+        
+        // =====================================================================
+        // num_vertices(g, pid) - partition-specific vertex count
+        // =====================================================================
+        
+        enum class _St_pid { _none, _member, _adl, _default };
+        
+        // Check for g.num_vertices(pid) member function
+        template<typename G, typename PId>
+        concept _has_member_pid = 
+            requires(const G& g, const PId& pid) {
+                { g.num_vertices(pid) } -> std::integral;
+            };
+        
+        // Check for ADL num_vertices(g, pid)
+        template<typename G, typename PId>
+        concept _has_adl_pid = 
+            requires(const G& g, const PId& pid) {
+                { num_vertices(g, pid) } -> std::integral;
+            };
+        
+        // Check if we can use default implementation (always available)
+        template<typename G, typename PId>
+        concept _has_default_pid = std::integral<PId>;
+        
+        template<typename G, typename PId>
+        [[nodiscard]] consteval _Choice_t<_St_pid> _Choose_pid() noexcept {
+            if constexpr (_has_member_pid<G, PId>) {
+                return {_St_pid::_member, 
+                        noexcept(std::declval<const G&>().num_vertices(std::declval<const PId&>()))};
+            } else if constexpr (_has_adl_pid<G, PId>) {
+                return {_St_pid::_adl, 
+                        noexcept(num_vertices(std::declval<const G&>(), std::declval<const PId&>()))};
+            } else if constexpr (_has_default_pid<G, PId>) {
+                return {_St_pid::_default, true}; // Default is noexcept
+            } else {
+                return {_St_pid::_none, false};
+            }
+        }
+        
+        // Combined CPO function with both overloads
+        class _fn_combined {
+        private:
+            template<typename G>
+            static constexpr _Choice_t<_St> _Choice = _Choose<std::remove_cvref_t<G>>();
+            
+            template<typename G, typename PId>
+            static constexpr _Choice_t<_St_pid> _Choice_pid = _Choose_pid<std::remove_cvref_t<G>, std::remove_cvref_t<PId>>();
+            
+        public:
+            /**
+             * @brief Get the number of vertices in the graph
+             * 
+             * Resolution order (three-tier approach):
+             * 1. g.num_vertices() - Member function (highest priority)
+             * 2. num_vertices(g) - ADL (medium priority)
+             * 3. std::ranges::size(g) - Ranges default (lowest priority)
+             * 
+             * The default implementation works for any sized_range (vector, deque, map, etc.)
+             * Custom graph types can override by providing a member function or ADL function.
+             * 
+             * @tparam G Graph type
+             * @param g Graph container
+             * @return Number of vertices in the graph
+             */
+            template<typename G>
+            [[nodiscard]] constexpr auto operator()(const G& g) const
+                noexcept(_Choice<std::remove_cvref_t<G>>._No_throw)
+                requires (_Choice<std::remove_cvref_t<G>>._Strategy != _St::_none)
+            {
+                using _G = std::remove_cvref_t<G>;
+                
+                if constexpr (_Choice<_G>._Strategy == _St::_member) {
+                    return g.num_vertices();
+                } else if constexpr (_Choice<_G>._Strategy == _St::_adl) {
+                    return num_vertices(g);
+                } else if constexpr (_Choice<_G>._Strategy == _St::_ranges) {
+                    return std::ranges::size(g);
+                }
+            }
+            
+            /**
+             * @brief Get the number of vertices in a specific partition
+             * 
+             * Resolution order:
+             * 1. g.num_vertices(pid) - Member function (highest priority)
+             * 2. num_vertices(g, pid) - ADL (medium priority)
+             * 3. Default: returns num_vertices(g) if pid==0, 0 otherwise (lowest priority)
+             * 
+             * The default implementation assumes single partition (partition 0).
+             * For multi-partition graphs, provide custom member function or ADL.
+             * 
+             * @tparam G Graph type
+             * @tparam PId Partition ID type (integral)
+             * @param g Graph container
+             * @param pid Partition ID
+             * @return Number of vertices in the partition
+             */
+            template<typename G, std::integral PId>
+            [[nodiscard]] constexpr auto operator()(const G& g, const PId& pid) const
+                noexcept(_Choice_pid<std::remove_cvref_t<G>, std::remove_cvref_t<PId>>._No_throw)
+                requires (_Choice_pid<std::remove_cvref_t<G>, std::remove_cvref_t<PId>>._Strategy != _St_pid::_none)
+            {
+                using _G = std::remove_cvref_t<G>;
+                using _PId = std::remove_cvref_t<PId>;
+                
+                if constexpr (_Choice_pid<_G, _PId>._Strategy == _St_pid::_member) {
+                    return g.num_vertices(pid);
+                } else if constexpr (_Choice_pid<_G, _PId>._Strategy == _St_pid::_adl) {
+                    return num_vertices(g, pid);
+                } else if constexpr (_Choice_pid<_G, _PId>._Strategy == _St_pid::_default) {
+                    // Default: single partition (partition 0 only)
+                    if (pid == 0) {
+                        return (*this)(g);
+                    } else {
+                        // No vertices in non-existent partitions
+                        return static_cast<decltype((*this)(g))>(0);
+                    }
+                }
+            }
+        };
     } // namespace _num_vertices
 
 } // namespace _cpo_impls
 
 // =============================================================================
-// num_vertices(g) - Public CPO instance
+// num_vertices(g) and num_vertices(g, pid) - Public CPO instance
 // =============================================================================
 
 inline namespace _cpo_instances {
     /**
      * @brief CPO for getting the number of vertices in the graph
      * 
-     * Usage: auto count = graph::num_vertices(my_graph);
+     * Usage: 
+     *   auto count = graph::num_vertices(my_graph);        // All vertices
+     *   auto count = graph::num_vertices(my_graph, pid);   // Vertices in partition pid
      * 
      * Returns: Number of vertices (size_t or similar integral type)
      */
-    inline constexpr _cpo_impls::_num_vertices::_fn num_vertices{};
+    inline constexpr _cpo_impls::_num_vertices::_fn_combined num_vertices{};
 } // namespace _cpo_instances
 
 namespace _cpo_impls {
