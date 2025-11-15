@@ -36,6 +36,7 @@ add_executable(descriptor_tests
     test_graph_value_cpo.cpp
     test_partition_id_cpo.cpp
     test_num_partitions_cpo.cpp
+    test_vertices_pid_cpo.cpp
     test_type_aliases.cpp
     test_adjacency_list_edge_concepts.cpp
     test_adjacency_list_vertex_concepts.cpp

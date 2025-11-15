@@ -129,23 +129,155 @@ namespace _cpo_impls {
                 }
             }
         };
+        
+        // =====================================================================
+        // vertices(g, pid) - partition-specific vertex range
+        // =====================================================================
+        
+        enum class _St_pid { _none, _member, _adl, _default };
+        
+        // Check for g.vertices(pid) member function
+        template<typename G, typename PId>
+        concept _has_member_pid = 
+            requires(G& g, const PId& pid) {
+                { g.vertices(pid) } -> std::ranges::forward_range;
+            };
+        
+        // Check for ADL vertices(g, pid)
+        template<typename G, typename PId>
+        concept _has_adl_pid = 
+            requires(G& g, const PId& pid) {
+                { vertices(g, pid) } -> std::ranges::forward_range;
+            };
+        
+        // Check if we can use default implementation (always available)
+        template<typename G, typename PId>
+        concept _has_default_pid = std::integral<PId>;
+        
+        template<typename G, typename PId>
+        [[nodiscard]] consteval _Choice_t<_St_pid> _Choose_pid() noexcept {
+            if constexpr (_has_member_pid<G, PId>) {
+                return {_St_pid::_member, 
+                        noexcept(std::declval<G&>().vertices(std::declval<const PId&>()))};
+            } else if constexpr (_has_adl_pid<G, PId>) {
+                return {_St_pid::_adl, 
+                        noexcept(vertices(std::declval<G&>(), std::declval<const PId&>()))};
+            } else if constexpr (_has_default_pid<G, PId>) {
+                return {_St_pid::_default, true}; // Default is noexcept
+            } else {
+                return {_St_pid::_none, false};
+            }
+        }
+        
+        // Combined CPO function with both overloads
+        class _fn_combined {
+        private:
+            template<typename G>
+            static constexpr _Choice_t<_St> _Choice = _Choose<std::remove_cvref_t<G>>();
+            
+            template<typename G, typename PId>
+            static constexpr _Choice_t<_St_pid> _Choice_pid = _Choose_pid<std::remove_cvref_t<G>, std::remove_cvref_t<PId>>();
+            
+        public:
+            /**
+             * @brief Get range of vertices in graph
+             * 
+             * IMPORTANT: This CPO MUST always return a vertex_descriptor_view.
+             * 
+             * Resolution order:
+             * 1. If g.vertices() exists -> use it (wrap in descriptor view if needed)
+             * 2. If ADL vertices(g) exists -> use it (wrap in descriptor view if needed)
+             * 3. If g follows inner value patterns -> return vertex_descriptor_view(g)
+             * 
+             * If custom g.vertices() or ADL vertices(g) already returns a 
+             * vertex_descriptor_view, it's used as-is. Otherwise, the result is 
+             * automatically wrapped in vertex_descriptor_view.
+             * 
+             * @param g Graph container
+             * @return vertex_descriptor_view wrapping the vertices
+             */
+            template<typename G>
+            [[nodiscard]] constexpr auto operator()(G&& g) const
+                noexcept(_Choice<std::remove_cvref_t<G>>._No_throw)
+                requires (_Choice<std::remove_cvref_t<G>>._Strategy != _St::_none)
+            {
+                using _G = std::remove_cvref_t<G>;
+                if constexpr (_Choice<_G>._Strategy == _St::_member) {
+                    return _wrap_if_needed(g.vertices());
+                } else if constexpr (_Choice<_G>._Strategy == _St::_adl) {
+                    return _wrap_if_needed(vertices(g));
+                } else if constexpr (_Choice<_G>._Strategy == _St::_inner_value_pattern) {
+                    return vertex_descriptor_view(g);
+                }
+            }
+            
+            /**
+             * @brief Get range of vertices in a specific partition
+             * 
+             * IMPORTANT: This CPO MUST always return a vertex_descriptor_view.
+             * 
+             * Resolution order:
+             * 1. If g.vertices(pid) exists -> use it (wrap in descriptor view if needed)
+             * 2. If ADL vertices(g, pid) exists -> use it (wrap in descriptor view if needed)
+             * 3. Default: returns vertices(g) if pid==0, empty vertex_descriptor_view otherwise
+             * 
+             * If custom g.vertices(pid) or ADL vertices(g, pid) already returns a 
+             * vertex_descriptor_view, it's used as-is. Otherwise, the result is 
+             * automatically wrapped in vertex_descriptor_view.
+             * 
+             * The default implementation assumes single partition (partition 0).
+             * For multi-partition graphs, provide custom member function or ADL.
+             * 
+             * @tparam G Graph type
+             * @tparam PId Partition ID type (integral)
+             * @param g Graph container
+             * @param pid Partition ID
+             * @return vertex_descriptor_view wrapping the vertices in the partition
+             */
+            template<typename G, std::integral PId>
+            [[nodiscard]] constexpr auto operator()(G&& g, const PId& pid) const
+                noexcept(_Choice_pid<std::remove_cvref_t<G>, std::remove_cvref_t<PId>>._No_throw)
+                requires (_Choice_pid<std::remove_cvref_t<G>, std::remove_cvref_t<PId>>._Strategy != _St_pid::_none)
+            {
+                using _G = std::remove_cvref_t<G>;
+                using _PId = std::remove_cvref_t<PId>;
+                
+                if constexpr (_Choice_pid<_G, _PId>._Strategy == _St_pid::_member) {
+                    return _wrap_if_needed(g.vertices(pid));
+                } else if constexpr (_Choice_pid<_G, _PId>._Strategy == _St_pid::_adl) {
+                    return _wrap_if_needed(vertices(g, pid));
+                } else if constexpr (_Choice_pid<_G, _PId>._Strategy == _St_pid::_default) {
+                    // Default: single partition (partition 0 only)
+                    if (pid == 0) {
+                        return (*this)(std::forward<G>(g));
+                    } else {
+                        // Empty range for non-existent partitions
+                        // Use default constructor to create empty vertex_descriptor_view
+                        using result_type = std::remove_cvref_t<decltype((*this)(std::forward<G>(g)))>;
+                        return result_type{};
+                    }
+                }
+            }
+        };
     } // namespace _vertices
 
 } // namespace _cpo_impls
 
 // =============================================================================
-// vertices(g) - Public CPO instance and type aliases
+// vertices(g) and vertices(g, pid) - Public CPO instance and type aliases
 // =============================================================================
 
 inline namespace _cpo_instances {
     /**
      * @brief CPO for getting vertex range from a graph
      * 
-     * Usage: auto verts = graph::vertices(my_graph);
+     * Usage: 
+     *   auto verts = graph::vertices(my_graph);           // All vertices
+     *   auto verts = graph::vertices(my_graph, pid);      // Vertices in partition pid
      * 
      * Returns: vertex_descriptor_view
      */
-    inline constexpr _cpo_impls::_vertices::_fn vertices{};
+    inline constexpr _cpo_impls::_vertices::_fn_combined vertices{};
 } // namespace _cpo_instances
 
 /**
