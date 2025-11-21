@@ -2383,7 +2383,7 @@ namespace _cpo_impls {
     // =========================================================================
     
     namespace _source_id {
-        enum class _St { _none, _member, _adl };
+        enum class _St { _none, _member, _adl, _descriptor };
         
         // Check for g.source_id(uv) member function
         // Note: Uses G (not G&) to preserve const qualification
@@ -2399,6 +2399,13 @@ namespace _cpo_impls {
             { source_id(g, uv) };
         };
         
+        // Check if edge descriptor has source_id() member (default)
+        template<typename E>
+        concept _has_descriptor = is_edge_descriptor_v<std::remove_cvref_t<E>> &&
+            requires(const E& uv) {
+                { uv.source_id() };
+            };
+        
         template<typename G, typename E>
         [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
             if constexpr (_has_member<G, E>) {
@@ -2407,6 +2414,9 @@ namespace _cpo_impls {
             } else if constexpr (_has_adl<G, E>) {
                 return {_St::_adl, 
                         noexcept(source_id(std::declval<G>(), std::declval<const E&>()))};
+            } else if constexpr (_has_descriptor<E>) {
+                return {_St::_descriptor,
+                        noexcept(std::declval<const E&>().source_id())};
             } else {
                 return {_St::_none, false};
             }
@@ -2419,25 +2429,24 @@ namespace _cpo_impls {
             
         public:
             /**
-             * @brief Get the source vertex ID for a sourced edge
+             * @brief Get the source vertex ID for an edge
              * 
              * Resolution order:
              * 1. g.source_id(uv) - Member function (highest priority)
-             * 2. source_id(g, uv) - ADL (lowest priority)
+             * 2. source_id(g, uv) - ADL (medium priority)
+             * 3. uv.source_id() - Edge descriptor's source_id() member (lowest priority)
              * 
-             * There is no default implementation. If neither member nor ADL is found,
-             * a compile-time error will occur due to the requires constraint.
+             * The default implementation (tier 3) works for any edge_descriptor that
+             * stores its source vertex. This is available for standard adjacency list
+             * graphs where edge descriptors maintain their source vertex reference.
              * 
-             * This is used for graphs with sourced edges (e.g., bidirectional graphs)
-             * where edges explicitly store or can compute their source vertex ID.
-             * 
-             * For standard adjacency list graphs where edges are stored in the source
-             * vertex's edge list, use the edge descriptor's source().value() instead.
+             * For specialized graph types (bidirectional graphs, edge lists), provide
+             * a custom member function or ADL override.
              * 
              * @tparam G Graph type
-             * @tparam E Edge descriptor type
+             * @tparam E Edge descriptor or edge type
              * @param g Graph container
-             * @param uv Edge descriptor
+             * @param uv Edge descriptor or edge
              * @return Source vertex ID (type depends on graph's vertex_id_t)
              */
             template<typename G, typename E>
@@ -2452,6 +2461,8 @@ namespace _cpo_impls {
                     return g.source_id(uv);
                 } else if constexpr (_Choice<_G, _E>._Strategy == _St::_adl) {
                     return source_id(g, uv);
+                } else if constexpr (_Choice<_G, _E>._Strategy == _St::_descriptor) {
+                    return uv.source_id();
                 }
             }
         };
@@ -2465,15 +2476,16 @@ namespace _cpo_impls {
 
 inline namespace _cpo_instances {
     /**
-     * @brief CPO for getting the source vertex ID for a sourced edge
+     * @brief CPO for getting the source vertex ID from an edge
      * 
      * Usage: 
      *   auto src_id = graph::source_id(my_graph, edge_descriptor);
      * 
      * Returns: Source vertex ID
      * 
-     * Note: No default implementation - requires either member function or ADL.
-     *       Used for graphs with sourced edges (bidirectional, edge lists with source info).
+     * For standard graphs with edge_descriptor, the default implementation uses
+     * the edge descriptor's source_id() member, which extracts the ID from the
+     * stored source vertex descriptor.
      */
     inline constexpr _cpo_impls::_source_id::_fn source_id{};
 } // namespace _cpo_instances
@@ -2485,7 +2497,7 @@ namespace _cpo_impls {
     // =========================================================================
     
     namespace _source {
-        enum class _St { _none, _member, _adl };
+        enum class _St { _none, _member, _adl, _default };
         
         // Use the public CPO instances (already declared above)
         using graph::find_vertex;
@@ -2507,10 +2519,14 @@ namespace _cpo_impls {
                 { source(g, uv) };
             };
         
-        // No default implementation for source(g, uv)
-        // Unlike target(g, uv) which works for standard adjacency lists,
-        // source requires explicit implementation for each graph type
-        // (e.g., bidirectional graphs, edge lists)
+        // Check if default implementation is available
+        // Requires source_id(g, uv) and find_vertex(g, id) to work
+        template<typename G, typename E>
+        concept _has_default = 
+            requires(G& g, const E& uv) {
+                { source_id(g, uv) } -> std::convertible_to<decltype(source_id(g, uv))>;
+                { find_vertex(g, source_id(g, uv)) };
+            };
         
         template<typename G, typename E>
         [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
@@ -2520,6 +2536,9 @@ namespace _cpo_impls {
             } else if constexpr (_has_adl<G, E>) {
                 return {_St::_adl, 
                         noexcept(source(std::declval<G&>(), std::declval<const E&>()))};
+            } else if constexpr (_has_default<G, E>) {
+                return {_St::_default,
+                        noexcept(find_vertex(std::declval<G&>(), source_id(std::declval<G&>(), std::declval<const E&>())))};
             } else {
                 return {_St::_none, false};
             }
@@ -2562,21 +2581,19 @@ namespace _cpo_impls {
              *    - May return either vertex_descriptor or vertex_iterator (auto-converted)
              * 2. source(g, uv) - ADL (medium priority)
              *    - May return either vertex_descriptor or vertex_iterator (auto-converted)
+             * 3. *find_vertex(g, source_id(g, uv)) - Default (lowest priority)
+             *    - Uses source_id to get ID, then find_vertex to locate vertex
              * 
-             * NO DEFAULT IMPLEMENTATION
-             * Unlike target(g, uv), there is no default implementation for source(g, uv).
-             * Standard adjacency list graphs have implicit source (the vertex whose edge list
-             * contains the edge), so source must be explicitly provided by graph implementations
-             * that support sourced edges (e.g., bidirectional graphs, edge lists).
+             * The default implementation (tier 3) works for any graph that supports:
+             * - source_id(g, uv) to get the source vertex ID
+             * - find_vertex(g, id) to find a vertex by ID
+             * 
+             * This makes source() universally available for edge_descriptors that
+             * maintain their source vertex information.
              * 
              * Custom implementations (member/ADL) can return:
              * - vertex_descriptor directly (vertex_t<G>) - used as-is
              * - vertex_iterator (iterator to vertices) - dereferenced to get descriptor
-             * 
-             * Use cases:
-             * - Bidirectional graphs where edges know both endpoints
-             * - Edge list graphs where edges are stored independently
-             * - Any graph structure supporting efficient source vertex lookup
              * 
              * @tparam G Graph type
              * @tparam E Edge descriptor type (constrained to be an edge_descriptor_type)
@@ -2599,6 +2616,9 @@ namespace _cpo_impls {
                 } else if constexpr (_Choice<_G, _E>._Strategy == _St::_adl) {
                     // ADL may return vertex_descriptor or iterator
                     return _to_vertex_descriptor(g, source(g, uv));
+                } else if constexpr (_Choice<_G, _E>._Strategy == _St::_default) {
+                    // Default: use source_id + find_vertex
+                    return *find_vertex(std::forward<G>(g), source_id(std::forward<G>(g), uv));
                 }
             }
         };

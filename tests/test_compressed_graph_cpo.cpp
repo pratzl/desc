@@ -1234,6 +1234,84 @@ TEST_CASE("target(g,uv) with string vertex values", "[target][api]") {
 }
 
 // =============================================================================
+// source_id(g,uv) and source(g,uv) CPO Tests  
+// =============================================================================
+
+TEST_CASE("source_id(g,uv) returns correct source ID", "[source_id][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges_vec = {
+        {0, 1, 10}, {0, 2, 20}, {1, 2, 30}, {2, 3, 40}
+    };
+    
+    Graph g;
+    g.load_edges(edges_vec);
+    
+    SECTION("first vertex edges") {
+        auto v = vertices(g);
+        auto v0 = *v.begin();
+        auto e = edges(g, v0);
+        
+        vector<int> source_ids;
+        for (auto ed : e) {
+            source_ids.push_back(source_id(g, ed));
+        }
+        
+        REQUIRE(source_ids.size() == 2);
+        REQUIRE(source_ids[0] == 0);
+        REQUIRE(source_ids[1] == 0);
+    }
+    
+    SECTION("second vertex edges") {
+        auto v = vertices(g);
+        auto it = v.begin();
+        ++it;
+        auto v1 = *it;
+        auto e = edges(g, v1);
+        
+        vector<int> source_ids;
+        for (auto ed : e) {
+            source_ids.push_back(source_id(g, ed));
+        }
+        
+        REQUIRE(source_ids.size() == 1);
+        REQUIRE(source_ids[0] == 1);
+    }
+}
+
+TEST_CASE("source(g,uv) returns correct source vertex descriptor", "[source][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges_vec = {
+        {0, 1, 10}, {0, 2, 20}, {1, 2, 30}, {2, 3, 40}
+    };
+    
+    Graph g;
+    g.load_edges(edges_vec);
+    
+    SECTION("first vertex edges") {
+        auto v = vertices(g);
+        auto v0 = *v.begin();
+        auto e = edges(g, v0);
+        
+        for (auto ed : e) {
+            auto src = source(g, ed);
+            REQUIRE(vertex_id(g, src) == 0);
+            REQUIRE(vertex_id(g, src) == vertex_id(g, v0));
+        }
+    }
+    
+    SECTION("all vertices") {
+        auto v = vertices(g);
+        for (auto vd : v) {
+            auto e = edges(g, vd);
+            for (auto ed : e) {
+                auto src = source(g, ed);
+                REQUIRE(vertex_id(g, src) == vertex_id(g, vd));
+            }
+        }
+    }
+}
+
+// =============================================================================
 // num_vertices(g) CPO Tests
 // =============================================================================
 

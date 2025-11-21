@@ -61,6 +61,16 @@ public:
     }
     
     /**
+     * @brief Get the source vertex ID
+     * @return The vertex ID of the source vertex
+     * 
+     * Extracts the ID from the stored source vertex descriptor.
+     */
+    [[nodiscard]] constexpr auto source_id() const noexcept {
+        return source_.vertex_id();
+    }
+    
+    /**
      * @brief Get the target vertex ID from the edge data
      * @param edges The edge container to access edge data
      * @return The target vertex identifier extracted from the edge
