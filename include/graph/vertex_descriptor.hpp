@@ -108,7 +108,7 @@ public:
         
         if constexpr (std::random_access_iterator<VertexIter>) {
             // For random access (vector), the value is the data itself
-            return (container[storage_]);
+            return (*(std::begin(container) + storage_));
         } else {
             // For bidirectional, check if it's a pair-like type
             if constexpr (pair_like_value<vt>) {
@@ -132,7 +132,7 @@ public:
         using vt = typename std::iterator_traits<VertexIter>::value_type;
         
         if constexpr (std::random_access_iterator<VertexIter>) {
-            return (container[storage_]);
+            return (*(std::begin(container) + storage_));
         } else {
             if constexpr (pair_like_value<vt>) {
                 const auto& element = *storage_;

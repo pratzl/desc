@@ -313,24 +313,7 @@ namespace _cpo_impls {
     // =========================================================================
     
     namespace _vertex_id {
-        enum class _St { _none, _inner_value_member, _adl_inner_value, _adl_descriptor, _descriptor };
-        
-        // Check for inner_value.vertex_id(g) member function
-        // Note: u.inner_value(g) returns the inner value from the descriptor
-        template<typename G, typename U>
-        concept _has_inner_value_member = 
-            is_vertex_descriptor_v<std::remove_cvref_t<U>> &&
-            requires(G& g, const U& u) {
-                { u.inner_value(g).vertex_id(g) };
-            };
-        
-        // Check for ADL vertex_id(g, inner_value)
-        template<typename G, typename U>
-        concept _has_adl_inner_value = 
-            is_vertex_descriptor_v<std::remove_cvref_t<U>> &&
-            requires(G& g, const U& u) {
-                { vertex_id(g, u.inner_value(g)) };
-            };
+        enum class _St { _none, _adl_descriptor, _descriptor };
         
         // Check for ADL vertex_id(g, descriptor)
         template<typename G, typename U>
@@ -349,13 +332,7 @@ namespace _cpo_impls {
         
         template<typename G, typename U>
         [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
-            if constexpr (_has_inner_value_member<G, U>) {
-                return {_St::_inner_value_member, 
-                        noexcept(std::declval<U&>().inner_value(std::declval<G&>()).vertex_id(std::declval<const G&>()))};
-            } else if constexpr (_has_adl_inner_value<G, U>) {
-                return {_St::_adl_inner_value, 
-                        noexcept(vertex_id(std::declval<G&>(), std::declval<U&>().inner_value(std::declval<G&>())))};
-            } else if constexpr (_has_adl_descriptor<G, U>) {
+            if constexpr (_has_adl_descriptor<G, U>) {
                 return {_St::_adl_descriptor, 
                         noexcept(vertex_id(std::declval<const G&>(), std::declval<const U&>()))};
             } else if constexpr (_has_descriptor<U>) {
@@ -375,19 +352,18 @@ namespace _cpo_impls {
             /**
              * @brief Get unique ID for a vertex
              * 
-             * Resolution order (checks inner_value first, then descriptor):
-             * 1. u.inner_value(g).vertex_id(g) - inner_value member function (highest priority)
-             * 2. vertex_id(g, u.inner_value(g)) - ADL with inner_value
-             * 3. vertex_id(g, u) - ADL with vertex_descriptor
-             * 4. u.vertex_id() - descriptor's default method (lowest priority)
+             * Resolution order:
+             * 1. vertex_id(g, u) - ADL with vertex_descriptor (graph-provided customization)
+             * 2. u.vertex_id() - descriptor's default method (fallback)
              * 
-             * Where:
-             * - u must be vertex_t<G> (the vertex descriptor type for graph G)
-             * - u.inner_value(g) extracts the actual vertex data from the graph container
+             * The ADL path allows graphs to provide custom vertex_id implementations via
+             * friend functions. This is useful for graphs like compressed_graph where the
+             * descriptor directly stores the ID.
              * 
-             * For random-access containers: returns the index
-             * For associative containers: returns the key
-             * For bidirectional containers: returns the iterator position
+             * The descriptor default works for standard containers:
+             * - Random-access containers (vector, deque): returns the index
+             * - Associative containers (map): returns the key
+             * - Bidirectional containers: returns the iterator position
              * 
              * @tparam G Graph type
              * @tparam U Vertex descriptor type (constrained to be a vertex_descriptor_type)
@@ -396,7 +372,7 @@ namespace _cpo_impls {
              * @return Unique identifier for the vertex
              */
             template<typename G, vertex_descriptor_type U>
-            [[nodiscard]] constexpr auto operator()(G& g, const U& u) const
+            [[nodiscard]] constexpr auto operator()(const G& g, const U& u) const
                 noexcept(_Choice<std::remove_cvref_t<G>, std::remove_cvref_t<U>>._No_throw)
                 -> decltype(auto)
                 requires (_Choice<std::remove_cvref_t<G>, std::remove_cvref_t<U>>._Strategy != _St::_none)
@@ -404,11 +380,7 @@ namespace _cpo_impls {
                 using _G = std::remove_cvref_t<G>;
                 using _U = std::remove_cvref_t<U>;
                 
-                if constexpr (_Choice<_G, _U>._Strategy == _St::_inner_value_member) {
-                    return u.inner_value(g).vertex_id(g);
-                } else if constexpr (_Choice<_G, _U>._Strategy == _St::_adl_inner_value) {
-                    return vertex_id(g, u.inner_value(g));
-                } else if constexpr (_Choice<_G, _U>._Strategy == _St::_adl_descriptor) {
+                if constexpr (_Choice<_G, _U>._Strategy == _St::_adl_descriptor) {
                     return vertex_id(g, u);
                 } else if constexpr (_Choice<_G, _U>._Strategy == _St::_descriptor) {
                     return u.vertex_id();

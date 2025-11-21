@@ -310,14 +310,14 @@ TEST_CASE("compressed_graph operator subscript accesses edge values by index", "
     vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}, {0, 2, 20}, {1, 3, 30}};
     g.load_edges(edges);
     
-    // operator[] with edge id 0, 1, 2 gives us the edge values
-    REQUIRE(g[0] == 10); // First edge: 0->1 with value 10
-    REQUIRE(g[1] == 20); // Second edge: 0->2 with value 20
-    REQUIRE(g[2] == 30); // Third edge: 1->3 with value 30
+    // edge_value() with edge id 0, 1, 2 gives us the edge values
+    REQUIRE(g.edge_value(0) == 10); // First edge: 0->1 with value 10
+    REQUIRE(g.edge_value(1) == 20); // Second edge: 0->2 with value 20
+    REQUIRE(g.edge_value(2) == 30); // Third edge: 1->3 with value 30
     
     // Test mutability
-    g[0] = 15;
-    REQUIRE(g[0] == 15);
+    g.edge_value(0) = 15;
+    REQUIRE(g.edge_value(0) == 15);
 }
 
 TEST_CASE("compressed_graph graph_value() accesses graph value", "[api][graph_value]") {
@@ -526,9 +526,9 @@ TEST_CASE("compressed_graph const operator subscript", "[const][operator_subscri
     
     const auto& cg = g;
     // Access edge values by edge index
-    REQUIRE(cg[0] == "edge0");
-    REQUIRE(cg[2] == "edge2");
-    REQUIRE(cg[4] == "edge4");
+    REQUIRE(cg.edge_value(0) == "edge0");
+    REQUIRE(cg.edge_value(2) == "edge2");
+    REQUIRE(cg.edge_value(4) == "edge4");
 }
 
 // =============================================================================

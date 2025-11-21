@@ -28,7 +28,6 @@
 //  - edge_ids() returns iota view of all edge IDs [0, total_edges)
 //  - edge_ids(vertex_id) returns iota view of edge IDs for specific vertex
 //  - Vertex ID validity: check with id < g.size() (no find_vertex() needed)
-//  - operator[] accesses edge values by edge ID (only when EV != void)
 //  - Direct access via vertex_value(id), edge_value(id), target_id(id)
 
 namespace graph::container {
@@ -388,7 +387,7 @@ public: // Operations
  * Key Access Patterns:
  * - Vertex access: Use vertex_ids() for all vertices, check validity with id < size()
  * - Edge access: Use edge_ids() for all edges, edge_ids(vid) for per-vertex edges
- * - Direct data access: vertex_value(id), edge_value(id), target_id(id), operator[](edge_id)
+ * - Direct data access: vertex_value(id), edge_value(id), target_id(id)
  * 
  * For constructors that accept a partition function, the function must return a partition id for a vertex id.
  * When used, the range of input edges must be ordered by the partition id they're in. Partions may be skipped
@@ -924,42 +923,6 @@ protected:
     partition_.push_back(static_cast<partition_id_type>(row_index_.size()));
   }
 
-public: // Operators
-  /**
-   * @brief Access an edge value by its edge id.
-   * 
-   * Provides direct access to the edge value in the CSR structure. This is a
-   * convenience accessor equivalent to edge_value(id).
-   * 
-   * @param id The edge id (edge index into the edge value array)
-   * @return Mutable reference to the edge value
-   * @note Only available when EV is not void
-   * @note No bounds checking is performed. The caller must ensure id < total_edges.
-  */
-  template<typename EV_ = EV>
-  [[nodiscard]] constexpr auto operator[](column_id_type id) noexcept
-    -> std::enable_if_t<!std::is_void_v<EV_>, EV_&>
-  {
-    return col_values_base::operator[](static_cast<typename col_values_base::size_type>(id));
-  }
-  
-  /**
-   * @brief Access an edge value by its edge id (const version).
-   * 
-   * Provides direct const access to the edge value in the CSR structure.
-   * 
-   * @param id The edge id (edge index into the edge value array)
-   * @return Const reference to the edge value
-   * @note Only available when EV is not void
-   * @note No bounds checking is performed. The caller must ensure id < total_edges.
-  */
-  template<typename EV_ = EV>
-  [[nodiscard]] constexpr auto operator[](column_id_type id) const noexcept
-    -> std::enable_if_t<!std::is_void_v<EV_>, const EV_&>
-  {
-    return col_values_base::operator[](static_cast<typename col_values_base::size_type>(id));
-  }
-
 public: // Vertex range accessors  
   /**
    * @brief Get a range of all vertex IDs in the graph.
@@ -1143,6 +1106,63 @@ public: // Friend functions
   }
 
   /**
+   * @brief Get a view of vertices in a specific partition.
+   * 
+   * Returns a vertex_descriptor_view that iterates over vertices in the specified partition,
+   * yielding vertex_descriptor objects. Partitions divide vertices into contiguous ranges.
+   * 
+   * For single-partition graphs (default), partition 0 contains all vertices.
+   * For multi-partition graphs, partition_[pid] stores the first vertex ID of partition pid.
+   * 
+   * @param g The graph to get vertices from (forwarding reference)
+   * @param pid The partition ID (0-based index)
+   * @return vertex_descriptor_view over vertices in the partition
+   * @note Complexity: O(1) - direct access to partition boundaries
+   * @note Returns empty view if pid is out of range
+   * @note This is the ADL customization point for the vertices(g, pid) CPO
+  */
+  template<typename G, std::integral PId>
+    requires std::derived_from<std::remove_cvref_t<G>, compressed_graph_base>
+  [[nodiscard]] friend constexpr auto vertices(G&& g, const PId& pid) noexcept {
+    using vertex_iter_type = std::conditional_t<
+        std::is_const_v<std::remove_reference_t<G>>,
+        typename row_index_vector::const_iterator,
+        typename row_index_vector::iterator
+    >;
+    
+    // Handle empty graph
+    if(g.empty()) {
+      return vertex_descriptor_view<vertex_iter_type>(static_cast<std::size_t>(0), static_cast<std::size_t>(0));
+    }
+    
+    // Handle single partition case (partition_ is empty or size <= 2)
+    if (g.partition_.empty() || g.partition_.size() <= 2) {
+      if (pid == 0) {
+        // Single partition contains all vertices
+        return vertex_descriptor_view<vertex_iter_type>(static_cast<std::size_t>(0), static_cast<std::size_t>(g.size()));
+      } else {
+        // No such partition
+        return vertex_descriptor_view<vertex_iter_type>(static_cast<std::size_t>(0), static_cast<std::size_t>(0));
+      }
+    }
+    
+    // Multi-partition case
+    // partition_.size() - 1 is the number of actual partitions (last element is terminator)
+    const auto num_parts = g.partition_.size() - 1;
+    
+    if (pid < 0 || static_cast<std::size_t>(pid) >= num_parts) {
+      // Partition ID out of range
+      return vertex_descriptor_view<vertex_iter_type>(static_cast<std::size_t>(0), static_cast<std::size_t>(0));
+    }
+    
+    // Return range [partition_[pid], partition_[pid+1])
+    const auto begin_vid = static_cast<std::size_t>(g.partition_[pid]);
+    const auto end_vid = static_cast<std::size_t>(g.partition_[pid + 1]);
+    
+    return vertex_descriptor_view<vertex_iter_type>(begin_vid, end_vid);
+  }
+
+  /**
    * @brief Find a vertex by its ID
    * 
    * Returns an iterator to the vertex descriptor for the given vertex ID.
@@ -1182,7 +1202,8 @@ public: // Friend functions
   */
   template<typename G, vertex_descriptor_type VertexDesc>
     requires std::derived_from<std::remove_cvref_t<G>, compressed_graph_base>
-  [[nodiscard]] friend constexpr auto vertex_id([[maybe_unused]] G&& g, const VertexDesc& u) noexcept {
+  [[nodiscard]] friend constexpr auto vertex_id([[maybe_unused]] const G& g, const VertexDesc& u) noexcept
+  {
     return static_cast<vertex_id_type>(u.vertex_id());
   }
 

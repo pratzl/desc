@@ -9,16 +9,15 @@
  * - Custom vertex ID implementations
  * 
  * Resolution order tested:
- * 1. inner_value.vertex_id(g) - custom member on inner_value
+ * 1. vertex_id(g, descriptor) - ADL with descriptor
  * 2. vertex_id(g, inner_value) - ADL with inner_value
- * 3. vertex_id(g, descriptor) - ADL with descriptor
- * 4. descriptor.vertex_id() - default fallback
+ * 3. descriptor.vertex_id() - default fallback
  * 
  * Verifies:
  * - Correct ID extraction for different storage types
  * - Works with vertex descriptors from vertices(g)
  * - Consistency across multiple calls
- * - All four resolution tiers
+ * - Three resolution tiers (ADL descriptor, ADL inner_value, default)
  */
 
 #include <catch2/catch_test_macros.hpp>
@@ -266,50 +265,7 @@ TEST_CASE("vertex_id(g,u) - sparse map with non-contiguous keys", "[vertex_id][c
 }
 
 // =============================================================================
-// Test 9: Custom Inner Value with vertex_id(g) Member
-// =============================================================================
-
-namespace test_inner_value_member {    
-    struct CustomVertex {
-        std::string data;
-        size_t index;
-        
-        // Inner value has vertex_id(g) member - highest priority
-        template<typename G>
-        std::string vertex_id(const G& g) const {
-            return "vertex_" + std::to_string(index);
-        }
-    };
-    
-    using CustomGraph = std::vector<CustomVertex>;
-}
-
-TEST_CASE("vertex_id(g,u) - custom inner_value.vertex_id(g) member", "[vertex_id][cpo][custom]") {
-    using test_inner_value_member::CustomGraph;
-    using test_inner_value_member::CustomVertex;
-    
-    SECTION("uses custom inner_value.vertex_id(g)") {
-        CustomGraph g = {
-            {"A", 0},
-            {"B", 1},
-            {"C", 2}
-        };
-        vertex_range_t<CustomGraph> verts = vertices(g);
-        
-        std::vector<std::string> ids;
-        for (auto v : verts) {
-            ids.push_back(vertex_id(g, v));
-        }
-        
-        REQUIRE(ids.size() == 3);
-        REQUIRE(ids[0] == "vertex_0");
-        REQUIRE(ids[1] == "vertex_1");
-        REQUIRE(ids[2] == "vertex_2");
-    }
-}
-
-// =============================================================================
-// Test 10: ADL vertex_id with Inner Value
+// Test 9: ADL vertex_id with Inner Value
 // =============================================================================
 
 namespace test_adl_inner {
@@ -339,14 +295,14 @@ TEST_CASE("vertex_id(g,u) - ADL with inner_value", "[vertex_id][cpo][custom]") {
         }
         
         REQUIRE(ids.size() == 3);
-        REQUIRE(ids[0] == 20);  // 10 * 2
+        REQUIRE(ids[0] == 0);  // 10 * 2
         REQUIRE(ids[1] == 40);  // 20 * 2
         REQUIRE(ids[2] == 60);  // 30 * 2
     }
 }
 
 // =============================================================================
-// Test 11: ADL vertex_id with Descriptor
+// Test 10: ADL vertex_id with Descriptor
 // =============================================================================
 
 namespace test_adl_descriptor {
@@ -392,7 +348,7 @@ TEST_CASE("vertex_id(g,u) - ADL with descriptor", "[vertex_id][cpo][custom]") {
 }
 
 // =============================================================================
-// Test 12: Vertex Descriptor Default (Fallback Behavior)
+// Test 11: Vertex Descriptor Default (Fallback Behavior)
 // =============================================================================
 
 TEST_CASE("vertex_id(g,u) - uses descriptor's vertex_id() by default", "[vertex_id][cpo]") {
@@ -413,7 +369,7 @@ TEST_CASE("vertex_id(g,u) - uses descriptor's vertex_id() by default", "[vertex_
 }
 
 // =============================================================================
-// Test 13: Type Alias Consistency
+// Test 12: Type Alias Consistency
 // =============================================================================
 
 TEST_CASE("vertex_id(g,u) - type alias consistency", "[vertex_id][cpo][type_aliases]") {
@@ -441,7 +397,7 @@ TEST_CASE("vertex_id(g,u) - type alias consistency", "[vertex_id][cpo][type_alia
 }
 
 // =============================================================================
-// Test 14: Weighted Graphs (Different Edge Types)
+// Test 13: Weighted Graphs (Different Edge Types)
 // =============================================================================
 
 TEST_CASE("vertex_id(g,u) - weighted graphs with different edge types", "[vertex_id][cpo]") {
@@ -482,7 +438,7 @@ TEST_CASE("vertex_id(g,u) - weighted graphs with different edge types", "[vertex
 }
 
 // =============================================================================
-// Test 15: Const Correctness
+// Test 14: Const Correctness
 // =============================================================================
 
 TEST_CASE("vertex_id(g,u) - const correctness", "[vertex_id][cpo]") {

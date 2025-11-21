@@ -3725,3 +3725,306 @@ TEST_CASE("num_partitions(g) guarantees minimum of 1", "[num_partitions][api]") 
     auto num_parts = num_partitions(g);
     REQUIRE(num_parts >= 1);
 }
+
+// =============================================================================
+// vertices(g, pid) Friend Function Tests
+// =============================================================================
+
+TEST_CASE("vertices(g, pid) returns all vertices for partition 0", "[vertices_pid][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {
+        {0, 1, 10}, {0, 2, 20}, {1, 2, 30}, {2, 3, 40}
+    };
+    vector<copyable_vertex_t<int, int>> vertex_values = {
+        {0, 100}, {1, 200}, {2, 300}, {3, 400}
+    };
+    
+    Graph g;
+    g.load_edges(edges);
+    g.load_vertices(vertex_values);
+    
+    SECTION("partition 0 contains all vertices") {
+        auto verts = vertices(g, 0);
+        size_t count = 0;
+        for (auto v : verts) {
+            REQUIRE(vertex_id(g, v) == count);
+            ++count;
+        }
+        REQUIRE(count == 4);
+    }
+    
+    SECTION("partition 0 matches vertices(g)") {
+        auto verts_all = vertices(g);
+        auto verts_p0 = vertices(g, 0);
+        
+        auto it_all = ranges::begin(verts_all);
+        auto it_p0 = ranges::begin(verts_p0);
+        
+        while (it_all != ranges::end(verts_all) && it_p0 != ranges::end(verts_p0)) {
+            REQUIRE(vertex_id(g, *it_all) == vertex_id(g, *it_p0));
+            ++it_all;
+            ++it_p0;
+        }
+        
+        REQUIRE(it_all == ranges::end(verts_all));
+        REQUIRE(it_p0 == ranges::end(verts_p0));
+    }
+}
+
+TEST_CASE("vertices(g, pid) returns empty for non-zero partition", "[vertices_pid][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}, {1, 2, 20}};
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    SECTION("partition 1 is empty") {
+        auto verts = vertices(g, 1);
+        REQUIRE(ranges::begin(verts) == ranges::end(verts));
+    }
+    
+    SECTION("partition 5 is empty") {
+        auto verts = vertices(g, 5);
+        REQUIRE(ranges::begin(verts) == ranges::end(verts));
+    }
+}
+
+TEST_CASE("vertices(g, pid) with const graph", "[vertices_pid][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}};
+    vector<copyable_vertex_t<int, int>> vertex_values = {{0, 100}, {1, 200}};
+    
+    Graph g_mutable;
+    g_mutable.load_edges(edges);
+    g_mutable.load_vertices(vertex_values);
+    
+    const Graph& g = g_mutable;
+    
+    auto verts = vertices(g, 0);
+    size_t count = 0;
+    for (auto v : verts) {
+        (void)v;
+        ++count;
+    }
+    REQUIRE(count == 2);
+}
+
+TEST_CASE("vertices(g, pid) with void edge values", "[vertices_pid][api]") {
+    using Graph = compressed_graph<void, int, void>;
+    vector<copyable_edge_t<int, void>> edges = {{0, 1}, {1, 2}, {2, 3}};
+    vector<copyable_vertex_t<int, int>> vertex_values = {{0, 10}, {1, 20}, {2, 30}, {3, 40}};
+    
+    Graph g;
+    g.load_edges(edges);
+    g.load_vertices(vertex_values);
+    
+    auto verts = vertices(g, 0);
+    size_t count = 0;
+    for (auto v : verts) {
+        (void)v;
+        ++count;
+    }
+    REQUIRE(count == 4);
+}
+
+TEST_CASE("vertices(g, pid) with void vertex values", "[vertices_pid][api]") {
+    using Graph = compressed_graph<int, void, void>;
+    vector<copyable_edge_t<int, int>> edges = {{0, 1, 100}, {1, 2, 200}};
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto verts = vertices(g, 0);
+    size_t count = 0;
+    for (auto v : verts) {
+        (void)v;
+        ++count;
+    }
+    REQUIRE(count == 3);
+}
+
+TEST_CASE("vertices(g, pid) with empty graph", "[vertices_pid][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    Graph g;
+    
+    SECTION("partition 0 is empty") {
+        auto verts = vertices(g, 0);
+        REQUIRE(ranges::begin(verts) == ranges::end(verts));
+    }
+    
+    SECTION("partition 1 is empty") {
+        auto verts = vertices(g, 1);
+        REQUIRE(ranges::begin(verts) == ranges::end(verts));
+    }
+}
+
+TEST_CASE("vertices(g, pid) with single vertex", "[vertices_pid][api]") {
+    using Graph = compressed_graph<void, int, void>;
+    vector<copyable_vertex_t<int, int>> vertex_values = {{0, 100}};
+    
+    Graph g;
+    g.load_vertices(vertex_values);
+    
+    SECTION("partition 0 has one vertex") {
+        auto verts = vertices(g, 0);
+        auto it = ranges::begin(verts);
+        REQUIRE(it != ranges::end(verts));
+        
+        auto v = *it;
+        REQUIRE(vertex_id(g, v) == 0);
+        
+        ++it;
+        REQUIRE(it == ranges::end(verts));
+    }
+    
+    SECTION("partition 1 is empty") {
+        auto verts = vertices(g, 1);
+        REQUIRE(ranges::begin(verts) == ranges::end(verts));
+    }
+}
+
+TEST_CASE("vertices(g, pid) with negative partition id", "[vertices_pid][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}};
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto verts = vertices(g, -1);
+    REQUIRE(ranges::begin(verts) == ranges::end(verts));
+}
+
+TEST_CASE("vertices(g, pid) iteration multiple times", "[vertices_pid][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}, {1, 2, 20}};
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto verts = vertices(g, 0);
+    
+    // First iteration
+    size_t count1 = 0;
+    for (auto v : verts) {
+        (void)v;
+        ++count1;
+    }
+    
+    // Second iteration
+    size_t count2 = 0;
+    for (auto v : verts) {
+        (void)v;
+        ++count2;
+    }
+    
+    REQUIRE(count1 == 3);
+    REQUIRE(count2 == 3);
+}
+
+TEST_CASE("vertices(g, pid) with different integral types", "[vertices_pid][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}};
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    SECTION("int partition id") {
+        auto verts = vertices(g, int(0));
+        size_t count = 0;
+        for (auto v : verts) {
+            (void)v;
+            ++count;
+        }
+        REQUIRE(count == 2);
+    }
+    
+    SECTION("size_t partition id") {
+        auto verts = vertices(g, size_t(0));
+        size_t count = 0;
+        for (auto v : verts) {
+            (void)v;
+            ++count;
+        }
+        REQUIRE(count == 2);
+    }
+    
+    SECTION("uint32_t partition id") {
+        auto verts = vertices(g, uint32_t(0));
+        size_t count = 0;
+        for (auto v : verts) {
+            (void)v;
+            ++count;
+        }
+        REQUIRE(count == 2);
+    }
+}
+
+TEST_CASE("vertices(g, pid) integration with partition_id", "[vertices_pid][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}, {1, 2, 20}, {2, 3, 30}};
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    // For single partition, all vertices should be in partition 0
+    auto num_parts = num_partitions(g);
+    REQUIRE(num_parts == 1);
+    
+    auto verts_p0 = vertices(g, 0);
+    for (auto v : verts_p0) {
+        auto pid = partition_id(g, v);
+        REQUIRE(pid == 0);
+    }
+}
+
+TEST_CASE("vertices(g, pid) with string edge values", "[vertices_pid][api]") {
+    using Graph = compressed_graph<string, int, void>;
+    vector<copyable_edge_t<int, string>> edges = {{0, 1, "edge01"}, {1, 2, "edge12"}};
+    vector<copyable_vertex_t<int, int>> vertex_values = {{0, 10}, {1, 20}, {2, 30}};
+    
+    Graph g;
+    g.load_edges(edges);
+    g.load_vertices(vertex_values);
+    
+    auto verts = vertices(g, 0);
+    size_t count = 0;
+    for (auto v : verts) {
+        (void)v;
+        ++count;
+    }
+    REQUIRE(count == 3);
+}
+
+TEST_CASE("vertices(g, pid) large graph", "[vertices_pid][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges;
+    
+    // Create chain of 100 vertices
+    for (int i = 0; i < 99; ++i) {
+        edges.push_back({i, i + 1, i * 10});
+    }
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto verts = vertices(g, 0);
+    size_t count = 0;
+    for (auto v : verts) {
+        (void)v;
+        ++count;
+    }
+    REQUIRE(count == 100);
+}
+
+TEST_CASE("vertices(g, pid) returns vertex_descriptor_view", "[vertices_pid][api]") {
+    using Graph = compressed_graph<int, int, void>;
+    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}};
+    
+    Graph g;
+    g.load_edges(edges);
+    
+    auto verts = vertices(g, 0);
+    
+    // Verify it's a vertex_descriptor_view
+    STATIC_REQUIRE(is_vertex_descriptor_view_v<decltype(verts)>);
+}
