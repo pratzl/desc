@@ -96,3 +96,43 @@ if(BUILD_DOCS)
         message(STATUS "Docs directory exists but no CMakeLists.txt found - skipping")
     endif()
 endif()
+
+# Installation configuration
+include(InstallConfig)
+
+# Packaging with CPack
+set(CPACK_PACKAGE_NAME "graph3")
+set(CPACK_PACKAGE_VENDOR "pratzl")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Modern C++20 graph library")
+set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "graph3")
+
+# Optional license and readme
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+    set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+endif()
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+    set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+endif()
+
+# Package generators based on platform
+set(CPACK_GENERATOR "TGZ;ZIP")
+if(WIN32)
+    list(APPEND CPACK_GENERATOR "NSIS")
+elseif(APPLE)
+    list(APPEND CPACK_GENERATOR "DragNDrop")
+elseif(UNIX)
+    list(APPEND CPACK_GENERATOR "DEB;RPM")
+endif()
+
+# Debian package metadata
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "pratzl")
+set(CPACK_DEBIAN_PACKAGE_SECTION "devel")
+set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "all")
+
+# RPM package metadata
+set(CPACK_RPM_PACKAGE_LICENSE "MIT")
+set(CPACK_RPM_PACKAGE_GROUP "Development/Libraries")
+set(CPACK_RPM_PACKAGE_ARCHITECTURE "noarch")
+
+include(CPack)

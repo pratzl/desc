@@ -1,0 +1,12 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+# graph3 is a header-only library with no external dependencies
+# If dependencies are added in the future, use find_dependency() here
+
+# Include the exported targets
+include("${CMAKE_CURRENT_LIST_DIR}/graph3-targets.cmake")
+
+# Verify all components are found
+check_required_components(graph3)
