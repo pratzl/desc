@@ -17,6 +17,8 @@ include(StandardProjectSettings)
 include(CompilerWarnings)
 include(Sanitizers)
 include(CodeCoverage)
+include(CompilerCache)
+include(PrecompiledHeaders)
 
 # C++ standard
 set(CMAKE_CXX_STANDARD 20)
@@ -30,6 +32,18 @@ option(BUILD_BENCHMARKS "Build benchmarks" OFF)
 option(BUILD_DOCS "Build documentation" OFF)
 option(ENABLE_COVERAGE "Enable code coverage" OFF)
 option(ENABLE_SANITIZERS "Enable sanitizers (address, undefined)" OFF)
+option(ENABLE_UNITY_BUILD "Enable unity builds for faster compilation" OFF)
+option(ENABLE_CACHE "Enable compiler cache (ccache/sccache)" ON)
+option(ENABLE_PCH "Enable precompiled headers" ON)
+
+# Enable compiler cache
+enable_compiler_cache()
+
+# Enable unity builds if requested
+if(ENABLE_UNITY_BUILD)
+    set(CMAKE_UNITY_BUILD ON)
+    message(STATUS "Unity builds enabled")
+endif()
 
 # Library target (header-only)
 add_library(graph3 INTERFACE)
@@ -50,6 +64,9 @@ enable_sanitizers(graph3)
 
 # Apply code coverage if enabled
 enable_coverage(graph3)
+
+# Apply precompiled headers if enabled
+enable_precompiled_headers(graph3)
 
 # Testing
 if(BUILD_TESTS)
