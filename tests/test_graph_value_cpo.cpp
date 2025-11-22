@@ -99,9 +99,12 @@ struct SimpleMetadata {
 };
 
 struct GraphWithByValueReturn {
-    std::vector<std::vector<int>> data;
+    std::vector<std::vector<int>> data{};  // Initialize to empty vector
     int graph_id = 42;
     double graph_score = 3.14;
+    
+    // Explicit default constructor to ensure initialization
+    GraphWithByValueReturn() = default;
     
     // Returns by value
     SimpleMetadata graph_value() const {

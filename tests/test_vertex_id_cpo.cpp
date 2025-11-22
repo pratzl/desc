@@ -275,9 +275,9 @@ namespace test_adl_inner {
     
     using GraphType = std::vector<CustomVertex>;
     
-    // ADL vertex_id with inner_value - returns value * 2
-    int vertex_id([[maybe_unused]] const GraphType& g, const CustomVertex& inner_value) {
-        return inner_value.value * 2;
+    // ADL vertex_id with descriptor - returns inner_value(g).value * 2
+    int vertex_id(const GraphType& g, vertex_descriptor<GraphType::iterator> v) {
+        return v.inner_value(g).value * 2;
     }
 }
 
@@ -295,7 +295,7 @@ TEST_CASE("vertex_id(g,u) - ADL with inner_value", "[vertex_id][cpo][custom]") {
         }
         
         REQUIRE(ids.size() == 3);
-        REQUIRE(ids[0] == 0);  // 10 * 2
+        REQUIRE(ids[0] == 20);  // 10 * 2
         REQUIRE(ids[1] == 40);  // 20 * 2
         REQUIRE(ids[2] == 60);  // 30 * 2
     }
