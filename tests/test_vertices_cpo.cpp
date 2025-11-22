@@ -457,10 +457,10 @@ TEST_CASE("vertices(g) - vertex descriptor properties", "[vertices][cpo]") {
     SECTION("vertex descriptors provide inner_value access") {
         vertex_iterator_t<Graph> it = std::ranges::begin(verts);
         vertex_t<Graph> v0 = *it;
-        auto& edges = v0.inner_value(graph);
-        REQUIRE(edges.size() == 2);
-        REQUIRE(edges[0] == 1);
-        REQUIRE(edges[1] == 2);
+        auto& the_edges = v0.inner_value(graph);
+        REQUIRE(the_edges.size() == 2);
+        REQUIRE(the_edges[0] == 1);
+        REQUIRE(the_edges[1] == 2);
     }
 }
 

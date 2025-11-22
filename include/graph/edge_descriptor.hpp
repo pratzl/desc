@@ -88,7 +88,7 @@ public:
         using edge_value_type = typename std::iterator_traits<EdgeIter>::value_type;
         
         // Get the edge value from container (for random access) or iterator (for forward)
-        const auto& edge_value = [&]() -> decltype(auto) {
+        const auto& edge_val = [&]() -> decltype(auto) {
             if constexpr (std::random_access_iterator<EdgeIter>) {
                 return edges[edge_storage_];
             } else {
@@ -99,19 +99,19 @@ public:
         // Extract target ID from edge value based on its type
         if constexpr (std::integral<edge_value_type>) {
             // Simple type: the value itself is the target ID
-            return edge_value;
+            return edge_val;
         }
-        else if constexpr (requires { edge_value.first; }) {
+        else if constexpr (requires { edge_val.first; }) {
             // Pair-like: .first is the target ID
-            return edge_value.first;
+            return edge_val.first;
         }
-        else if constexpr (requires { std::get<0>(edge_value); }) {
+        else if constexpr (requires { std::get<0>(edge_val); }) {
             // Tuple-like: first element is the target ID
-            return std::get<0>(edge_value);
+            return std::get<0>(edge_val);
         }
         else {
             // Fallback: assume the value itself is the target
-            return edge_value;
+            return edge_val;
         }
     }
     

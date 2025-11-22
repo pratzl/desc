@@ -25,10 +25,10 @@ struct GraphWithFindEdgeMember {
     }
     
     // Custom member: returns target * 1000 if found, otherwise -1
-    int find_vertex_edge(size_t u, size_t v) const {
-        for (auto target : adj_list[u]) {
-            if (target == v) {
-                return static_cast<int>(target * 1000);
+    int find_vertex_edge(size_t uid, size_t vid) const {
+        for (auto targ : adj_list[uid]) {
+            if (targ == vid) {
+                return static_cast<int>(targ * 1000);
             }
         }
         return -1;
@@ -51,19 +51,19 @@ namespace test_adl {
     };
 
     // ADL find_vertex_edge function - returns target * 2000 if found, otherwise -1
-    inline int find_vertex_edge(const GraphWithADLFindEdge& g, size_t u, size_t v) {
-        for (auto target : g.adj_list[u]) {
-            if (target == v) {
-                return static_cast<int>(target * 2000);
+    inline int find_vertex_edge(const GraphWithADLFindEdge& g, size_t uid, size_t vid) {
+        for (auto targ : g.adj_list[uid]) {
+            if (targ == vid) {
+                return static_cast<int>(targ * 2000);
             }
         }
         return -1;
     }
 
-    inline int find_vertex_edge(GraphWithADLFindEdge& g, size_t u, size_t v) {
-        for (auto target : g.adj_list[u]) {
-            if (target == v) {
-                return static_cast<int>(target * 2000);
+    inline int find_vertex_edge(GraphWithADLFindEdge& g, size_t uid, size_t vid) {
+        for (auto targ : g.adj_list[uid]) {
+            if (targ == vid) {
+                return static_cast<int>(targ * 2000);
             }
         }
         return -1;
@@ -134,8 +134,8 @@ TEST_CASE("find_vertex_edge(g, u, v) works with weighted edges (pair)", "[find_v
     REQUIRE(target_id(graph, e) == 2);
     
     // Check the weight
-    auto& edge_value = e.underlying_value(graph[0]);
-    REQUIRE(edge_value.second == 2.5);
+    auto& value = e.underlying_value(graph[0]);
+    REQUIRE(value.second == 2.5);
 }
 
 // =============================================================================

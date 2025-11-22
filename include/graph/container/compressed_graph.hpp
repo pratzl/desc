@@ -728,16 +728,16 @@ public: // Operations
     vertex_id_type last_uid = 0, max_vid = 0;
     for (auto&& edge_data : erng) {
       auto&& edge = eprojection(edge_data); // compressed_graph requires EV!=void
-      assert(edge.source_id >= last_uid);   // ordered by uid? (requirement)
+      assert(static_cast<vertex_id_type>(edge.source_id) >= last_uid);   // ordered by uid? (requirement)
       
       // Only resize when we encounter a new source vertex (optimization)
-      if (edge.source_id != last_uid || row_index_.empty()) {
+      if (static_cast<vertex_id_type>(edge.source_id) != last_uid || row_index_.empty()) {
         row_index_.resize(static_cast<size_t>(edge.source_id) + 1,
                           vertex_type{static_cast<edge_index_type>(col_index_.size())});
-        last_uid = edge.source_id;
+        last_uid = static_cast<vertex_id_type>(edge.source_id);
       }
       
-      col_index_.push_back(edge_type{edge.target_id});
+      col_index_.push_back(edge_type{static_cast<vertex_id_type>(edge.target_id)});
       if constexpr (!is_void_v<EV>)
         static_cast<col_values_base&>(*this).emplace_back(move(edge.value));
       max_vid  = max(max_vid, static_cast<vertex_id_type>(edge.target_id));

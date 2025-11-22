@@ -278,10 +278,10 @@ TEST_CASE("target_id(g,uv) - full graph traversal", "[target_id][cpo][integratio
         std::vector<std::pair<int, int>> all_edges;  // (source, target)
         
         for (auto u : vertices(graph)) {
-            int source_id = vertex_id(graph, u);
+            int uid = vertex_id(graph, u);
             for (auto e : edges(graph, u)) {
-                int target = target_id(graph, e);
-                all_edges.emplace_back(source_id, target);
+                int vid = target_id(graph, e);
+                all_edges.emplace_back(uid, vid);
             }
         }
         
