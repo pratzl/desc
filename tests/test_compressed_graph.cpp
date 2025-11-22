@@ -91,7 +91,7 @@ TEST_CASE("compressed_graph load_vertices with string vertex values", "[api][ver
         {1, string("v1")}, 
         {2, string("v2")}
     };
-    g.load_vertices(vertex_value);
+    g.load_vertices(vv);
     
     REQUIRE(g.size() == 3);
 }
@@ -189,7 +189,7 @@ TEST_CASE("load_vertices void VV with explicit vertex count", "[issue4][load_ver
     vector<copyable_vertex_t<int, void>> vv = {{0}, {1}};
     
     // Provide explicit vertex count larger than range size
-    g.load_vertices(vertices, identity(), 5);
+    g.load_vertices(vv, identity(), 5);
     
     // Should use explicit vertex count (5) as it's larger than max_id + 1 (2)
     REQUIRE(g.size() == 5);

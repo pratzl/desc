@@ -245,7 +245,7 @@ struct GraphWithByValueEdgeReturn {
         std::vector<std::pair<int, double>>::iterator,
         std::vector<std::vector<std::pair<int, double>>>::iterator>& uv) const {
         auto& ee = data[uv.source().value()];
-        return edges[uv.value()].second * 2.0;  // Transform: double the weight
+        return ee[uv.value()].second * 2.0;  // Transform: double the weight
     }
     
     auto begin() { return data.begin(); }
@@ -284,14 +284,14 @@ struct GraphWithConstEdgeOverloads {
     
     // Non-const version returns mutable reference
     template<typename EdgeDesc>
-    double& edge_value(EdgeDesc&& uv) {
+    double& edge_val(EdgeDesc&& uv) {
         auto& ee = data[uv.source().value()];
         return edges[uv.value()].second;
     }
     
     // Const version returns const reference
     template<typename EdgeDesc>
-    const double& edge_value(EdgeDesc&& uv) const {
+    const double& edge_val(EdgeDesc&& uv) const {
         const auto& ee = data[uv.source().value()];
         return ee[uv.value()].second;
     }

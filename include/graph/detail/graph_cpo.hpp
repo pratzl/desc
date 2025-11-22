@@ -2054,7 +2054,7 @@ namespace _cpo_impls {
                     auto u = *find_vertex(std::forward<G>(g), uid);
                     auto edge_range = edges(std::forward<G>(g), u);
                     auto it = std::ranges::find_if(edge_range, [&](const auto& e) {
-                        return target_id(std::forward<G>(g), e) == vid;
+                        return target_id(std::forward<G>(g), e) == static_cast<decltype(target_id(std::forward<G>(g), e))>(vid);
                     });
                     return it != std::ranges::end(edge_range);
                 }

@@ -30,7 +30,7 @@ TEST_CASE("vertex_range concept - vector<vector<int>>", "[adjacency_list][concep
     // Should be forward range (can iterate multiple times)
     int count1 = 0;
     for (auto v : verts) {
-        vertex_id(g, v); // Should be able to get ID
+        [[maybe_unused]] auto vid = vertex_id(g, v); // Should be able to get ID
         count1++;
     }
     

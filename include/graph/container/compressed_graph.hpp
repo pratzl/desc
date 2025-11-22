@@ -1174,9 +1174,9 @@ public: // Friend functions
    * @note Complexity: O(1) - direct indexed access
    * @note No bounds checking is performed; uid must be valid
   */
-  template<typename G>
+  template<typename G, typename VId>
     requires std::derived_from<std::remove_cvref_t<G>, compressed_graph_base>
-  [[nodiscard]] friend constexpr auto find_vertex(G&& g, vertex_id_type uid) noexcept {
+  [[nodiscard]] friend constexpr auto find_vertex([[maybe_unused]] G&& g, const VId& uid) noexcept {
     using vertex_iter_type = std::conditional_t<
         std::is_const_v<std::remove_reference_t<G>>,
         typename row_index_vector::const_iterator,
@@ -1186,7 +1186,8 @@ public: // Friend functions
     using vertex_desc_iterator = typename vertex_desc_view::iterator;
     
     // Construct iterator directly from the vertex ID (which is the storage_type)
-    return vertex_desc_iterator{uid};
+    // Cast to vertex_id_type to avoid warnings when uid is a larger integral type (e.g., size_t)
+    return vertex_desc_iterator{static_cast<vertex_id_type>(uid)};
   }
 
   /**

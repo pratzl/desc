@@ -227,12 +227,12 @@ TEST_CASE("vertices() with large graph", "[vertices][api]") {
     using Graph = compressed_graph<int, int, void>;
     
     // Create a larger graph
-    vector<copyable_edge_t<int, int>> edges;
+    vector<copyable_edge_t<int, int>> ee;
     vector<copyable_vertex_t<int, int>> vertex_values;
     
     const size_t n = 1000;
     for (size_t i = 0; i < n - 1; ++i) {
-        edges.push_back({static_cast<int>(i), static_cast<int>(i + 1), static_cast<int>(i * 10)});
+        ee.push_back({static_cast<int>(i), static_cast<int>(i + 1), static_cast<int>(i * 10)});
         vertex_values.push_back({static_cast<int>(i), static_cast<int>(i * 100)});
     }
     vertex_values.push_back({static_cast<int>(n - 1), static_cast<int>((n - 1) * 100)});
@@ -352,19 +352,19 @@ TEST_CASE("edges(g,u) with single edge", "[edges][api]") {
     
     auto v = vertices(g);
     auto v0 = *v.begin();
-    auto e = edges(g, v0);
+    auto ee = edges(g, v0);
     
     size_t count = 0;
     int targ = -1;
     int value = -1;
-    for (auto ed : e) {
+    for (auto ed : ee) {
         targ = static_cast<int>(g.target_id(static_cast<uint32_t>(ed.value())));
         value = static_cast<int>(g.edge_value(static_cast<uint32_t>(ed.value())));
         ++count;
     }
     
     REQUIRE(count == 1);
-    REQUIRE(target == 1);
+    REQUIRE(targ == 1);
     REQUIRE(value == 100);
 }
 
@@ -487,7 +487,7 @@ TEST_CASE("edges(g,u) with large graph", "[edges][api]") {
     // Create a graph where vertex 0 has many edges
     vector<copyable_edge_t<int, int>> edges_data;
     const size_t num_ee = 1000;
-    for (size_t i = 1; i <= num_edges; ++i) {
+    for (size_t i = 1; i <= num_ee; ++i) {
         edges_data.push_back({0, static_cast<int>(i), static_cast<int>(i * 10)});
     }
     
@@ -496,17 +496,17 @@ TEST_CASE("edges(g,u) with large graph", "[edges][api]") {
     
     auto v = vertices(g);
     auto v0 = *v.begin();
-    auto e = edges(g, v0);
+    auto ee = edges(g, v0);
     
     size_t count = 0;
-    for (auto ed : e) {
+    for (auto ed : ee) {
         auto targ = g.target_id(static_cast<uint32_t>(ed.value()));
         auto value = g.edge_value(static_cast<uint32_t>(ed.value()));
-        REQUIRE(target == static_cast<int>(count + 1));
+        REQUIRE(targ == static_cast<int>(count + 1));
         REQUIRE(value == static_cast<int>((count + 1) * 10));
         ++count;
     }
-    REQUIRE(count == num_edges);
+    REQUIRE(count == num_edges(g,v0));
 }
 
 TEST_CASE("edges(g,u) with self-loops", "[edges][api]") {
@@ -1407,9 +1407,9 @@ TEST_CASE("num_vertices(g) with large graph", "[num_vertices][api]") {
     using Graph = compressed_graph<int, int, void>;
     
     // Create graph with 1000 vertices
-    vector<copyable_edge_t<int, int>> edges;
+    vector<copyable_edge_t<int, int>> ee;
     for (int i = 0; i < 999; ++i) {
-        edges.push_back({i, i + 1, i});
+        ee.push_back({i, i + 1, i});
     }
     
     Graph g;
@@ -1581,9 +1581,9 @@ TEST_CASE("num_edges(g) with large graph", "[num_edges][api]") {
     using Graph = compressed_graph<int, int, void>;
     
     // Create graph with 1000 edges
-    vector<copyable_edge_t<int, int>> edges;
+    vector<copyable_edge_t<int, int>> ee;
     for (int i = 0; i < 1000; ++i) {
-        edges.push_back({i, i + 1, i});
+        ee.push_back({i, i + 1, i});
     }
     
     Graph g;
@@ -1665,10 +1665,10 @@ TEST_CASE("num_edges(g) efficiency test - uses ADL not default", "[num_edges][ap
     
     // Create a larger graph to ensure ADL version is used (O(1))
     // rather than default iteration (O(V+E))
-    vector<copyable_edge_t<int, int>> edges;
+    vector<copyable_edge_t<int, int>> ee;
     for (int i = 0; i < 500; ++i) {
-        edges.push_back({i, i + 1, i});
-        edges.push_back({i, i + 2, i + 1000});
+        ee.push_back({i, i + 1, i});
+        ee.push_back({i, i + 2, i + 1000});
     }
     
     Graph g;
@@ -3777,11 +3777,11 @@ TEST_CASE("num_partitions(g) with string edge values", "[num_partitions][api]") 
 
 TEST_CASE("num_partitions(g) with large graph", "[num_partitions][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges;
+    vector<copyable_edge_t<int, int>> ee;
     
     // Create a chain of 100 vertices
     for (int i = 0; i < 99; ++i) {
-        edges.push_back({i, i + 1, i * 10});
+        ee.push_back({i, i + 1, i * 10});
     }
     
     Graph g;
@@ -4071,11 +4071,11 @@ TEST_CASE("vertices(g, pid) with string edge values", "[vertices_pid][api]") {
 
 TEST_CASE("vertices(g, pid) large graph", "[vertices_pid][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges;
+    vector<copyable_edge_t<int, int>> ee;
     
     // Create chain of 100 vertices
     for (int i = 0; i < 99; ++i) {
-        edges.push_back({i, i + 1, i * 10});
+        ee.push_back({i, i + 1, i * 10});
     }
     
     Graph g;

@@ -194,7 +194,7 @@ public:
                 else {
                     // 3+ elements: return a tuple of references to elements [1, N)
                     return [&]<size_t... Is>(std::index_sequence<Is...>) -> decltype(auto) {
-                        return std::forward_as_tuple(std::get<Is + 1>(edge_value)...);
+                        return std::forward_as_tuple(std::get<Is + 1>(edge_val)...);
                     }(std::make_index_sequence<tuple_size - 1>{});
                 }
             } else {
@@ -262,7 +262,7 @@ public:
                 }
                 else {
                     return [&]<size_t... Is>(std::index_sequence<Is...>) -> decltype(auto) {
-                        return std::forward_as_tuple(std::get<Is + 1>(edge_value)...);
+                        return std::forward_as_tuple(std::get<Is + 1>(edge_val)...);
                     }(std::make_index_sequence<tuple_size - 1>{});
                 }
             } else {
