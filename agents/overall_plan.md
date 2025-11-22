@@ -22,6 +22,7 @@
 
 - Test on Windows
 - CMake improvements (use Jason Turner's example)
+- Use in Visual Studio
 
 ## Phase 5 dynamic_graph
 
