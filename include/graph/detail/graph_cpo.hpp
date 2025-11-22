@@ -2255,10 +2255,10 @@ namespace _cpo_impls {
                     return edge_value(g, std::forward<E>(uv));
                 } else if constexpr (_Choice<_G, _E>._Strategy == _St::_default) {
                     // Get the edge container from the source vertex
-                    auto&& edges = std::forward<E>(uv).source().inner_value(std::forward<G>(g));
+                    auto&& ee = std::forward<E>(uv).source().inner_value(std::forward<G>(g));
                     // Get the edge property value using the edge descriptor's inner_value
                     // Forward the descriptor to call the correct (const/non-const) overload
-                    return std::forward<E>(uv).inner_value(std::forward<decltype(edges)>(edges));
+                    return std::forward<E>(uv).inner_value(std::forward<decltype(ee)>(ee));
                 }
             }
         };

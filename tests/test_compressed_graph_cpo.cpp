@@ -14,7 +14,7 @@ using namespace graph::container;
 
 TEST_CASE("vertices() returns view of vertex descriptors", "[vertices][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {0, 2, 20}, {1, 2, 30}, {2, 3, 40}
     };
     vector<copyable_vertex_t<int, int>> vertex_values = {
@@ -22,7 +22,7 @@ TEST_CASE("vertices() returns view of vertex descriptors", "[vertices][api]") {
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     g.load_vertices(vertex_values);
     
     SECTION("basic iteration") {
@@ -67,12 +67,12 @@ TEST_CASE("vertices() with empty graph", "[vertices][api]") {
 
 TEST_CASE("vertices() with void vertex values", "[vertices][api]") {
     using Graph = compressed_graph<int, void, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {0, 2, 20}, {1, 3, 30}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     SECTION("iteration works") {
         auto v = vertices(g);
@@ -100,7 +100,7 @@ TEST_CASE("vertices() with void vertex values", "[vertices][api]") {
 
 TEST_CASE("vertices() with single vertex", "[vertices][api]") {
     using Graph = compressed_graph<void, int, void>;
-    vector<copyable_edge_t<int, void>> edges = {}; // No edges
+    vector<copyable_edge_t<int, void>> ee = {}; // No edges
     vector<copyable_vertex_t<int, int>> vertex_values = {{0, 42}};
     
     Graph g;
@@ -118,7 +118,7 @@ TEST_CASE("vertices() with single vertex", "[vertices][api]") {
 
 TEST_CASE("vertices() works with STL algorithms", "[vertices][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {1, 2, 20}, {2, 3, 30}
     };
     vector<copyable_vertex_t<int, int>> vertex_values = {
@@ -126,7 +126,7 @@ TEST_CASE("vertices() works with STL algorithms", "[vertices][api]") {
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     g.load_vertices(vertex_values);
     auto v = vertices(g);
     
@@ -164,12 +164,12 @@ TEST_CASE("vertices() works with STL algorithms", "[vertices][api]") {
 
 TEST_CASE("vertices() is a lightweight view", "[vertices][api]") {
     using Graph = compressed_graph<int, void, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {1, 2, 20}, {2, 3, 30}, {3, 4, 40}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     // Create multiple views - should be cheap
     auto v1 = vertices(g);
@@ -186,13 +186,13 @@ TEST_CASE("vertices() is a lightweight view", "[vertices][api]") {
 
 TEST_CASE("vertices() with string vertex values", "[vertices][api]") {
     using Graph = compressed_graph<void, string, void>;
-    vector<copyable_edge_t<int, void>> edges = {{0, 1}, {1, 2}};
+    vector<copyable_edge_t<int, void>> ee = {{0, 1}, {1, 2}};
     vector<copyable_vertex_t<int, string>> vertex_values = {
         {0, "Alice"}, {1, "Bob"}, {2, "Charlie"}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     g.load_vertices(vertex_values);
     
         auto v = vertices(g);
@@ -204,11 +204,11 @@ TEST_CASE("vertices() with string vertex values", "[vertices][api]") {
 
 TEST_CASE("vertices() const correctness", "[vertices][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}};
+    vector<copyable_edge_t<int, int>> ee = {{0, 1, 10}};
     vector<copyable_vertex_t<int, int>> vertex_values = {{0, 100}, {1, 200}};
     
     Graph g_temp;
-    g_temp.load_edges(edges);
+    g_temp.load_edges(ee);
     g_temp.load_vertices(vertex_values);
     const Graph g = std::move(g_temp);
     
@@ -238,7 +238,7 @@ TEST_CASE("vertices() with large graph", "[vertices][api]") {
     vertex_values.push_back({static_cast<int>(n - 1), static_cast<int>((n - 1) * 100)});
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     g.load_vertices(vertex_values);
     
     auto v = vertices(g);
@@ -355,10 +355,10 @@ TEST_CASE("edges(g,u) with single edge", "[edges][api]") {
     auto e = edges(g, v0);
     
     size_t count = 0;
-    int target = -1;
+    int targ = -1;
     int value = -1;
     for (auto ed : e) {
-        target = static_cast<int>(g.target_id(static_cast<uint32_t>(ed.value())));
+        targ = static_cast<int>(g.target_id(static_cast<uint32_t>(ed.value())));
         value = static_cast<int>(g.edge_value(static_cast<uint32_t>(ed.value())));
         ++count;
     }
@@ -474,7 +474,7 @@ TEST_CASE("edges(g,u) const correctness", "[edges][api]") {
     
     size_t count = 0;
     for (auto ed : e) {
-        [[maybe_unused]] auto target = g.target_id(static_cast<uint32_t>(ed.value()));
+        [[maybe_unused]] auto targ = g.target_id(static_cast<uint32_t>(ed.value()));
         [[maybe_unused]] auto value = g.edge_value(static_cast<uint32_t>(ed.value()));
         ++count;
     }
@@ -486,7 +486,7 @@ TEST_CASE("edges(g,u) with large graph", "[edges][api]") {
     
     // Create a graph where vertex 0 has many edges
     vector<copyable_edge_t<int, int>> edges_data;
-    const size_t num_edges = 1000;
+    const size_t num_ee = 1000;
     for (size_t i = 1; i <= num_edges; ++i) {
         edges_data.push_back({0, static_cast<int>(i), static_cast<int>(i * 10)});
     }
@@ -500,7 +500,7 @@ TEST_CASE("edges(g,u) with large graph", "[edges][api]") {
     
     size_t count = 0;
     for (auto ed : e) {
-        auto target = g.target_id(static_cast<uint32_t>(ed.value()));
+        auto targ = g.target_id(static_cast<uint32_t>(ed.value()));
         auto value = g.edge_value(static_cast<uint32_t>(ed.value()));
         REQUIRE(target == static_cast<int>(count + 1));
         REQUIRE(value == static_cast<int>((count + 1) * 10));
@@ -1313,12 +1313,12 @@ TEST_CASE("source(g,uv) returns correct source vertex descriptor", "[source][api
 
 TEST_CASE("num_vertices(g) returns vertex count", "[num_vertices][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {0, 2, 20}, {1, 2, 30}, {2, 3, 40}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto count = num_vertices(g);
     REQUIRE(count == 4);
@@ -1327,12 +1327,12 @@ TEST_CASE("num_vertices(g) returns vertex count", "[num_vertices][api]") {
 
 TEST_CASE("num_vertices(g) works with const graph", "[num_vertices][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {1, 2, 20}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     const Graph& cg = g;
     auto count = num_vertices(cg);
@@ -1349,12 +1349,12 @@ TEST_CASE("num_vertices(g) with empty graph", "[num_vertices][api]") {
 
 TEST_CASE("num_vertices(g) with single vertex", "[num_vertices][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 0, 10}  // Self-loop
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto count = num_vertices(g);
     REQUIRE(count == 1);
@@ -1362,12 +1362,12 @@ TEST_CASE("num_vertices(g) with single vertex", "[num_vertices][api]") {
 
 TEST_CASE("num_vertices(g) with void edge values", "[num_vertices][api]") {
     using Graph = compressed_graph<void, int, void>;
-    vector<copyable_edge_t<int, void>> edges = {
+    vector<copyable_edge_t<int, void>> ee = {
         {0, 1}, {1, 2}, {2, 3}, {3, 4}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto count = num_vertices(g);
     REQUIRE(count == 5);
@@ -1375,12 +1375,12 @@ TEST_CASE("num_vertices(g) with void edge values", "[num_vertices][api]") {
 
 TEST_CASE("num_vertices(g) with void vertex values", "[num_vertices][api]") {
     using Graph = compressed_graph<int, void, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {1, 2, 20}, {2, 0, 30}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto count = num_vertices(g);
     REQUIRE(count == 3);
@@ -1388,16 +1388,16 @@ TEST_CASE("num_vertices(g) with void vertex values", "[num_vertices][api]") {
 
 TEST_CASE("num_vertices(g) with string values", "[num_vertices][api]") {
     using Graph = compressed_graph<string, string, void>;
-    vector<copyable_edge_t<int, string>> edges = {
+    vector<copyable_edge_t<int, string>> ee = {
         {0, 1, "edge_a"}, {1, 2, "edge_b"}
     };
-    vector<copyable_vertex_t<int, string>> vertices = {
+    vector<copyable_vertex_t<int, string>> vv = {
         {0, "Alice"}, {1, "Bob"}, {2, "Charlie"}
     };
     
     Graph g;
-    g.load_edges(edges);
-    g.load_vertices(vertices);
+    g.load_edges(ee);
+    g.load_vertices(vv);
     
     auto count = num_vertices(g);
     REQUIRE(count == 3);
@@ -1413,7 +1413,7 @@ TEST_CASE("num_vertices(g) with large graph", "[num_vertices][api]") {
     }
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto count = num_vertices(g);
     REQUIRE(count == 1000);
@@ -1421,12 +1421,12 @@ TEST_CASE("num_vertices(g) with large graph", "[num_vertices][api]") {
 
 TEST_CASE("num_vertices(g) with disconnected vertices", "[num_vertices][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {2, 3, 20}, {4, 5, 30}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     // Graph has vertices 0-5 (6 total)
     auto count = num_vertices(g);
@@ -1435,12 +1435,12 @@ TEST_CASE("num_vertices(g) with disconnected vertices", "[num_vertices][api]") {
 
 TEST_CASE("num_vertices(g) return type is integral", "[num_vertices][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto count = num_vertices(g);
     static_assert(std::integral<decltype(count)>, "num_vertices must return integral type");
@@ -1449,12 +1449,12 @@ TEST_CASE("num_vertices(g) return type is integral", "[num_vertices][api]") {
 
 TEST_CASE("num_vertices(g) consistency with vertices(g)", "[num_vertices][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {0, 2, 20}, {1, 2, 30}, {2, 3, 40}, {3, 4, 50}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto count = num_vertices(g);
     
@@ -1475,12 +1475,12 @@ TEST_CASE("num_vertices(g) consistency with vertices(g)", "[num_vertices][api]")
 
 TEST_CASE("num_edges(g) returns edge count", "[num_edges][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {0, 2, 20}, {1, 2, 30}, {2, 3, 40}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto count = num_edges(g);
     REQUIRE(count == 4);
@@ -1488,12 +1488,12 @@ TEST_CASE("num_edges(g) returns edge count", "[num_edges][api]") {
 
 TEST_CASE("num_edges(g) works with const graph", "[num_edges][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {1, 2, 20}, {2, 3, 30}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     const Graph& cg = g;
     auto count = num_edges(cg);
@@ -1510,12 +1510,12 @@ TEST_CASE("num_edges(g) with empty graph", "[num_edges][api]") {
 
 TEST_CASE("num_edges(g) with single edge", "[num_edges][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto count = num_edges(g);
     REQUIRE(count == 1);
@@ -1523,12 +1523,12 @@ TEST_CASE("num_edges(g) with single edge", "[num_edges][api]") {
 
 TEST_CASE("num_edges(g) with self-loop", "[num_edges][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 0, 10}, {0, 1, 20}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto count = num_edges(g);
     REQUIRE(count == 2);
@@ -1536,12 +1536,12 @@ TEST_CASE("num_edges(g) with self-loop", "[num_edges][api]") {
 
 TEST_CASE("num_edges(g) with void edge values", "[num_edges][api]") {
     using Graph = compressed_graph<void, int, void>;
-    vector<copyable_edge_t<int, void>> edges = {
+    vector<copyable_edge_t<int, void>> ee = {
         {0, 1}, {1, 2}, {2, 3}, {3, 4}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto count = num_edges(g);
     REQUIRE(count == 4);
@@ -1549,12 +1549,12 @@ TEST_CASE("num_edges(g) with void edge values", "[num_edges][api]") {
 
 TEST_CASE("num_edges(g) with void vertex values", "[num_edges][api]") {
     using Graph = compressed_graph<int, void, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {1, 2, 20}, {2, 0, 30}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto count = num_edges(g);
     REQUIRE(count == 3);
@@ -1562,16 +1562,16 @@ TEST_CASE("num_edges(g) with void vertex values", "[num_edges][api]") {
 
 TEST_CASE("num_edges(g) with string values", "[num_edges][api]") {
     using Graph = compressed_graph<string, string, void>;
-    vector<copyable_edge_t<int, string>> edges = {
+    vector<copyable_edge_t<int, string>> ee = {
         {0, 1, "edge_a"}, {1, 2, "edge_b"}, {2, 3, "edge_c"}
     };
-    vector<copyable_vertex_t<int, string>> vertices = {
+    vector<copyable_vertex_t<int, string>> vv = {
         {0, "Alice"}, {1, "Bob"}, {2, "Charlie"}, {3, "David"}
     };
     
     Graph g;
-    g.load_edges(edges);
-    g.load_vertices(vertices);
+    g.load_edges(ee);
+    g.load_vertices(vv);
     
     auto count = num_edges(g);
     REQUIRE(count == 3);
@@ -1587,7 +1587,7 @@ TEST_CASE("num_edges(g) with large graph", "[num_edges][api]") {
     }
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto count = num_edges(g);
     REQUIRE(count == 1000);
@@ -1595,14 +1595,14 @@ TEST_CASE("num_edges(g) with large graph", "[num_edges][api]") {
 
 TEST_CASE("num_edges(g) with multiple edges per vertex", "[num_edges][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {0, 2, 20}, {0, 3, 30},
         {1, 2, 40}, {1, 3, 50},
         {2, 3, 60}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto count = num_edges(g);
     REQUIRE(count == 6);
@@ -1610,12 +1610,12 @@ TEST_CASE("num_edges(g) with multiple edges per vertex", "[num_edges][api]") {
 
 TEST_CASE("num_edges(g) return type is integral", "[num_edges][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto count = num_edges(g);
     static_assert(std::integral<decltype(count)>, "num_edges must return integral type");
@@ -1648,13 +1648,13 @@ TEST_CASE("num_edges(g) consistency with edge iteration", "[num_edges][api]") {
 
 TEST_CASE("num_edges(g) with disconnected components", "[num_edges][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {1, 2, 20},  // Component 1
         {3, 4, 30}, {4, 5, 40}   // Component 2
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto count = num_edges(g);
     REQUIRE(count == 4);
@@ -1672,7 +1672,7 @@ TEST_CASE("num_edges(g) efficiency test - uses ADL not default", "[num_edges][ap
     }
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     // This should be O(1) using the ADL friend function
     auto count = num_edges(g);
@@ -1689,14 +1689,14 @@ TEST_CASE("num_edges(g) efficiency test - uses ADL not default", "[num_edges][ap
 
 TEST_CASE("degree(g,u) returns edge count for vertex descriptor", "[degree][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {0, 2, 20}, {0, 3, 30},
         {1, 2, 40},
         {2, 3, 50}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto v = vertices(g);
     auto v0 = *v.begin();
@@ -1706,14 +1706,14 @@ TEST_CASE("degree(g,u) returns edge count for vertex descriptor", "[degree][api]
 
 TEST_CASE("degree(g,uid) returns edge count for vertex ID", "[degree][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {0, 2, 20}, {0, 3, 30},
         {1, 2, 40},
         {2, 3, 50}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto deg0 = degree(g, 0);
     auto deg1 = degree(g, 1);
@@ -1726,13 +1726,13 @@ TEST_CASE("degree(g,uid) returns edge count for vertex ID", "[degree][api]") {
 
 TEST_CASE("degree(g,u) and degree(g,uid) consistency", "[degree][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {0, 2, 20},
         {1, 2, 30}, {1, 3, 40}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     // Compare degree via descriptor and via ID
     auto v = vertices(g);
@@ -1746,12 +1746,12 @@ TEST_CASE("degree(g,u) and degree(g,uid) consistency", "[degree][api]") {
 
 TEST_CASE("degree(g,u) works with const graph", "[degree][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {0, 2, 20}, {1, 2, 30}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     const Graph& cg = g;
     auto v = vertices(cg);
@@ -1762,12 +1762,12 @@ TEST_CASE("degree(g,u) works with const graph", "[degree][api]") {
 
 TEST_CASE("degree(g,uid) works with const graph", "[degree][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {0, 2, 20}, {1, 2, 30}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     const Graph& cg = g;
     auto deg = degree(cg, 0);
@@ -1776,12 +1776,12 @@ TEST_CASE("degree(g,uid) works with const graph", "[degree][api]") {
 
 TEST_CASE("degree(g,u) with zero degree vertex", "[degree][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {1, 2, 20}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto v = vertices(g);
     auto v_iter = v.begin();
@@ -1793,12 +1793,12 @@ TEST_CASE("degree(g,u) with zero degree vertex", "[degree][api]") {
 
 TEST_CASE("degree(g,uid) with zero degree vertex", "[degree][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {1, 2, 20}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto deg = degree(g, 2);
     REQUIRE(deg == 0); // vertex 2 has no outgoing edges
@@ -1806,12 +1806,12 @@ TEST_CASE("degree(g,uid) with zero degree vertex", "[degree][api]") {
 
 TEST_CASE("degree(g,u) with self-loop", "[degree][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 0, 10}, {0, 1, 20}, {0, 2, 30}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto v = vertices(g);
     auto v0 = *v.begin();
@@ -1821,12 +1821,12 @@ TEST_CASE("degree(g,u) with self-loop", "[degree][api]") {
 
 TEST_CASE("degree(g,uid) with self-loop", "[degree][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 0, 10}, {0, 1, 20}, {0, 2, 30}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto deg = degree(g, 0);
     REQUIRE(deg == 3); // self-loop counts as one edge
@@ -1834,12 +1834,12 @@ TEST_CASE("degree(g,uid) with self-loop", "[degree][api]") {
 
 TEST_CASE("degree(g,u) with void edge values", "[degree][api]") {
     using Graph = compressed_graph<void, int, void>;
-    vector<copyable_edge_t<int, void>> edges = {
+    vector<copyable_edge_t<int, void>> ee = {
         {0, 1}, {0, 2}, {1, 2}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto v = vertices(g);
     auto v0 = *v.begin();
@@ -1849,12 +1849,12 @@ TEST_CASE("degree(g,u) with void edge values", "[degree][api]") {
 
 TEST_CASE("degree(g,uid) with void edge values", "[degree][api]") {
     using Graph = compressed_graph<void, int, void>;
-    vector<copyable_edge_t<int, void>> edges = {
+    vector<copyable_edge_t<int, void>> ee = {
         {0, 1}, {0, 2}, {1, 2}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto deg = degree(g, 0);
     REQUIRE(deg == 2);
@@ -1862,12 +1862,12 @@ TEST_CASE("degree(g,uid) with void edge values", "[degree][api]") {
 
 TEST_CASE("degree(g,u) with void vertex values", "[degree][api]") {
     using Graph = compressed_graph<int, void, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {0, 2, 20}, {1, 2, 30}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto v = vertices(g);
     auto v1 = *++v.begin();
@@ -1877,12 +1877,12 @@ TEST_CASE("degree(g,u) with void vertex values", "[degree][api]") {
 
 TEST_CASE("degree(g,uid) with void vertex values", "[degree][api]") {
     using Graph = compressed_graph<int, void, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {0, 2, 20}, {1, 2, 30}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto deg = degree(g, 1);
     REQUIRE(deg == 1);
@@ -1890,7 +1890,7 @@ TEST_CASE("degree(g,uid) with void vertex values", "[degree][api]") {
 
 TEST_CASE("degree(g,u) with string values", "[degree][api]") {
     using Graph = compressed_graph<string, string, void>;
-    vector<copyable_edge_t<int, string>> edges = {
+    vector<copyable_edge_t<int, string>> ee = {
         {0, 1, "edge_a"}, {0, 2, "edge_b"}, {1, 2, "edge_c"}
     };
     vector<copyable_vertex_t<int, string>> vertices_data = {
@@ -1898,7 +1898,7 @@ TEST_CASE("degree(g,u) with string values", "[degree][api]") {
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     g.load_vertices(vertices_data);
     
     auto v = vertices(g);
@@ -1909,7 +1909,7 @@ TEST_CASE("degree(g,u) with string values", "[degree][api]") {
 
 TEST_CASE("degree(g,uid) with string values", "[degree][api]") {
     using Graph = compressed_graph<string, string, void>;
-    vector<copyable_edge_t<int, string>> edges = {
+    vector<copyable_edge_t<int, string>> ee = {
         {0, 1, "edge_a"}, {0, 2, "edge_b"}, {1, 2, "edge_c"}
     };
     vector<copyable_vertex_t<int, string>> vertices_data = {
@@ -1917,7 +1917,7 @@ TEST_CASE("degree(g,uid) with string values", "[degree][api]") {
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     g.load_vertices(vertices_data);
     
     auto deg = degree(g, 0);
@@ -1926,12 +1926,12 @@ TEST_CASE("degree(g,uid) with string values", "[degree][api]") {
 
 TEST_CASE("degree(g,u) return type is integral", "[degree][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {0, 2, 20}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto v = vertices(g);
     auto v0 = *v.begin();
@@ -1942,12 +1942,12 @@ TEST_CASE("degree(g,u) return type is integral", "[degree][api]") {
 
 TEST_CASE("degree(g,uid) return type is integral", "[degree][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {0, 2, 20}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto deg = degree(g, 0);
     static_assert(std::integral<decltype(deg)>, "degree must return integral type");
@@ -1956,7 +1956,7 @@ TEST_CASE("degree(g,uid) return type is integral", "[degree][api]") {
 
 TEST_CASE("degree(g,u) with various vertex degrees", "[degree][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {0, 2, 20}, {0, 3, 30}, {0, 4, 40}, // vertex 0: degree 4
         {1, 2, 50}, {1, 3, 60}, {1, 4, 70},              // vertex 1: degree 3
         {2, 3, 80}, {2, 4, 90},                          // vertex 2: degree 2
@@ -1965,7 +1965,7 @@ TEST_CASE("degree(g,u) with various vertex degrees", "[degree][api]") {
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     vector<size_t> degrees;
     for (auto v : vertices(g)) {
@@ -1977,7 +1977,7 @@ TEST_CASE("degree(g,u) with various vertex degrees", "[degree][api]") {
 
 TEST_CASE("degree(g,uid) with various vertex degrees", "[degree][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {0, 2, 20}, {0, 3, 30}, {0, 4, 40}, // vertex 0: degree 4
         {1, 2, 50}, {1, 3, 60}, {1, 4, 70},              // vertex 1: degree 3
         {2, 3, 80}, {2, 4, 90},                          // vertex 2: degree 2
@@ -1986,7 +1986,7 @@ TEST_CASE("degree(g,uid) with various vertex degrees", "[degree][api]") {
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     REQUIRE(degree(g, 0) == 4);
     REQUIRE(degree(g, 1) == 3);
@@ -2042,13 +2042,13 @@ TEST_CASE("degree(g,uid) consistency with edges(g,u)", "[degree][api]") {
 
 TEST_CASE("degree(g,u) with disconnected components", "[degree][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {1, 2, 20},  // Component 1
         {3, 4, 30}, {4, 5, 40}   // Component 2
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto v = vertices(g);
     auto v_iter = v.begin();
@@ -2062,13 +2062,13 @@ TEST_CASE("degree(g,u) with disconnected components", "[degree][api]") {
 
 TEST_CASE("degree(g,uid) with disconnected components", "[degree][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {1, 2, 20},  // Component 1
         {3, 4, 30}, {4, 5, 40}   // Component 2
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     REQUIRE(degree(g, 0) == 1);
     REQUIRE(degree(g, 1) == 1);
@@ -3423,7 +3423,7 @@ TEST_CASE("edge_value(g, uv) with mixed edge and vertex values", "[edge_value][a
 
 TEST_CASE("partition_id(g, u) returns 0 for single-partition graph", "[partition_id][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {0, 2, 20}, {1, 2, 30}, {2, 3, 40}
     };
     vector<copyable_vertex_t<int, int>> vertex_values = {
@@ -3431,7 +3431,7 @@ TEST_CASE("partition_id(g, u) returns 0 for single-partition graph", "[partition
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     g.load_vertices(vertex_values);
     
     SECTION("all vertices in partition 0") {
@@ -3454,11 +3454,11 @@ TEST_CASE("partition_id(g, u) returns 0 for single-partition graph", "[partition
 
 TEST_CASE("partition_id(g, u) with const graph", "[partition_id][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}};
+    vector<copyable_edge_t<int, int>> ee = {{0, 1, 10}};
     vector<copyable_vertex_t<int, int>> vertex_values = {{0, 100}, {1, 200}};
     
     Graph g_mutable;
-    g_mutable.load_edges(edges);
+    g_mutable.load_edges(ee);
     g_mutable.load_vertices(vertex_values);
     
     const Graph& g = g_mutable;
@@ -3472,11 +3472,11 @@ TEST_CASE("partition_id(g, u) with const graph", "[partition_id][api]") {
 
 TEST_CASE("partition_id(g, u) with void edge values", "[partition_id][api]") {
     using Graph = compressed_graph<void, int, void>;
-    vector<copyable_edge_t<int, void>> edges = {{0, 1}, {1, 2}, {2, 3}};
+    vector<copyable_edge_t<int, void>> ee = {{0, 1}, {1, 2}, {2, 3}};
     vector<copyable_vertex_t<int, int>> vertex_values = {{0, 10}, {1, 20}, {2, 30}, {3, 40}};
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     g.load_vertices(vertex_values);
     
     auto verts = vertices(g);
@@ -3487,10 +3487,10 @@ TEST_CASE("partition_id(g, u) with void edge values", "[partition_id][api]") {
 
 TEST_CASE("partition_id(g, u) with void vertex values", "[partition_id][api]") {
     using Graph = compressed_graph<int, void, void>;
-    vector<copyable_edge_t<int, int>> edges = {{0, 1, 100}, {1, 2, 200}};
+    vector<copyable_edge_t<int, int>> ee = {{0, 1, 100}, {1, 2, 200}};
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto v0 = *find_vertex(g, 0);
     auto v1 = *find_vertex(g, 1);
@@ -3523,7 +3523,7 @@ TEST_CASE("partition_id(g, u) with single vertex", "[partition_id][api]") {
 
 TEST_CASE("partition_id(g, u) integration with vertex_id", "[partition_id][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {1, 2, 20}, {2, 3, 30}
     };
     vector<copyable_vertex_t<int, int>> vertex_values = {
@@ -3531,7 +3531,7 @@ TEST_CASE("partition_id(g, u) integration with vertex_id", "[partition_id][api]"
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     g.load_vertices(vertex_values);
     
     // All vertices have different IDs but same partition (0)
@@ -3559,11 +3559,11 @@ TEST_CASE("partition_id(g, u) integration with vertex_id", "[partition_id][api]"
 
 TEST_CASE("partition_id(g, u) return type is integral", "[partition_id][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}};
+    vector<copyable_edge_t<int, int>> ee = {{0, 1, 10}};
     vector<copyable_vertex_t<int, int>> vertex_values = {{0, 100}, {1, 200}};
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     g.load_vertices(vertex_values);
     
     auto v0 = *find_vertex(g, 0);
@@ -3574,11 +3574,11 @@ TEST_CASE("partition_id(g, u) return type is integral", "[partition_id][api]") {
 
 TEST_CASE("partition_id(g, u) is noexcept", "[partition_id][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}};
+    vector<copyable_edge_t<int, int>> ee = {{0, 1, 10}};
     vector<copyable_vertex_t<int, int>> vertex_values = {{0, 100}, {1, 200}};
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     g.load_vertices(vertex_values);
     
     auto v0 = *find_vertex(g, 0);
@@ -3588,7 +3588,7 @@ TEST_CASE("partition_id(g, u) is noexcept", "[partition_id][api]") {
 
 TEST_CASE("partition_id(g, u) with string edge values", "[partition_id][api]") {
     using Graph = compressed_graph<string, int, void>;
-    vector<copyable_edge_t<int, string>> edges = {
+    vector<copyable_edge_t<int, string>> ee = {
         {0, 1, "edge01"}, {1, 2, "edge12"}
     };
     vector<copyable_vertex_t<int, int>> vertex_values = {
@@ -3596,7 +3596,7 @@ TEST_CASE("partition_id(g, u) with string edge values", "[partition_id][api]") {
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     g.load_vertices(vertex_values);
     
     auto v0 = *find_vertex(g, 0);
@@ -3611,12 +3611,12 @@ TEST_CASE("partition_id(g, u) with string edge values", "[partition_id][api]") {
 
 TEST_CASE("partition_id(g, u) works with all vertices", "[partition_id][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {0, 2, 20}, {1, 2, 30}, {1, 3, 40}, {2, 3, 50}
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     // Iterate all vertices and verify partition_id works
     size_t count = 0;
@@ -3634,7 +3634,7 @@ TEST_CASE("partition_id(g, u) works with all vertices", "[partition_id][api]") {
 
 TEST_CASE("num_partitions(g) returns 1 for single-partition graph", "[num_partitions][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {0, 2, 20}, {1, 2, 30}, {2, 3, 40}
     };
     vector<copyable_vertex_t<int, int>> vertex_values = {
@@ -3642,7 +3642,7 @@ TEST_CASE("num_partitions(g) returns 1 for single-partition graph", "[num_partit
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     g.load_vertices(vertex_values);
     
     SECTION("default single partition") {
@@ -3656,11 +3656,11 @@ TEST_CASE("num_partitions(g) returns 1 for single-partition graph", "[num_partit
 
 TEST_CASE("num_partitions(g) with const graph", "[num_partitions][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}};
+    vector<copyable_edge_t<int, int>> ee = {{0, 1, 10}};
     vector<copyable_vertex_t<int, int>> vertex_values = {{0, 100}, {1, 200}};
     
     Graph g_mutable;
-    g_mutable.load_edges(edges);
+    g_mutable.load_edges(ee);
     g_mutable.load_vertices(vertex_values);
     
     const Graph& g = g_mutable;
@@ -3670,11 +3670,11 @@ TEST_CASE("num_partitions(g) with const graph", "[num_partitions][api]") {
 
 TEST_CASE("num_partitions(g) with void edge values", "[num_partitions][api]") {
     using Graph = compressed_graph<void, int, void>;
-    vector<copyable_edge_t<int, void>> edges = {{0, 1}, {1, 2}, {2, 3}};
+    vector<copyable_edge_t<int, void>> ee = {{0, 1}, {1, 2}, {2, 3}};
     vector<copyable_vertex_t<int, int>> vertex_values = {{0, 10}, {1, 20}, {2, 30}, {3, 40}};
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     g.load_vertices(vertex_values);
     
     REQUIRE(num_partitions(g) == 1);
@@ -3682,10 +3682,10 @@ TEST_CASE("num_partitions(g) with void edge values", "[num_partitions][api]") {
 
 TEST_CASE("num_partitions(g) with void vertex values", "[num_partitions][api]") {
     using Graph = compressed_graph<int, void, void>;
-    vector<copyable_edge_t<int, int>> edges = {{0, 1, 100}, {1, 2, 200}};
+    vector<copyable_edge_t<int, int>> ee = {{0, 1, 100}, {1, 2, 200}};
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     REQUIRE(num_partitions(g) == 1);
 }
@@ -3710,7 +3710,7 @@ TEST_CASE("num_partitions(g) with single vertex", "[num_partitions][api]") {
 
 TEST_CASE("num_partitions(g) integration with partition_id", "[num_partitions][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {1, 2, 20}, {2, 3, 30}
     };
     vector<copyable_vertex_t<int, int>> vertex_values = {
@@ -3718,7 +3718,7 @@ TEST_CASE("num_partitions(g) integration with partition_id", "[num_partitions][a
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     g.load_vertices(vertex_values);
     
     auto num_parts = num_partitions(g);
@@ -3734,11 +3734,11 @@ TEST_CASE("num_partitions(g) integration with partition_id", "[num_partitions][a
 
 TEST_CASE("num_partitions(g) return type is integral", "[num_partitions][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}};
+    vector<copyable_edge_t<int, int>> ee = {{0, 1, 10}};
     vector<copyable_vertex_t<int, int>> vertex_values = {{0, 100}, {1, 200}};
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     g.load_vertices(vertex_values);
     
     auto num_parts = num_partitions(g);
@@ -3748,11 +3748,11 @@ TEST_CASE("num_partitions(g) return type is integral", "[num_partitions][api]") 
 
 TEST_CASE("num_partitions(g) is noexcept", "[num_partitions][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}};
+    vector<copyable_edge_t<int, int>> ee = {{0, 1, 10}};
     vector<copyable_vertex_t<int, int>> vertex_values = {{0, 100}, {1, 200}};
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     g.load_vertices(vertex_values);
     
     STATIC_REQUIRE(noexcept(num_partitions(g)));
@@ -3760,7 +3760,7 @@ TEST_CASE("num_partitions(g) is noexcept", "[num_partitions][api]") {
 
 TEST_CASE("num_partitions(g) with string edge values", "[num_partitions][api]") {
     using Graph = compressed_graph<string, int, void>;
-    vector<copyable_edge_t<int, string>> edges = {
+    vector<copyable_edge_t<int, string>> ee = {
         {0, 1, "edge01"}, {1, 2, "edge12"}
     };
     vector<copyable_vertex_t<int, int>> vertex_values = {
@@ -3768,7 +3768,7 @@ TEST_CASE("num_partitions(g) with string edge values", "[num_partitions][api]") 
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     g.load_vertices(vertex_values);
     
     // Single partition regardless of edge value type
@@ -3785,7 +3785,7 @@ TEST_CASE("num_partitions(g) with large graph", "[num_partitions][api]") {
     }
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     // Still single partition by default
     REQUIRE(num_partitions(g) == 1);
@@ -3806,7 +3806,7 @@ TEST_CASE("num_partitions(g) guarantees minimum of 1", "[num_partitions][api]") 
 
 TEST_CASE("vertices(g, pid) returns all vertices for partition 0", "[vertices_pid][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {
+    vector<copyable_edge_t<int, int>> ee = {
         {0, 1, 10}, {0, 2, 20}, {1, 2, 30}, {2, 3, 40}
     };
     vector<copyable_vertex_t<int, int>> vertex_values = {
@@ -3814,7 +3814,7 @@ TEST_CASE("vertices(g, pid) returns all vertices for partition 0", "[vertices_pi
     };
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     g.load_vertices(vertex_values);
     
     SECTION("partition 0 contains all vertices") {
@@ -3847,10 +3847,10 @@ TEST_CASE("vertices(g, pid) returns all vertices for partition 0", "[vertices_pi
 
 TEST_CASE("vertices(g, pid) returns empty for non-zero partition", "[vertices_pid][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}, {1, 2, 20}};
+    vector<copyable_edge_t<int, int>> ee = {{0, 1, 10}, {1, 2, 20}};
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     SECTION("partition 1 is empty") {
         auto verts = vertices(g, 1);
@@ -3865,11 +3865,11 @@ TEST_CASE("vertices(g, pid) returns empty for non-zero partition", "[vertices_pi
 
 TEST_CASE("vertices(g, pid) with const graph", "[vertices_pid][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}};
+    vector<copyable_edge_t<int, int>> ee = {{0, 1, 10}};
     vector<copyable_vertex_t<int, int>> vertex_values = {{0, 100}, {1, 200}};
     
     Graph g_mutable;
-    g_mutable.load_edges(edges);
+    g_mutable.load_edges(ee);
     g_mutable.load_vertices(vertex_values);
     
     const Graph& g = g_mutable;
@@ -3885,11 +3885,11 @@ TEST_CASE("vertices(g, pid) with const graph", "[vertices_pid][api]") {
 
 TEST_CASE("vertices(g, pid) with void edge values", "[vertices_pid][api]") {
     using Graph = compressed_graph<void, int, void>;
-    vector<copyable_edge_t<int, void>> edges = {{0, 1}, {1, 2}, {2, 3}};
+    vector<copyable_edge_t<int, void>> ee = {{0, 1}, {1, 2}, {2, 3}};
     vector<copyable_vertex_t<int, int>> vertex_values = {{0, 10}, {1, 20}, {2, 30}, {3, 40}};
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     g.load_vertices(vertex_values);
     
     auto verts = vertices(g, 0);
@@ -3903,10 +3903,10 @@ TEST_CASE("vertices(g, pid) with void edge values", "[vertices_pid][api]") {
 
 TEST_CASE("vertices(g, pid) with void vertex values", "[vertices_pid][api]") {
     using Graph = compressed_graph<int, void, void>;
-    vector<copyable_edge_t<int, int>> edges = {{0, 1, 100}, {1, 2, 200}};
+    vector<copyable_edge_t<int, int>> ee = {{0, 1, 100}, {1, 2, 200}};
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto verts = vertices(g, 0);
     size_t count = 0;
@@ -3959,10 +3959,10 @@ TEST_CASE("vertices(g, pid) with single vertex", "[vertices_pid][api]") {
 
 TEST_CASE("vertices(g, pid) with negative partition id", "[vertices_pid][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}};
+    vector<copyable_edge_t<int, int>> ee = {{0, 1, 10}};
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto verts = vertices(g, -1);
     REQUIRE(ranges::begin(verts) == ranges::end(verts));
@@ -3970,10 +3970,10 @@ TEST_CASE("vertices(g, pid) with negative partition id", "[vertices_pid][api]") 
 
 TEST_CASE("vertices(g, pid) iteration multiple times", "[vertices_pid][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}, {1, 2, 20}};
+    vector<copyable_edge_t<int, int>> ee = {{0, 1, 10}, {1, 2, 20}};
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto verts = vertices(g, 0);
     
@@ -3997,10 +3997,10 @@ TEST_CASE("vertices(g, pid) iteration multiple times", "[vertices_pid][api]") {
 
 TEST_CASE("vertices(g, pid) with different integral types", "[vertices_pid][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}};
+    vector<copyable_edge_t<int, int>> ee = {{0, 1, 10}};
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     SECTION("int partition id") {
         auto verts = vertices(g, int(0));
@@ -4035,10 +4035,10 @@ TEST_CASE("vertices(g, pid) with different integral types", "[vertices_pid][api]
 
 TEST_CASE("vertices(g, pid) integration with partition_id", "[vertices_pid][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}, {1, 2, 20}, {2, 3, 30}};
+    vector<copyable_edge_t<int, int>> ee = {{0, 1, 10}, {1, 2, 20}, {2, 3, 30}};
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     // For single partition, all vertices should be in partition 0
     auto num_parts = num_partitions(g);
@@ -4053,11 +4053,11 @@ TEST_CASE("vertices(g, pid) integration with partition_id", "[vertices_pid][api]
 
 TEST_CASE("vertices(g, pid) with string edge values", "[vertices_pid][api]") {
     using Graph = compressed_graph<string, int, void>;
-    vector<copyable_edge_t<int, string>> edges = {{0, 1, "edge01"}, {1, 2, "edge12"}};
+    vector<copyable_edge_t<int, string>> ee = {{0, 1, "edge01"}, {1, 2, "edge12"}};
     vector<copyable_vertex_t<int, int>> vertex_values = {{0, 10}, {1, 20}, {2, 30}};
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     g.load_vertices(vertex_values);
     
     auto verts = vertices(g, 0);
@@ -4079,7 +4079,7 @@ TEST_CASE("vertices(g, pid) large graph", "[vertices_pid][api]") {
     }
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto verts = vertices(g, 0);
     size_t count = 0;
@@ -4092,10 +4092,10 @@ TEST_CASE("vertices(g, pid) large graph", "[vertices_pid][api]") {
 
 TEST_CASE("vertices(g, pid) returns vertex_descriptor_view", "[vertices_pid][api]") {
     using Graph = compressed_graph<int, int, void>;
-    vector<copyable_edge_t<int, int>> edges = {{0, 1, 10}};
+    vector<copyable_edge_t<int, int>> ee = {{0, 1, 10}};
     
     Graph g;
-    g.load_edges(edges);
+    g.load_edges(ee);
     
     auto verts = vertices(g, 0);
     

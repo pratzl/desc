@@ -184,12 +184,12 @@ public:
             constexpr size_t tuple_size = std::tuple_size<edge_value_type>::value;
             
             if constexpr (std::random_access_iterator<EdgeIter>) {
-                auto& edge_value = edges[edge_storage_];
+                auto& edge_val = edges[edge_storage_];
                 if constexpr (tuple_size == 1) {
-                    return (std::get<0>(edge_value));
+                    return (std::get<0>(edge_val));
                 }
                 else if constexpr (tuple_size == 2) {
-                    return (std::get<1>(edge_value));
+                    return (std::get<1>(edge_val));
                 }
                 else {
                     // 3+ elements: return a tuple of references to elements [1, N)
@@ -253,12 +253,12 @@ public:
             constexpr size_t tuple_size = std::tuple_size<edge_value_type>::value;
             
             if constexpr (std::random_access_iterator<EdgeIter>) {
-                const auto& edge_value = edges[edge_storage_];
+                const auto& edge_val = edges[edge_storage_];
                 if constexpr (tuple_size == 1) {
-                    return (std::get<0>(edge_value));
+                    return (std::get<0>(edge_val));
                 }
                 else if constexpr (tuple_size == 2) {
-                    return (std::get<1>(edge_value));
+                    return (std::get<1>(edge_val));
                 }
                 else {
                     return [&]<size_t... Is>(std::index_sequence<Is...>) -> decltype(auto) {

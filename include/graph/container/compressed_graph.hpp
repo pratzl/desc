@@ -1238,13 +1238,13 @@ public: // Friend functions
     using vertex_desc = vertex_descriptor<vertex_iter_type>;
     
     // Get the vertex ID from the descriptor
-    auto vertex_id = static_cast<std::size_t>(u.vertex_id());
+    auto vid = static_cast<std::size_t>(u.vertex_id());
     
     // Create a vertex descriptor with the correct iterator type for this graph
-    vertex_desc source_vd(vertex_id);
+    vertex_desc source_vd(vid);
     
     // Check bounds
-    if (vertex_id >= g.size()) {
+    if (vid >= g.size()) {
       // Return empty view
       return edge_desc_view(static_cast<std::size_t>(0), static_cast<std::size_t>(0), source_vd);
     }
