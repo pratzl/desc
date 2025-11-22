@@ -48,7 +48,7 @@ add_executable(descriptor_tests
 
 target_link_libraries(descriptor_tests
     PRIVATE
-        descriptors
+        graph3
         Catch2::Catch2WithMain
 )
 

@@ -164,6 +164,43 @@
       }
     },
     {
+      "name": "linux-gcc-asan",
+      "displayName": "Linux GCC Address Sanitizer",
+      "description": "Linux build with Address Sanitizer",
+      "inherits": "linux-gcc-debug",
+      "cacheVariables": {
+        "ENABLE_SANITIZER_ADDRESS": "ON",
+        "ENABLE_SANITIZER_UNDEFINED_BEHAVIOR": "ON"
+      }
+    },
+    {
+      "name": "linux-gcc-tsan",
+      "displayName": "Linux GCC Thread Sanitizer",
+      "description": "Linux build with Thread Sanitizer",
+      "inherits": "linux-gcc-debug",
+      "cacheVariables": {
+        "ENABLE_SANITIZER_THREAD": "ON"
+      }
+    },
+    {
+      "name": "linux-gcc-coverage",
+      "displayName": "Linux GCC Coverage",
+      "description": "Linux build with code coverage",
+      "inherits": "linux-gcc-debug",
+      "cacheVariables": {
+        "ENABLE_COVERAGE": "ON"
+      }
+    },
+    {
+      "name": "linux-clang-msan",
+      "displayName": "Linux Clang Memory Sanitizer",
+      "description": "Linux build with Memory Sanitizer",
+      "inherits": "linux-clang-debug",
+      "cacheVariables": {
+        "ENABLE_SANITIZER_MEMORY": "ON"
+      }
+    },
+    {
       "name": "ci-linux",
       "displayName": "CI Linux Build",
       "description": "Continuous integration build for Linux",
@@ -234,6 +271,26 @@
       "name": "linux-clang-release",
       "displayName": "Linux Clang Release Build",
       "configurePreset": "linux-clang-release"
+    },
+    {
+      "name": "linux-gcc-asan",
+      "displayName": "Linux GCC ASan Build",
+      "configurePreset": "linux-gcc-asan"
+    },
+    {
+      "name": "linux-gcc-tsan",
+      "displayName": "Linux GCC TSan Build",
+      "configurePreset": "linux-gcc-tsan"
+    },
+    {
+      "name": "linux-gcc-coverage",
+      "displayName": "Linux GCC Coverage Build",
+      "configurePreset": "linux-gcc-coverage"
+    },
+    {
+      "name": "linux-clang-msan",
+      "displayName": "Linux Clang MSan Build",
+      "configurePreset": "linux-clang-msan"
     },
     {
       "name": "ci-linux",
@@ -312,6 +369,34 @@
       "displayName": "Linux Clang Release Tests",
       "description": "Run tests on Linux Clang Release build",
       "configurePreset": "linux-clang-release",
+      "inherits": "default"
+    },
+    {
+      "name": "linux-gcc-asan",
+      "displayName": "Linux GCC ASan Tests",
+      "description": "Run tests with Address Sanitizer",
+      "configurePreset": "linux-gcc-asan",
+      "inherits": "default"
+    },
+    {
+      "name": "linux-gcc-tsan",
+      "displayName": "Linux GCC TSan Tests",
+      "description": "Run tests with Thread Sanitizer",
+      "configurePreset": "linux-gcc-tsan",
+      "inherits": "default"
+    },
+    {
+      "name": "linux-gcc-coverage",
+      "displayName": "Linux GCC Coverage Tests",
+      "description": "Run tests with coverage",
+      "configurePreset": "linux-gcc-coverage",
+      "inherits": "default"
+    },
+    {
+      "name": "linux-clang-msan",
+      "displayName": "Linux Clang MSan Tests",
+      "description": "Run tests with Memory Sanitizer",
+      "configurePreset": "linux-clang-msan",
       "inherits": "default"
     },
     {

@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.20)
 file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" PROJECT_VERSION)
 string(STRIP "${PROJECT_VERSION}" PROJECT_VERSION)
 
-project(graph_descriptors 
+project(graph3_library 
     VERSION ${PROJECT_VERSION}
     DESCRIPTION "Modern C++20 graph library"
     HOMEPAGE_URL "https://github.com/pratzl/desc"
@@ -15,6 +15,8 @@ project(graph_descriptors
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 include(StandardProjectSettings)
 include(CompilerWarnings)
+include(Sanitizers)
+include(CodeCoverage)
 
 # C++ standard
 set(CMAKE_CXX_STANDARD 20)
@@ -30,18 +32,24 @@ option(ENABLE_COVERAGE "Enable code coverage" OFF)
 option(ENABLE_SANITIZERS "Enable sanitizers (address, undefined)" OFF)
 
 # Library target (header-only)
-add_library(descriptors INTERFACE)
-add_library(graph::descriptors ALIAS descriptors)
+add_library(graph3 INTERFACE)
+add_library(graph::graph3 ALIAS graph3)
 
-target_include_directories(descriptors INTERFACE
+target_include_directories(graph3 INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
 
-target_compile_features(descriptors INTERFACE cxx_std_20)
+target_compile_features(graph3 INTERFACE cxx_std_20)
 
 # Apply compiler warnings
-set_project_warnings(descriptors)
+set_project_warnings(graph3)
+
+# Apply sanitizers if enabled
+enable_sanitizers(graph3)
+
+# Apply code coverage if enabled
+enable_coverage(graph3)
 
 # Testing
 if(BUILD_TESTS)
