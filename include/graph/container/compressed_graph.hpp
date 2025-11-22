@@ -1174,9 +1174,9 @@ public: // Friend functions
    * @note Complexity: O(1) - direct indexed access
    * @note No bounds checking is performed; uid must be valid
   */
-  template<typename G, typename VId>
+  template<typename G, typename VId2>
     requires std::derived_from<std::remove_cvref_t<G>, compressed_graph_base>
-  [[nodiscard]] friend constexpr auto find_vertex([[maybe_unused]] G&& g, const VId& uid) noexcept {
+  [[nodiscard]] friend constexpr auto find_vertex([[maybe_unused]] G&& g, const VId2& uid) noexcept {
     using vertex_iter_type = std::conditional_t<
         std::is_const_v<std::remove_reference_t<G>>,
         typename row_index_vector::const_iterator,
