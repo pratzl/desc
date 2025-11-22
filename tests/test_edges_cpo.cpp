@@ -326,7 +326,7 @@ TEST_CASE("edges(g,u) - integration with vertices(g)", "[edges][cpo][integration
         std::vector<std::pair<int, int>> all_edges; // (source, target)
         
         for (auto u : vertices(graph)) {
-            int uid = u.vertex_id();
+            int uid = static_cast<int>(u.vertex_id());
             for (auto e : edges(graph, u)) {
                 int vid = e.target_id(graph[uid]);
                 all_edges.emplace_back(uid, vid);

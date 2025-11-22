@@ -21,7 +21,7 @@ struct GraphWithDegree {
     GraphWithDegree(size_t n) : adj_list(n) {}
     
     void add_edge(size_t from, size_t to) {
-        adj_list[from].push_back(to);
+        adj_list[from].push_back(static_cast<int>(to));
     }
     
     // Custom member: return doubled degree for testing
@@ -41,7 +41,7 @@ namespace test_adl {
         GraphWithADLDegree(size_t n) : adj_list(n) {}
         
         void add_edge(size_t from, size_t to) {
-            adj_list[from].push_back(to);
+            adj_list[from].push_back(static_cast<int>(to));
         }
     };
 

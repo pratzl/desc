@@ -526,7 +526,8 @@ namespace _cpo_impls {
                     using view_iterator = typename view_type::iterator;
                     return view_iterator{map_iter};
                 } else if constexpr (_Choice<_G, _VId>._Strategy == _St::_random_access) {
-                    return std::ranges::next(std::ranges::begin(vertices(std::forward<G>(g))), uid);
+                    using diff_type = std::iter_difference_t<decltype(std::ranges::begin(vertices(std::forward<G>(g))))>;
+                    return std::ranges::next(std::ranges::begin(vertices(std::forward<G>(g))), static_cast<diff_type>(uid));
                 }
             }
         };

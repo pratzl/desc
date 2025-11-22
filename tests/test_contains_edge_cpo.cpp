@@ -21,14 +21,14 @@ struct GraphWithContainsEdgeMember {
     GraphWithContainsEdgeMember(size_t n) : adj_list(n) {}
     
     void add_edge(size_t from, size_t to) {
-        adj_list[from].push_back(to);
+        adj_list[from].push_back(static_cast<int>(to));
     }
     
     // Custom member: always returns true for testing
     bool contains_edge(size_t u, size_t v) const {
         // Custom implementation - for testing, just check if v is in adj_list[u]
         for (auto targ : adj_list[u]) {
-            if (targ == v) {
+            if (static_cast<size_t>(targ) == v) {
                 return true;
             }
         }
@@ -47,14 +47,14 @@ namespace test_adl {
         GraphWithADLContainsEdge(size_t n) : adj_list(n) {}
         
         void add_edge(size_t from, size_t to) {
-            adj_list[from].push_back(to);
+            adj_list[from].push_back(static_cast<int>(to));
         }
     };
 
     // ADL contains_edge function
     inline bool contains_edge(const GraphWithADLContainsEdge& g, size_t u, size_t v) {
         for (auto targ : g.adj_list[u]) {
-            if (targ == v) {
+            if (static_cast<size_t>(targ) == v) {
                 return true;
             }
         }

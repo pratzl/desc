@@ -251,7 +251,7 @@ namespace test_adl {
     };
     
     // ADL num_edges function
-    std::size_t num_edges(const CustomGraph& g) {
+    std::size_t num_edges([[maybe_unused]] const CustomGraph& g) {
         return 99; // Custom implementation
     }
 }
@@ -276,7 +276,7 @@ TEST_CASE("num_edges(g) - large graph", "[num_edges][cpo][performance]") {
     // Each vertex has edges to next 5 vertices (wrapping)
     for (std::size_t i = 0; i < graph.size(); ++i) {
         for (std::size_t j = 1; j <= 5; ++j) {
-            graph[i].push_back((i + j) % graph.size());
+            graph[i].push_back(static_cast<int>((i + j) % graph.size()));
         }
     }
     

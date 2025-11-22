@@ -97,7 +97,7 @@ TEST_CASE("target(g,uv) - iterating through edges and targets", "[target][cpo][d
     std::vector<int> target_ids;
     for (auto e : edges(graph, v0)) {
         auto t = target(graph, e);
-        target_ids.push_back(vertex_id(graph, t));
+        target_ids.push_back(static_cast<int>(vertex_id(graph, t)));
     }
     
     REQUIRE(target_ids.size() == 3);
@@ -544,7 +544,7 @@ TEST_CASE("target(g,uv) - using target to traverse edges", "[target][cpo][integr
     std::vector<int> targets;
     for (auto e : edges(graph, v0)) {
         auto t = target(graph, e);
-        targets.push_back(vertex_id(graph, t));
+        targets.push_back(static_cast<int>(vertex_id(graph, t)));
     }
     
     REQUIRE(targets.size() == 2);
@@ -593,7 +593,7 @@ TEST_CASE("target(g,uv) - complete graph K3", "[target][cpo][patterns]") {
     for (auto u : vertices(graph)) {
         for (auto e : edges(graph, u)) {
             auto t = target(graph, e);
-            int tid = vertex_id(graph, t);
+            int tid = static_cast<int>(vertex_id(graph, t));
             
             // Target should be a valid vertex
             REQUIRE(tid >= 0);
@@ -616,7 +616,7 @@ TEST_CASE("target(g,uv) - directed acyclic graph", "[target][cpo][patterns]") {
     std::vector<int> targets_from_0;
     for (auto e : edges(graph, v0)) {
         auto t = target(graph, e);
-        targets_from_0.push_back(vertex_id(graph, t));
+        targets_from_0.push_back(static_cast<int>(vertex_id(graph, t)));
     }
     
     REQUIRE(targets_from_0.size() == 2);

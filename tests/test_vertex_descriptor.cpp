@@ -563,7 +563,7 @@ TEST_CASE("vertex_descriptor_view - const container with vector", "[vertex_descr
     // Iterate and verify we can access values
     std::vector<int> ids;
     for (auto v : view) {
-        ids.push_back(v.vertex_id());
+        ids.push_back(static_cast<int>(v.vertex_id()));
     }
     
     REQUIRE(ids.size() == 3);

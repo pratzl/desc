@@ -21,13 +21,13 @@ struct GraphWithFindEdgeMember {
     GraphWithFindEdgeMember(size_t n) : adj_list(n) {}
     
     void add_edge(size_t from, size_t to) {
-        adj_list[from].push_back(to);
+        adj_list[from].push_back(static_cast<int>(to));
     }
     
     // Custom member: returns target * 1000 if found, otherwise -1
     int find_vertex_edge(size_t uid, size_t vid) const {
         for (auto targ : adj_list[uid]) {
-            if (targ == vid) {
+            if (static_cast<size_t>(targ) == vid) {
                 return static_cast<int>(targ * 1000);
             }
         }
@@ -46,14 +46,14 @@ namespace test_adl {
         GraphWithADLFindEdge(size_t n) : adj_list(n) {}
         
         void add_edge(size_t from, size_t to) {
-            adj_list[from].push_back(to);
+            adj_list[from].push_back(static_cast<int>(to));
         }
     };
 
     // ADL find_vertex_edge function - returns target * 2000 if found, otherwise -1
     inline int find_vertex_edge(const GraphWithADLFindEdge& g, size_t uid, size_t vid) {
         for (auto targ : g.adj_list[uid]) {
-            if (targ == vid) {
+            if (static_cast<size_t>(targ) == vid) {
                 return static_cast<int>(targ * 2000);
             }
         }

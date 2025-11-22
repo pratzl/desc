@@ -1333,9 +1333,9 @@ public: // Friend functions
              (!std::is_void_v<VV>)
   [[nodiscard]] friend constexpr decltype(auto) vertex_value(G&& g, const U& u) noexcept {
     if constexpr (std::is_const_v<std::remove_reference_t<G>>) {
-      return g.vertex_value(u.vertex_id());
+      return g.vertex_value(static_cast<vertex_id_type>(u.vertex_id()));
     } else {
-      return g.vertex_value(u.vertex_id());
+      return g.vertex_value(static_cast<vertex_id_type>(u.vertex_id()));
     }
   }
 
@@ -1358,9 +1358,9 @@ public: // Friend functions
              (!std::is_void_v<EV>)
   [[nodiscard]] friend constexpr decltype(auto) edge_value(G&& g, const E& uv) noexcept {
     if constexpr (std::is_const_v<std::remove_reference_t<G>>) {
-      return g.edge_value(uv.value());
+      return g.edge_value(static_cast<vertex_id_type>(uv.value()));
     } else {
-      return g.edge_value(uv.value());
+      return g.edge_value(static_cast<vertex_id_type>(uv.value()));
     }
   }
 

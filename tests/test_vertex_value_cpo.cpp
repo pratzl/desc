@@ -289,7 +289,7 @@ struct GraphWithByValueMember {
     template<typename VIter>
     std::string vertex_value(const vertex_descriptor<VIter>& u) const {
         std::string result = data[u.value()];
-        for (char& c : result) c = std::toupper(c);
+        for (char& c : result) c = static_cast<char>(std::toupper(c));
         return result;
     }
 };

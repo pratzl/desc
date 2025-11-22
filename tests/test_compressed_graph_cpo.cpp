@@ -48,7 +48,7 @@ TEST_CASE("vertices() returns view of vertex descriptors", "[vertices][api]") {
         auto v = vertices(g);
         vector<int> values;
         for (auto vd : v) {
-            values.push_back(g.vertex_value(vd.vertex_id()));
+            values.push_back(g.vertex_value(static_cast<uint32_t>(vd.vertex_id())));
         }
         REQUIRE(values == vector<int>{100, 200, 300, 400});
     }
@@ -110,7 +110,7 @@ TEST_CASE("vertices() with single vertex", "[vertices][api]") {
     size_t count = 0;
     for (auto vd : v) {
         REQUIRE(vd.vertex_id() == 0);
-        REQUIRE(g.vertex_value(vd.vertex_id()) == 42);
+        REQUIRE(g.vertex_value(static_cast<uint32_t>(vd.vertex_id())) == 42);
         ++count;
     }
     REQUIRE(count == 1);
@@ -133,7 +133,7 @@ TEST_CASE("vertices() works with STL algorithms", "[vertices][api]") {
     SECTION("std::count_if") {
         size_t count = 0;
         for (auto vd : v) {
-            if (g.vertex_value(vd.vertex_id()) > 10)
+            if (g.vertex_value(static_cast<uint32_t>(vd.vertex_id())) > 10)
                 ++count;
         }
         REQUIRE(count == 3); // vertices 1, 2, 3 have values > 10
@@ -143,7 +143,7 @@ TEST_CASE("vertices() works with STL algorithms", "[vertices][api]") {
         bool found = false;
         size_t found_id = 0;
         for (auto vd : v) {
-            if (g.vertex_value(vd.vertex_id()) == 25) {
+            if (g.vertex_value(static_cast<uint32_t>(vd.vertex_id())) == 25) {
                 found = true;
                 found_id = vd.vertex_id();
                 break;
@@ -195,13 +195,11 @@ TEST_CASE("vertices() with string vertex values", "[vertices][api]") {
     g.load_edges(edges);
     g.load_vertices(vertex_values);
     
-    auto v = vertices(g);
-    vector<string> names;
-    for (auto vd : v) {
-        names.push_back(g.vertex_value(vd.vertex_id()));
-    }
-    
-    REQUIRE(names == vector<string>{"Alice", "Bob", "Charlie"});
+        auto v = vertices(g);
+        vector<string> names;
+        for (auto vd : v) {
+            names.push_back(g.vertex_value(static_cast<uint32_t>(vd.vertex_id())));
+        }    REQUIRE(names == vector<string>{"Alice", "Bob", "Charlie"});
 }
 
 TEST_CASE("vertices() const correctness", "[vertices][api]") {
@@ -219,7 +217,7 @@ TEST_CASE("vertices() const correctness", "[vertices][api]") {
     size_t count = 0;
     for (auto vd : v) {
         // Can read vertex values from const graph
-        [[maybe_unused]] auto val = g.vertex_value(vd.vertex_id());
+        [[maybe_unused]] auto val = g.vertex_value(static_cast<uint32_t>(vd.vertex_id()));
         ++count;
     }
     REQUIRE(count == 2);
@@ -247,7 +245,7 @@ TEST_CASE("vertices() with large graph", "[vertices][api]") {
     size_t count = 0;
     for (auto vd : v) {
         REQUIRE(vd.vertex_id() == count);
-        REQUIRE(g.vertex_value(vd.vertex_id()) == static_cast<int>(count * 100));
+        REQUIRE(g.vertex_value(static_cast<uint32_t>(vd.vertex_id())) == static_cast<int>(count * 100));
         ++count;
     }
     REQUIRE(count == n);
@@ -275,8 +273,8 @@ TEST_CASE("edges(g,u) returns view of edge descriptors", "[edges][api]") {
         vector<int> targets;
         vector<int> values;
         for (auto ed : e) {
-            targets.push_back(g.target_id(ed.value()));
-            values.push_back(g.edge_value(ed.value()));
+            targets.push_back(static_cast<int>(g.target_id(static_cast<uint32_t>(ed.value()))));
+            values.push_back(static_cast<int>(g.edge_value(static_cast<uint32_t>(ed.value()))));
             ++count;
         }
         REQUIRE(count == 2);
@@ -294,7 +292,7 @@ TEST_CASE("edges(g,u) returns view of edge descriptors", "[edges][api]") {
         size_t count = 0;
         vector<int> targets;
         for (auto ed : e) {
-            targets.push_back(g.target_id(ed.value()));
+            targets.push_back(static_cast<int>(g.target_id(static_cast<uint32_t>(ed.value()))));
             ++count;
         }
         REQUIRE(count == 1);
@@ -331,7 +329,7 @@ TEST_CASE("edges(g,u) with void edge values", "[edges][api]") {
     
     vector<int> targets;
     for (auto ed : e) {
-        targets.push_back(g.target_id(ed.value()));
+        targets.push_back(static_cast<int>(g.target_id(static_cast<uint32_t>(ed.value()))));
     }
     
     REQUIRE(targets.size() == 3);
@@ -360,8 +358,8 @@ TEST_CASE("edges(g,u) with single edge", "[edges][api]") {
     int target = -1;
     int value = -1;
     for (auto ed : e) {
-        target = g.target_id(ed.value());
-        value = g.edge_value(ed.value());
+        target = static_cast<int>(g.target_id(static_cast<uint32_t>(ed.value())));
+        value = static_cast<int>(g.edge_value(static_cast<uint32_t>(ed.value())));
         ++count;
     }
     
@@ -395,9 +393,9 @@ TEST_CASE("edges(g,u) works with STL algorithms", "[edges][api]") {
         bool found = false;
         int found_value = -1;
         for (auto ed : e) {
-            if (g.target_id(ed.value()) == 2) {
+            if (g.target_id(static_cast<uint32_t>(ed.value())) == 2) {
                 found = true;
-                found_value = g.edge_value(ed.value());
+                found_value = g.edge_value(static_cast<uint32_t>(ed.value()));
                 break;
             }
         }
@@ -408,7 +406,7 @@ TEST_CASE("edges(g,u) works with STL algorithms", "[edges][api]") {
     SECTION("collect all targets") {
         vector<int> targets;
         for (auto ed : e) {
-            targets.push_back(g.target_id(ed.value()));
+            targets.push_back(g.target_id(static_cast<uint32_t>(ed.value())));
         }
         REQUIRE(targets == vector<int>{1, 2, 3, 4});
     }
@@ -432,8 +430,8 @@ TEST_CASE("edges(g,u) is a lightweight view", "[edges][api]") {
     
     // Both views should produce same results
     vector<int> targets1, targets2;
-    for (auto ed : e1) targets1.push_back(g.target_id(ed.value()));
-    for (auto ed : e2) targets2.push_back(g.target_id(ed.value()));
+    for (auto ed : e1) targets1.push_back(g.target_id(static_cast<uint32_t>(ed.value())));
+    for (auto ed : e2) targets2.push_back(g.target_id(static_cast<uint32_t>(ed.value())));
     
     REQUIRE(targets1 == targets2);
     REQUIRE(targets1.size() == 2);
@@ -454,7 +452,7 @@ TEST_CASE("edges(g,u) with string edge values", "[edges][api]") {
     
     vector<string> labels;
     for (auto ed : e) {
-        labels.push_back(g.edge_value(ed.value()));
+        labels.push_back(g.edge_value(static_cast<uint32_t>(ed.value())));
     }
     
     REQUIRE(labels == vector<string>{"edge_a", "edge_b"});
@@ -476,8 +474,8 @@ TEST_CASE("edges(g,u) const correctness", "[edges][api]") {
     
     size_t count = 0;
     for (auto ed : e) {
-        [[maybe_unused]] auto target = g.target_id(ed.value());
-        [[maybe_unused]] auto value = g.edge_value(ed.value());
+        [[maybe_unused]] auto target = g.target_id(static_cast<uint32_t>(ed.value()));
+        [[maybe_unused]] auto value = g.edge_value(static_cast<uint32_t>(ed.value()));
         ++count;
     }
     REQUIRE(count == 2);
@@ -502,8 +500,8 @@ TEST_CASE("edges(g,u) with large graph", "[edges][api]") {
     
     size_t count = 0;
     for (auto ed : e) {
-        auto target = g.target_id(ed.value());
-        auto value = g.edge_value(ed.value());
+        auto target = g.target_id(static_cast<uint32_t>(ed.value()));
+        auto value = g.edge_value(static_cast<uint32_t>(ed.value()));
         REQUIRE(target == static_cast<int>(count + 1));
         REQUIRE(value == static_cast<int>((count + 1) * 10));
         ++count;
@@ -527,7 +525,7 @@ TEST_CASE("edges(g,u) with self-loops", "[edges][api]") {
         
         vector<int> targets;
         for (auto ed : e) {
-            targets.push_back(g.target_id(ed.value()));
+            targets.push_back(g.target_id(static_cast<uint32_t>(ed.value())));
         }
         REQUIRE(targets == vector<int>{0, 1});
     }
@@ -541,7 +539,7 @@ TEST_CASE("edges(g,u) with self-loops", "[edges][api]") {
         
         vector<int> targets;
         for (auto ed : e) {
-            targets.push_back(g.target_id(ed.value()));
+            targets.push_back(g.target_id(static_cast<uint32_t>(ed.value())));
         }
         REQUIRE(targets == vector<int>{1});
     }
@@ -703,14 +701,12 @@ TEST_CASE("find_vertex(g,uid) can access edges", "[find_vertex][api]") {
     auto v0_iter = find_vertex(g, 0);
     auto e = edges(g, *v0_iter);
     
-    vector<int> targets;
-    vector<int> values;
-    for (auto ed : e) {
-        targets.push_back(g.target_id(ed.value()));
-        values.push_back(g.edge_value(ed.value()));
-    }
-    
-    REQUIRE(targets == vector<int>{1, 2});
+        vector<int> targets;
+        vector<int> values;
+        for (auto ed : e) {
+            targets.push_back(static_cast<int>(g.target_id(static_cast<uint32_t>(ed.value()))));
+            values.push_back(static_cast<int>(g.edge_value(static_cast<uint32_t>(ed.value()))));
+        }    REQUIRE(targets == vector<int>{1, 2});
     REQUIRE(values == vector<int>{10, 20});
 }
 
@@ -745,9 +741,9 @@ TEST_CASE("find_vertex(g,uid) all vertices findable", "[find_vertex][api]") {
     
     // Verify every vertex ID can be found
     for (size_t uid = 0; uid < g.size(); ++uid) {
-        auto v_iter = find_vertex(g, uid);
+        auto v_iter = find_vertex(g, static_cast<uint32_t>(uid));
         REQUIRE(vertex_id(g, *v_iter) == uid);
-        REQUIRE(g.vertex_value(uid) == static_cast<int>((uid + 1) * 100));
+        REQUIRE(g.vertex_value(static_cast<uint32_t>(uid)) == static_cast<int>((uid + 1) * 100));
     }
 }
 
@@ -961,7 +957,7 @@ TEST_CASE("target_id(g,uv) consistency with direct access", "[target_id][api]") 
     
     for (auto ed : e) {
         auto edge_idx = ed.value();
-        REQUIRE(target_id(g, ed) == g.target_id(edge_idx));
+        REQUIRE(target_id(g, ed) == g.target_id(static_cast<uint32_t>(edge_idx)));
     }
 }
 
@@ -1253,7 +1249,7 @@ TEST_CASE("source_id(g,uv) returns correct source ID", "[source_id][api]") {
         
         vector<int> source_ids;
         for (auto ed : e) {
-            source_ids.push_back(source_id(g, ed));
+            source_ids.push_back(static_cast<int>(source_id(g, ed)));
         }
         
         REQUIRE(source_ids.size() == 2);
@@ -1270,7 +1266,7 @@ TEST_CASE("source_id(g,uv) returns correct source ID", "[source_id][api]") {
         
         vector<int> source_ids;
         for (auto ed : e) {
-            source_ids.push_back(source_id(g, ed));
+            source_ids.push_back(static_cast<int>(source_id(g, ed)));
         }
         
         REQUIRE(source_ids.size() == 1);
