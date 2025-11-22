@@ -1250,8 +1250,8 @@ public: // Friend functions
     }
     
     // Get the edge range for this vertex from row_index_
-    auto start_idx = static_cast<std::size_t>(g.row_index_[vertex_id].index);
-    auto end_idx = static_cast<std::size_t>(g.row_index_[vertex_id + 1].index);
+    auto start_idx = static_cast<std::size_t>(g.row_index_[vid].index);
+    auto end_idx = static_cast<std::size_t>(g.row_index_[vid + 1].index);
     
     // Return view over the edge range
     return edge_desc_view(start_idx, end_idx, source_vd);
@@ -1294,6 +1294,29 @@ public: // Friend functions
     requires std::derived_from<std::remove_cvref_t<G>, compressed_graph_base>
   [[nodiscard]] friend constexpr auto num_edges(G&& g) noexcept {
     return static_cast<size_type>(g.col_index_.size());
+  }
+
+  /**
+   * @brief Get the number of outgoing edges from a specific vertex
+   * 
+   * Returns the count of edges originating from the given vertex.
+   * For compressed_graph, this is an O(1) operation that computes the difference
+   * between consecutive row_index_ entries.
+   * 
+   * @param g The graph (forwarding reference)
+   * @param u The vertex descriptor
+   * @return The number of outgoing edges from vertex u
+   * @note Complexity: O(1) - direct indexed access
+   * @note This is the ADL customization point for the num_edges(g, u) CPO
+  */
+  template<typename G, typename U>
+    requires std::derived_from<std::remove_cvref_t<G>, compressed_graph_base>
+  [[nodiscard]] friend constexpr auto num_edges(const G& g, const U& u) noexcept {
+    auto vid = static_cast<vertex_id_type>(u.vertex_id());
+    if (vid >= g.size()) {
+      return static_cast<size_type>(0);
+    }
+    return static_cast<size_type>(g.row_index_[vid + 1].index - g.row_index_[vid].index);
   }
 
   /**
