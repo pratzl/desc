@@ -650,8 +650,33 @@ private:
   edges_type edges_;
 
 private: // CPO properties
-  // friend constexpr edges_type&       edges(graph_type& g, vertex_type& u) { return u.edges_; }
-  // friend constexpr const edges_type& edges(const graph_type& g, const vertex_type& u) { return u.edges_; }
+  /**
+   * @brief Get the user-defined value associated with an edge (ADL customization)
+   * @tparam G Graph type (deduced, forwarding reference)
+   * @tparam E Edge descriptor type (deduced, forwarding reference)
+   * @param g The graph
+   * @param uv The edge descriptor
+   * @return Reference to the edge value (const if descriptor is const)
+   * @note Complexity: O(1) - direct access through descriptor
+   * @note This is the ADL customization point for the edge_value(g, uv) CPO
+   * @note Only available when EV is not void
+   */
+  template<typename G, typename E>
+    requires edge_descriptor_type<E> &&
+             (!std::is_void_v<EV>)
+  [[nodiscard]] friend constexpr decltype(auto) edge_value(G&& g, E&& uv) noexcept {
+    // Get the source vertex from the descriptor
+    auto&& source_vertex = std::forward<E>(uv).source().inner_value(std::forward<G>(g));
+    // Get the edges container from the vertex
+    auto&& edges_container = std::forward<decltype(source_vertex)>(source_vertex).edges();
+    // Get the edge object from the descriptor
+    auto&& edge_obj = std::forward<E>(uv).inner_value(std::forward<decltype(edges_container)>(edges_container));
+    // Return the value from the edge object
+    return std::forward<decltype(edge_obj)>(edge_obj).value();
+  }
+
+  friend constexpr edges_type&       edges(graph_type& g, vertex_type& u) { return u.edges_; }
+  friend constexpr const edges_type& edges(const graph_type& g, const vertex_type& u) { return u.edges_; }
 
   // friend constexpr typename edges_type::iterator
   // find_vertex_edge(graph_type& g, vertex_id_type uid, vertex_id_type vid) {
@@ -722,8 +747,8 @@ private:
   value_type value_ = value_type();
 
 private: // CPO properties
-  friend constexpr value_type&       vertex_value(graph_type& g, vertex_type& u) { return u.value_; }
-  friend constexpr const value_type& vertex_value(const graph_type& g, const vertex_type& u) { return u.value_; }
+  // friend constexpr value_type&       vertex_value(graph_type& g, vertex_type& u) { return u.value_; }
+  // friend constexpr const value_type& vertex_value(const graph_type& g, const vertex_type& u) { return u.value_; }
 };
 
 
@@ -1300,6 +1325,28 @@ private: // CPO properties
   friend constexpr auto num_edges(const dynamic_graph_base& g) { return g.edge_count_; }
   friend constexpr bool has_edge(const dynamic_graph_base& g) { return g.edge_count_ > 0; }
   
+  /**
+   * @brief Get the user-defined value associated with a vertex
+   * 
+   * Returns a reference to the user-defined value stored for the given vertex.
+   * For compressed_graph, extracts the vertex ID from the descriptor and uses
+   * it to directly access the vertex value storage.
+   * 
+   * @param g The graph (forwarding reference for const preservation)
+   * @param u The vertex descriptor
+   * @return Reference to the vertex value (const if g is const)
+   * @note Complexity: O(1) - direct array access by vertex ID
+   * @note This is the ADL customization point for the vertex_value(g, u) CPO
+   * @note Only available when VV is not void
+  */
+  template<typename G, typename U>
+    requires std::derived_from<std::remove_cvref_t<G>, dynamic_graph_base> && 
+             vertex_descriptor_type<U> &&
+             (!std::is_void_v<VV>)
+  [[nodiscard]] friend constexpr decltype(auto) vertex_value(G&& g, U&& u) noexcept {
+    return std::forward<U>(u).inner_value(std::forward<G>(g).vertices_).value();
+  }
+
 
   // friend constexpr vertex_id_type vertex_id(const dynamic_graph_base& g, typename vertices_type::const_iterator ui) {
   //   return static_cast<vertex_id_type>(ui - g.vertices_.begin());
@@ -1419,6 +1466,7 @@ public: // Properties
    * @param alloc Construct the vertices container with this allocator. Edges will use this allocator also.
   */
   dynamic_graph(allocator_type alloc) : base_type(alloc) {}
+
   /**
    * @brief Construct a dynamic_graph with an empty collection of vertices that .
    * 
@@ -1429,6 +1477,7 @@ public: // Properties
   requires (!std::is_void_v<GV2>) && std::convertible_to<const GV2&, GV>
   dynamic_graph(const GV2& gv, allocator_type alloc = allocator_type()) 
   : base_type(alloc), value_(gv) {}
+
   /**
    * @brief Construct a dynamic_graph with an empty collection of vertices that .
    * 
