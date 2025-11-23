@@ -1064,8 +1064,8 @@ jobs:
 **Tasks:**
 
 #### 6.1: CPM (CMake Package Manager) Integration
-- [ ] Add CPM.cmake support
-- [ ] Replace FetchContent with CPM where beneficial
+- [x] Add CPM.cmake support
+- [x] Replace FetchContent with CPM where beneficial
 
 **File: cmake/CPM.cmake**
 ```cmake
