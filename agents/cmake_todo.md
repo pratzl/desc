@@ -863,7 +863,7 @@ endfunction()
 - [x] Create .github/workflows/ci.yml
 - [x] Add multi-platform CI
 - [x] Add coverage reporting
-- [ ] Add release workflow
+- [x] Add release workflow
 
 **File: .github/workflows/ci.yml**
 ```yaml

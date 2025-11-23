@@ -1,0 +1,114 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Get version from tag
+      id: get_version
+      run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+    
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+        body: |
+          ## graph3 ${{ steps.get_version.outputs.version }}
+          
+          Header-only C++20 graph library
+          
+          ### Installation
+          
+          **From package:**
+          ```bash
+          # Download and extract
+          tar -xzf graph3-${{ steps.get_version.outputs.version }}-Linux.tar.gz
+          sudo cp -r graph3-${{ steps.get_version.outputs.version }}-Linux/* /usr/local/
+          ```
+          
+          **In CMake project:**
+          ```cmake
+          find_package(graph3 ${{ steps.get_version.outputs.version }} REQUIRED)
+          target_link_libraries(your_target PRIVATE graph::graph3)
+          ```
+          
+          ### Files
+          - `graph3-${{ steps.get_version.outputs.version }}-Linux.tar.gz` - Linux package (TGZ)
+          - `graph3-${{ steps.get_version.outputs.version }}-Linux.zip` - Linux package (ZIP)
+          - `graph3-${{ steps.get_version.outputs.version }}-Linux.deb` - Debian package
+          
+          See [README.md](https://github.com/${{ github.repository }}/blob/main/README.md) for full documentation.
+
+  build-packages:
+    needs: create-release
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ninja-build
+    
+    - name: Configure
+      run: cmake --preset=linux-gcc-release
+    
+    - name: Build
+      run: cmake --build --preset=linux-gcc-release
+    
+    - name: Test
+      run: ctest --preset=linux-gcc-release
+    
+    - name: Generate packages
+      run: |
+        cd build/linux-gcc-release
+        cpack
+    
+    - name: Upload TGZ package
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ./build/linux-gcc-release/graph3-${{ needs.create-release.outputs.version }}-Linux.tar.gz
+        asset_name: graph3-${{ needs.create-release.outputs.version }}-Linux.tar.gz
+        asset_content_type: application/gzip
+    
+    - name: Upload ZIP package
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ./build/linux-gcc-release/graph3-${{ needs.create-release.outputs.version }}-Linux.zip
+        asset_name: graph3-${{ needs.create-release.outputs.version }}-Linux.zip
+        asset_content_type: application/zip
+    
+    - name: Upload DEB package
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ./build/linux-gcc-release/graph3-${{ needs.create-release.outputs.version }}-Linux.deb
+        asset_name: graph3-${{ needs.create-release.outputs.version }}-Linux.deb
+        asset_content_type: application/vnd.debian.binary-package
