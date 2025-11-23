@@ -345,8 +345,8 @@ private:
   value_type value_ = value_type();
 
 private: // CPO properties
-  // friend constexpr value_type&       edge_value(graph_type& g, edge_type& uv) noexcept { return uv.value_; }
-  // friend constexpr const value_type& edge_value(const graph_type& g, const edge_type& uv) noexcept { return uv.value_; }
+  friend constexpr value_type&       edge_value(graph_type& g, edge_type& uv) noexcept { return uv.value_; }
+  friend constexpr const value_type& edge_value(const graph_type& g, const edge_type& uv) noexcept { return uv.value_; }
 };
 
 /**
@@ -722,8 +722,8 @@ private:
   value_type value_ = value_type();
 
 private: // CPO properties
-  // friend constexpr value_type&       vertex_value(graph_type& g, vertex_type& u) { return u.value_; }
-  // friend constexpr const value_type& vertex_value(const graph_type& g, const vertex_type& u) { return u.value_; }
+  friend constexpr value_type&       vertex_value(graph_type& g, vertex_type& u) { return u.value_; }
+  friend constexpr const value_type& vertex_value(const graph_type& g, const vertex_type& u) { return u.value_; }
 };
 
 
@@ -1292,11 +1292,14 @@ private: // Member Variables
   size_t edge_count_ = 0;      // total number of edges in the graph
 
 private: // CPO properties
-  // friend constexpr vertices_type&       vertices(dynamic_graph_base& g) { return g.vertices_; }
-  // friend constexpr const vertices_type& vertices(const dynamic_graph_base& g) { return g.vertices_; }
+  friend constexpr vertices_type&       vertices(dynamic_graph_base& g) { return g.vertices_; }
+  friend constexpr const vertices_type& vertices(const dynamic_graph_base& g) { return g.vertices_; }
 
-  // friend constexpr auto num_edges(const dynamic_graph_base& g) { return g.edge_count_; }
-  // friend constexpr bool has_edge(const dynamic_graph_base& g) { return g.edge_count_ > 0; }
+  friend constexpr auto num_vertices(const dynamic_graph_base& g) { return g.vertices_.size(); }
+
+  friend constexpr auto num_edges(const dynamic_graph_base& g) { return g.edge_count_; }
+  friend constexpr bool has_edge(const dynamic_graph_base& g) { return g.edge_count_ > 0; }
+  
 
   // friend constexpr vertex_id_type vertex_id(const dynamic_graph_base& g, typename vertices_type::const_iterator ui) {
   //   return static_cast<vertex_id_type>(ui - g.vertices_.begin());
