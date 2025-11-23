@@ -595,6 +595,280 @@ static_assert(std::ranges::range<vofl_int_int_int>);
 static_assert(std::ranges::range<vofl_string_string_string>);
 
 //==================================================================================================
+// Initializer List Constructor Tests
+//==================================================================================================
+
+TEST_CASE("vofl initializer_list constructor with void edge values", "[vofl][construction][initializer_list]") {
+  using G = vofl_void_void_void;
+
+  SECTION("empty initializer list") {
+    G g({});
+    // Empty initializer list may create vertex 0 for sizing
+    REQUIRE(g.size() <= 1);
+  }
+
+  SECTION("single edge") {
+    G g({{0, 1}});
+    REQUIRE(g.size() == 2);
+    auto& u = g[0];
+    auto edges = u.edges();
+    REQUIRE(std::ranges::distance(edges) == 1);
+    auto it = edges.begin();
+    REQUIRE(it->target_id() == 1);
+  }
+
+  SECTION("multiple edges from same vertex") {
+    G g({{0, 1}, {0, 2}, {0, 3}});
+    REQUIRE(g.size() == 4);
+    auto& u = g[0];
+    auto edges = u.edges();
+    REQUIRE(std::ranges::distance(edges) == 3);
+  }
+
+  SECTION("triangle graph") {
+    G g({{0, 1}, {1, 2}, {2, 0}});
+    REQUIRE(g.size() == 3);
+    
+    auto& v0 = g[0];
+    REQUIRE(std::ranges::distance(v0.edges()) == 1);
+    REQUIRE(v0.edges().begin()->target_id() == 1);
+    
+    auto& v1 = g[1];
+    REQUIRE(std::ranges::distance(v1.edges()) == 1);
+    REQUIRE(v1.edges().begin()->target_id() == 2);
+    
+    auto& v2 = g[2];
+    REQUIRE(std::ranges::distance(v2.edges()) == 1);
+    REQUIRE(v2.edges().begin()->target_id() == 0);
+  }
+
+  SECTION("self-loop") {
+    G g({{0, 0}});
+    REQUIRE(g.size() == 1);
+    auto& u = g[0];
+    auto edges = u.edges();
+    REQUIRE(std::ranges::distance(edges) == 1);
+    REQUIRE(edges.begin()->target_id() == 0);
+  }
+
+  SECTION("parallel edges") {
+    G g({{0, 1}, {0, 1}, {0, 1}});
+    REQUIRE(g.size() == 2);
+    auto& u = g[0];
+    auto edges = u.edges();
+    // forward_list preserves all duplicates
+    REQUIRE(std::ranges::distance(edges) == 3);
+  }
+
+  SECTION("large vertex IDs") {
+    G g({{100, 200}});
+    REQUIRE(g.size() == 201);  // auto-extends to accommodate vertex 200
+  }
+}
+
+TEST_CASE("vofl initializer_list constructor with int edge values", "[vofl][construction][initializer_list]") {
+  using G = vofl_int_void_void;
+
+  SECTION("edges with values") {
+    G g({{0, 1, 10}, {1, 2, 20}, {2, 0, 30}});
+    REQUIRE(g.size() == 3);
+    
+    auto& v0 = g[0];
+    auto edges0 = v0.edges();
+    REQUIRE(std::ranges::distance(edges0) == 1);
+    REQUIRE(edges0.begin()->target_id() == 1);
+    REQUIRE(edges0.begin()->value() == 10);
+    
+    auto& v1 = g[1];
+    auto edges1 = v1.edges();
+    REQUIRE(std::ranges::distance(edges1) == 1);
+    REQUIRE(edges1.begin()->target_id() == 2);
+    REQUIRE(edges1.begin()->value() == 20);
+    
+    auto& v2 = g[2];
+    auto edges2 = v2.edges();
+    REQUIRE(std::ranges::distance(edges2) == 1);
+    REQUIRE(edges2.begin()->target_id() == 0);
+    REQUIRE(edges2.begin()->value() == 30);
+  }
+
+  SECTION("edges with zero values") {
+    G g({{0, 1, 0}, {1, 2, 0}});
+    REQUIRE(g.size() == 3);
+    auto& v0 = g[0];
+    REQUIRE(v0.edges().begin()->value() == 0);
+  }
+
+  SECTION("edges with negative values") {
+    G g({{0, 1, -5}, {1, 2, -10}});
+    REQUIRE(g.size() == 3);
+    auto& v0 = g[0];
+    REQUIRE(v0.edges().begin()->value() == -5);
+    auto& v1 = g[1];
+    REQUIRE(v1.edges().begin()->value() == -10);
+  }
+}
+
+TEST_CASE("vofl initializer_list constructor with string edge values", "[vofl][construction][initializer_list]") {
+  using G = vofl_string_string_string;
+
+  SECTION("edges with string values") {
+    G g({{0, 1, "edge01"}, {1, 2, "edge12"}});
+    REQUIRE(g.size() == 3);
+    
+    auto& v0 = g[0];
+    auto edges0 = v0.edges();
+    REQUIRE(edges0.begin()->value() == "edge01");
+    
+    auto& v1 = g[1];
+    auto edges1 = v1.edges();
+    REQUIRE(edges1.begin()->value() == "edge12");
+  }
+
+  SECTION("edges with empty string values") {
+    G g({{0, 1, ""}, {1, 2, ""}});
+    REQUIRE(g.size() == 3);
+    auto& v0 = g[0];
+    REQUIRE(v0.edges().begin()->value() == "");
+  }
+}
+
+TEST_CASE("vofl initializer_list constructor with graph value (copy)", "[vofl][construction][initializer_list]") {
+  using G = vofl_void_void_int;
+
+  SECTION("construct with graph value and edges") {
+    int graph_val = 42;
+    G g(graph_val, {{0, 1}, {1, 2}});
+    REQUIRE(g.size() == 3);
+    REQUIRE(g.graph_value() == 42);
+    
+    // Verify edges are constructed correctly
+    auto& v0 = g[0];
+    REQUIRE(std::ranges::distance(v0.edges()) == 1);
+    REQUIRE(v0.edges().begin()->target_id() == 1);
+  }
+
+  SECTION("construct with graph value and empty edges") {
+    int graph_val = 100;
+    G g(graph_val, {});
+    // Empty initializer list may create vertex 0 for sizing
+    REQUIRE(g.size() <= 1);
+    REQUIRE(g.graph_value() == 100);
+  }
+
+  SECTION("graph value is copied") {
+    int graph_val = 50;
+    G g(graph_val, {{0, 1}});
+    REQUIRE(g.graph_value() == 50);
+    graph_val = 999;  // Modify original
+    REQUIRE(g.graph_value() == 50);  // Graph value unchanged
+  }
+}
+
+TEST_CASE("vofl initializer_list constructor with graph value (move)", "[vofl][construction][initializer_list]") {
+  using G = vofl_string_string_string;
+
+  SECTION("construct with moved graph value") {
+    std::string graph_val = "test_graph";
+    G g(std::move(graph_val), {{0, 1, "edge"}, {1, 2, "edge2"}});
+    REQUIRE(g.size() == 3);
+    REQUIRE(g.graph_value() == "test_graph");
+    // graph_val may or may not be empty after move (implementation-defined)
+  }
+
+  SECTION("construct with rvalue graph value") {
+    G g(std::string("rvalue_graph"), {{0, 1, "e1"}});
+    REQUIRE(g.size() == 2);
+    REQUIRE(g.graph_value() == "rvalue_graph");
+  }
+}
+
+TEST_CASE("vofl initializer_list constructor with all value types", "[vofl][construction][initializer_list]") {
+  using G = vofl_int_int_int;
+
+  SECTION("construct with all int values") {
+    int graph_val = 1000;
+    G g(graph_val, {{0, 1, 10}, {1, 2, 20}, {2, 3, 30}});
+    REQUIRE(g.size() == 4);
+    REQUIRE(g.graph_value() == 1000);
+    
+    // Verify vertex values are default-constructed (0 for int)
+    REQUIRE(g[0].value() == 0);
+    REQUIRE(g[1].value() == 0);
+    
+    // Verify edge values
+    auto& v0 = g[0];
+    REQUIRE(v0.edges().begin()->value() == 10);
+    
+    auto& v1 = g[1];
+    REQUIRE(v1.edges().begin()->value() == 20);
+  }
+}
+
+TEST_CASE("vofl initializer_list constructor with sourced edges", "[vofl][construction][initializer_list][sourced]") {
+  using G = vofl_sourced;
+
+  SECTION("construct sourced graph with initializer list") {
+    G g({{0, 1}, {1, 2}, {2, 0}});
+    REQUIRE(g.size() == 3);
+    
+    // Verify sourced edges have source_id
+    auto& v0 = g[0];
+    auto edges0 = v0.edges();
+    REQUIRE(std::ranges::distance(edges0) == 1);
+    auto e0 = edges0.begin();
+    REQUIRE(e0->source_id() == 0);
+    REQUIRE(e0->target_id() == 1);
+  }
+}
+
+TEST_CASE("vofl initializer_list complex graph patterns", "[vofl][construction][initializer_list]") {
+  using G = vofl_int_void_void;
+
+  SECTION("star graph") {
+    // Central vertex 0 connected to vertices 1-5
+    G g({{0, 1, 1}, {0, 2, 2}, {0, 3, 3}, {0, 4, 4}, {0, 5, 5}});
+    REQUIRE(g.size() == 6);
+    auto& center = g[0];
+    REQUIRE(std::ranges::distance(center.edges()) == 5);
+  }
+
+  SECTION("complete graph K4") {
+    G g({
+      {0, 1, 1}, {0, 2, 2}, {0, 3, 3},
+      {1, 0, 4}, {1, 2, 5}, {1, 3, 6},
+      {2, 0, 7}, {2, 1, 8}, {2, 3, 9},
+      {3, 0, 10}, {3, 1, 11}, {3, 2, 12}
+    });
+    REQUIRE(g.size() == 4);
+    // Each vertex should have 3 outgoing edges
+    for (uint32_t i = 0; i < 4; ++i) {
+      REQUIRE(std::ranges::distance(g[i].edges()) == 3);
+    }
+  }
+
+  SECTION("chain graph") {
+    G g({{0, 1, 1}, {1, 2, 2}, {2, 3, 3}, {3, 4, 4}});
+    REQUIRE(g.size() == 5);
+    // Each vertex except last should have 1 edge
+    for (uint32_t i = 0; i < 4; ++i) {
+      REQUIRE(std::ranges::distance(g[i].edges()) == 1);
+    }
+    // Last vertex has no edges
+    REQUIRE(std::ranges::distance(g[4].edges()) == 0);
+  }
+
+  SECTION("cycle graph") {
+    G g({{0, 1, 1}, {1, 2, 2}, {2, 3, 3}, {3, 4, 4}, {4, 0, 5}});
+    REQUIRE(g.size() == 5);
+    // Each vertex should have exactly 1 edge
+    for (uint32_t i = 0; i < 5; ++i) {
+      REQUIRE(std::ranges::distance(g[i].edges()) == 1);
+    }
+  }
+}
+
+//==================================================================================================
 //==================================================================================================
 // Load Operations Tests
 //==================================================================================================

@@ -194,7 +194,7 @@ public:
   constexpr dynamic_edge_target& operator=(dynamic_edge_target&&)      = default;
 
 public:
-  //constexpr vertex_id_type target_id() const { return target_id_; }
+  constexpr vertex_id_type target_id() const { return target_id_; }
   //constexpr vertex_id_type source_id() const { return source_id_; }
 
 private:
@@ -254,8 +254,7 @@ public:
   constexpr dynamic_edge_source& operator=(dynamic_edge_source&&)      = default;
 
 public:
-  //constexpr vertex_id_type source_id() const { return source_id_; }
-  //constexpr vertex_id_type source_id() const { return source_id_; }
+  constexpr vertex_id_type source_id() const { return source_id_; }
 
 private:
   vertex_id_type source_id_ = vertex_id_type();
@@ -1683,6 +1682,42 @@ public: // Properties
   dynamic_graph(const std::initializer_list<copyable_edge_t<VId, EV>>& il,
                 edge_allocator_type                                    alloc = edge_allocator_type())
         : base_type(il, alloc) {}
+
+  /**
+   * @brief Construct the graph with a graph value and an initializer list of copyable edges.
+   * 
+   * If vertices have a user-defined value (e.g. VV not void), the value must be default-constructable.
+   * 
+   * The graph value is initialized by copying from the gv parameter.
+   * 
+   * @param gv    The value to copy to the internal graph value.
+   * @param il    The initializer list of copyable edge values.
+   * @param alloc The allocator to use for the vertices and edges containers.
+  */
+  template<typename GV2 = GV>
+  requires (!std::is_void_v<GV2>) && std::convertible_to<const GV2&, GV>
+  dynamic_graph(const GV2&                                             gv,
+                const std::initializer_list<copyable_edge_t<VId, EV>>& il,
+                edge_allocator_type                                    alloc = edge_allocator_type())
+        : base_type(il, alloc), value_(gv) {}
+
+  /**
+   * @brief Construct the graph with a graph value and an initializer list of copyable edges.
+   * 
+   * If vertices have a user-defined value (e.g. VV not void), the value must be default-constructable.
+   * 
+   * The graph value is initialized by moving from the gv parameter.
+   * 
+   * @param gv    The value to move to the internal graph value.
+   * @param il    The initializer list of copyable edge values.
+   * @param alloc The allocator to use for the vertices and edges containers.
+  */
+  template<typename GV2 = GV>
+  requires (!std::is_void_v<GV2>) && std::convertible_to<GV2, GV>
+  dynamic_graph(GV2&&                                                  gv,
+                const std::initializer_list<copyable_edge_t<VId, EV>>& il,
+                edge_allocator_type                                    alloc = edge_allocator_type())
+        : base_type(il, alloc), value_(std::forward<GV2>(gv)) {}
 
 private: // Member variables
   [[no_unique_address]] std::conditional_t<std::is_void_v<GV>, std::monostate, GV> value_ = {};
