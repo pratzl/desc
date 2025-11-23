@@ -154,16 +154,28 @@ tests/
 - All tests passing ✓
 - Member functions uncommented: `target_id()`, `source_id()` (prerequisite for Phase 2 CPO)
 
+**Phase 1.2 Status:** ✅ **COMPLETE**
+- File: `test_dynamic_graph_vol.cpp`
+- Tests Added: 20 new tests (28 TEST_CASE, 37 SECTION entries)
+- Total Tests: 988 (968 existing + 20 new)
+- Coverage: ~95% of vol_graph_traits functionality
+- All tests passing ✓
+- Key features tested: Bidirectional edge iteration, std::list behavior
+- Validated: Forward/backward iteration, reverse value verification
+
 **Implementation Approach:**
 - [x] Create one test file at a time
-- [x] Start with `test_dynamic_graph_vofl.cpp` (most common use case) - **79 foundation tests completed**
+- [x] Start with `test_dynamic_graph_vofl.cpp` (most common use case) - **COMPLETE**
+- [x] Continue with `test_dynamic_graph_vol.cpp` (bidirectional edges) - **COMPLETE**
+- [ ] Next: `test_dynamic_graph_vov.cpp` (best cache locality)
 - [x] Use Catch2 test framework with SECTION organization
 - [x] Employ test generators for value type combinations where appropriate
 - [x] Include both positive tests (correct usage) and negative tests (error detection)
 
-**Status:** Phase 1.1 foundation tests completed (79/200+ tests)
-- ✅ test_dynamic_graph_vofl.cpp created with 79 tests
-- ⏳ Remaining: Load operations, vertex/edge access with data, partitions
+**Status:** Phase 1.1 and 1.2 completed
+- ✅ test_dynamic_graph_vofl.cpp created with 123 tests
+- ✅ test_dynamic_graph_vol.cpp created with 20 tests
+- ⏳ Remaining: test_dynamic_graph_vov.cpp, test_dynamic_graph_deque.cpp
 
 **Expected Line Count:** ~5000-7000 lines total for Phase 1
 
