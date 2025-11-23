@@ -237,7 +237,7 @@ TEST_CASE("vertex_value - const map graph", "[vertex_value][const][map]") {
 // =============================================================================
 
 // Graph type that returns by-value from member function
-struct GraphWithByValueReturn {
+struct VertexGraphWithByValueReturn {
     std::vector<int> data;
     
     // Returns by value, not by reference
@@ -252,7 +252,7 @@ struct GraphWithByValueReturn {
 };
 
 TEST_CASE("vertex_value - by-value return from member", "[vertex_value][by-value][member]") {
-    GraphWithByValueReturn g;
+    VertexGraphWithByValueReturn g;
     g.data = {10, 20, 30};
     
     using VertexIter = decltype(g.begin());

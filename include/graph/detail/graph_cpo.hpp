@@ -2437,17 +2437,15 @@ namespace _cpo_impls {
         enum class _St { _none, _member, _adl };
         
         // Check for g.graph_value() member function
-        // Note: Uses G (not G&) to preserve const qualification
         template<typename G>
-        concept _has_member = requires(G g) {
-            { g.graph_value() };
+        concept _has_member = requires(G&& g) {
+            { std::forward<G>(g).graph_value() };
         };
         
         // Check for ADL graph_value(g)
-        // Note: Uses G (not G&) to preserve const qualification
         template<typename G>
-        concept _has_adl = requires(G g) {
-            { graph_value(g) };
+        concept _has_adl = requires(G&& g) {
+            { graph_value(std::forward<G>(g)) };
         };
         
         template<typename G>

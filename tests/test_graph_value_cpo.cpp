@@ -90,8 +90,8 @@ TEST_CASE("graph_value - non-const graph returns mutable reference", "[graph_val
 // =============================================================================
 
 struct SimpleMetadata {
-    int id;
-    double score;
+    int id = 0;
+    double score = 0.0;
     
     bool operator==(const SimpleMetadata& other) const {
         return id == other.id && score == other.score;
@@ -99,21 +99,30 @@ struct SimpleMetadata {
 };
 
 struct GraphWithByValueReturn {
-    std::vector<std::vector<int>> data{};  // Initialize to empty vector
-    int graph_id = 42;
-    double graph_score = 3.14;
+    int graph_id;
+    double graph_score;
+    std::vector<std::vector<int>> data;
     
-    // Explicit default constructor to ensure initialization
-    GraphWithByValueReturn() = default;
+    // Explicit constructor to ensure initialization
+    GraphWithByValueReturn() : graph_id(42), graph_score(3.14), data() {
+        // Debug: verify constructor is called
+        if (graph_id != 42) {
+            throw std::runtime_error("Constructor failed to initialize graph_id");
+        }
+    }
     
     // Returns by value
     SimpleMetadata graph_value() const {
-        return {graph_id, graph_score};
+        return SimpleMetadata{graph_id, graph_score};
     }
 };
 
 TEST_CASE("graph_value - by-value return from member", "[graph_value][member][by_value]") {
     GraphWithByValueReturn g;
+    
+    // Debug: Check after construction
+    REQUIRE(g.graph_id == 42);
+    REQUIRE(g.graph_score == 3.14);
     
     SimpleMetadata meta = graph::graph_value(g);
     REQUIRE(meta.id == 42);
