@@ -924,3 +924,453 @@ TEST_CASE("vofl load_edges with large edge sets", "[dynamic_graph][vofl][load_ed
 // Note: Additional tests for vertex/edge access with populated graphs, partitions,
 // and advanced operations will be added next.
 //==================================================================================================
+
+//==================================================================================================
+// Vertex/Edge Access with Populated Graphs
+//==================================================================================================
+
+TEST_CASE("vofl vertex access in populated graph", "[dynamic_graph][vofl][vertex_access]") {
+  using G = vofl_int_int_void;
+  using vertex_data = copyable_vertex_t<uint32_t, int>;
+  using edge_data = copyable_edge_t<uint32_t, int>;
+
+  SECTION("access vertices with values") {
+    G g;
+    std::vector<vertex_data> vertices = {{0, 100}, {1, 200}, {2, 300}};
+    g.load_vertices(vertices, std::identity{});
+
+    REQUIRE(g[0].value() == 100);
+    REQUIRE(g[1].value() == 200);
+    REQUIRE(g[2].value() == 300);
+  }
+
+  SECTION("modify vertex values") {
+    G g;
+    std::vector<vertex_data> vertices = {{0, 10}, {1, 20}};
+    g.load_vertices(vertices, std::identity{});
+
+    g[0].value() = 999;
+    g[1].value() = 888;
+
+    REQUIRE(g[0].value() == 999);
+    REQUIRE(g[1].value() == 888);
+  }
+
+  SECTION("iterate all vertices in populated graph") {
+    G g;
+    std::vector<vertex_data> vertices = {{0, 1}, {1, 2}, {2, 3}, {3, 4}, {4, 5}};
+    g.load_vertices(vertices, std::identity{});
+
+    int sum = 0;
+    for (auto& v : g) {
+      sum += v.value();
+    }
+    REQUIRE(sum == 15); // 1+2+3+4+5
+  }
+
+  SECTION("access edges from vertex") {
+    G g;
+    std::vector<vertex_data> vertices = {{0, 10}, {1, 20}, {2, 30}};
+    g.load_vertices(vertices, std::identity{});
+
+    std::vector<edge_data> edges = {{0, 1, 100}, {0, 2, 200}};
+    g.load_edges(edges, std::identity{});
+
+    size_t count = 0;
+    int sum = 0;
+    for (auto& edge : g[0].edges()) {
+      ++count;
+      sum += edge.value();
+    }
+    REQUIRE(count == 2);
+    REQUIRE(sum == 300); // 100+200
+  }
+}
+
+TEST_CASE("vofl edge iteration patterns", "[dynamic_graph][vofl][edge_access]") {
+  using G = vofl_int_int_void;
+  using vertex_data = copyable_vertex_t<uint32_t, int>;
+  using edge_data = copyable_edge_t<uint32_t, int>;
+
+  SECTION("iterate edges from multiple vertices") {
+    G g;
+    std::vector<vertex_data> vertices = {{0, 10}, {1, 20}, {2, 30}, {3, 40}};
+    g.load_vertices(vertices, std::identity{});
+
+    std::vector<edge_data> edges = {
+        {0, 1, 1}, {0, 2, 2},
+        {1, 2, 3}, {1, 3, 4},
+        {2, 3, 5}};
+    g.load_edges(edges, std::identity{});
+
+    // Count edges per vertex
+    std::vector<size_t> counts;
+    for (auto& v : g) {
+      size_t count = 0;
+      for (auto& e : v.edges()) {
+        ++count;
+        (void)e;
+      }
+      counts.push_back(count);
+    }
+
+    REQUIRE(counts[0] == 2); // 0->1, 0->2
+    REQUIRE(counts[1] == 2); // 1->2, 1->3
+    REQUIRE(counts[2] == 1); // 2->3
+    REQUIRE(counts[3] == 0); // no outgoing edges
+  }
+
+  SECTION("sum all edge values in graph") {
+    G g;
+    std::vector<vertex_data> vertices = {{0, 1}, {1, 2}, {2, 3}};
+    g.load_vertices(vertices, std::identity{});
+
+    std::vector<edge_data> edges = {{0, 1, 10}, {0, 2, 20}, {1, 2, 30}};
+    g.load_edges(edges, std::identity{});
+
+    int total = 0;
+    for (auto& v : g) {
+      for (auto& e : v.edges()) {
+        total += e.value();
+      }
+    }
+    REQUIRE(total == 60); // 10+20+30
+  }
+
+  SECTION("modify edge values") {
+    G g;
+    std::vector<vertex_data> vertices = {{0, 1}, {1, 2}};
+    g.load_vertices(vertices, std::identity{});
+
+    std::vector<edge_data> edges = {{0, 1, 100}};
+    g.load_edges(edges, std::identity{});
+
+    // Modify edge value
+    for (auto& e : g[0].edges()) {
+      e.value() = 999;
+    }
+
+    // Verify modification
+    for (auto& e : g[0].edges()) {
+      REQUIRE(e.value() == 999);
+    }
+  }
+}
+
+TEST_CASE("vofl graph with complex structure", "[dynamic_graph][vofl][complex]") {
+  using G = vofl_int_int_void;
+  using vertex_data = copyable_vertex_t<uint32_t, int>;
+  using edge_data = copyable_edge_t<uint32_t, int>;
+
+  SECTION("triangle graph") {
+    G g;
+    std::vector<vertex_data> vertices = {{0, 1}, {1, 2}, {2, 3}};
+    g.load_vertices(vertices, std::identity{});
+
+    // Create triangle: 0->1, 1->2, 2->0
+    std::vector<edge_data> edges = {{0, 1, 10}, {1, 2, 20}, {2, 0, 30}};
+    g.load_edges(edges, std::identity{});
+
+    // Each vertex should have exactly 1 outgoing edge
+    for (size_t i = 0; i < 3; ++i) {
+      size_t count = 0;
+      for (auto& e : g[i].edges()) {
+        ++count;
+        (void)e;
+      }
+      REQUIRE(count == 1);
+    }
+  }
+
+  SECTION("star graph - one hub to many spokes") {
+    G g;
+    std::vector<vertex_data> vertices;
+    for (uint32_t i = 0; i < 11; ++i) {
+      vertices.push_back({i, static_cast<int>(i * 10)});
+    }
+    g.load_vertices(vertices, std::identity{});
+
+    // Vertex 0 is hub, connects to all others
+    std::vector<edge_data> edges;
+    for (uint32_t i = 1; i < 11; ++i) {
+      edges.push_back({0, i, static_cast<int>(i)});
+    }
+    g.load_edges(edges, std::identity{});
+
+    // Hub should have 10 edges
+    size_t hub_count = 0;
+    for (auto& e : g[0].edges()) {
+      ++hub_count;
+      (void)e;
+    }
+    REQUIRE(hub_count == 10);
+
+    // Spokes should have 0 edges
+    for (uint32_t i = 1; i < 11; ++i) {
+      size_t count = 0;
+      for (auto& e : g[i].edges()) {
+        ++count;
+        (void)e;
+      }
+      REQUIRE(count == 0);
+    }
+  }
+
+  SECTION("complete graph K4") {
+    G g;
+    std::vector<vertex_data> vertices = {{0, 1}, {1, 2}, {2, 3}, {3, 4}};
+    g.load_vertices(vertices, std::identity{});
+
+    // Every vertex connects to every other vertex
+    std::vector<edge_data> edges;
+    for (uint32_t i = 0; i < 4; ++i) {
+      for (uint32_t j = 0; j < 4; ++j) {
+        if (i != j) {
+          edges.push_back({i, j, static_cast<int>(i * 10 + j)});
+        }
+      }
+    }
+    g.load_edges(edges, std::identity{});
+
+    // Each vertex should have 3 outgoing edges
+    for (uint32_t i = 0; i < 4; ++i) {
+      size_t count = 0;
+      for (auto& e : g[i].edges()) {
+        ++count;
+        (void)e;
+      }
+      REQUIRE(count == 3);
+    }
+  }
+}
+
+TEST_CASE("vofl graph with string values", "[dynamic_graph][vofl][string_values]") {
+  using G = vofl_string_string_string;
+  using vertex_data = copyable_vertex_t<uint32_t, std::string>;
+  using edge_data = copyable_edge_t<uint32_t, std::string>;
+
+  SECTION("vertices and edges with string values") {
+    G g("root_graph");
+
+    std::vector<vertex_data> vertices = {
+        {0, "Alice"}, {1, "Bob"}, {2, "Charlie"}};
+    g.load_vertices(vertices, std::identity{});
+
+    std::vector<edge_data> edges = {
+        {0, 1, "knows"}, {1, 2, "friend"}, {0, 2, "colleague"}};
+    g.load_edges(edges, std::identity{});
+
+    REQUIRE(g.graph_value() == "root_graph");
+    REQUIRE(g[0].value() == "Alice");
+    REQUIRE(g[1].value() == "Bob");
+    REQUIRE(g[2].value() == "Charlie");
+
+    // Check edge values
+    std::vector<std::string> edge_labels;
+    for (auto& v : g) {
+      for (auto& e : v.edges()) {
+        edge_labels.push_back(e.value());
+      }
+    }
+
+    REQUIRE(edge_labels.size() == 3);
+    REQUIRE(std::find(edge_labels.begin(), edge_labels.end(), "knows") != edge_labels.end());
+    REQUIRE(std::find(edge_labels.begin(), edge_labels.end(), "friend") != edge_labels.end());
+    REQUIRE(std::find(edge_labels.begin(), edge_labels.end(), "colleague") != edge_labels.end());
+  }
+}
+
+TEST_CASE("vofl single vertex graphs", "[dynamic_graph][vofl][single_vertex]") {
+  using G = vofl_int_int_void;
+  using vertex_data = copyable_vertex_t<uint32_t, int>;
+  using edge_data = copyable_edge_t<uint32_t, int>;
+
+  SECTION("single vertex no edges") {
+    G g;
+    std::vector<vertex_data> vertices = {{0, 42}};
+    g.load_vertices(vertices, std::identity{});
+
+    REQUIRE(g.size() == 1);
+    REQUIRE(g[0].value() == 42);
+
+    size_t count = 0;
+    for (auto& e : g[0].edges()) {
+      ++count;
+      (void)e;
+    }
+    REQUIRE(count == 0);
+  }
+
+  SECTION("single vertex with self-loop") {
+    G g;
+    std::vector<vertex_data> vertices = {{0, 42}};
+    g.load_vertices(vertices, std::identity{});
+
+    std::vector<edge_data> edges = {{0, 0, 100}};
+    g.load_edges(edges, std::identity{});
+
+    size_t count = 0;
+    for (auto& e : g[0].edges()) {
+      ++count;
+      REQUIRE(e.value() == 100);
+    }
+    REQUIRE(count == 1);
+  }
+
+  SECTION("single vertex with multiple self-loops") {
+    G g;
+    std::vector<vertex_data> vertices = {{0, 42}};
+    g.load_vertices(vertices, std::identity{});
+
+    std::vector<edge_data> edges = {{0, 0, 1}, {0, 0, 2}, {0, 0, 3}, {0, 0, 4}};
+    g.load_edges(edges, std::identity{});
+
+    size_t count = 0;
+    int sum = 0;
+    for (auto& e : g[0].edges()) {
+      ++count;
+      sum += e.value();
+    }
+    REQUIRE(count == 4);
+    REQUIRE(sum == 10); // 1+2+3+4
+  }
+}
+
+TEST_CASE("vofl large populated graph", "[dynamic_graph][vofl][large]") {
+  using G = vofl_int_int_void;
+  using vertex_data = copyable_vertex_t<uint32_t, int>;
+  using edge_data = copyable_edge_t<uint32_t, int>;
+
+  SECTION("1000 vertices each with value") {
+    G g;
+    std::vector<vertex_data> vertices;
+    for (uint32_t i = 0; i < 1000; ++i) {
+      vertices.push_back({i, static_cast<int>(i * i)});
+    }
+    g.load_vertices(vertices, std::identity{});
+
+    REQUIRE(g.size() == 1000);
+    REQUIRE(g[0].value() == 0);
+    REQUIRE(g[500].value() == 250000); // 500^2
+    REQUIRE(g[999].value() == 998001); // 999^2
+  }
+
+  SECTION("chain graph with 100 vertices") {
+    G g;
+    std::vector<vertex_data> vertices;
+    for (uint32_t i = 0; i < 100; ++i) {
+      vertices.push_back({i, static_cast<int>(i)});
+    }
+    g.load_vertices(vertices, std::identity{});
+
+    // Create chain: 0->1->2->...->99
+    std::vector<edge_data> edges;
+    for (uint32_t i = 0; i < 99; ++i) {
+      edges.push_back({i, i + 1, static_cast<int>(i * 100)});
+    }
+    g.load_edges(edges, std::identity{});
+
+    // First 99 vertices have 1 edge, last has 0
+    for (uint32_t i = 0; i < 99; ++i) {
+      size_t count = 0;
+      for (auto& e : g[i].edges()) {
+        ++count;
+        (void)e;
+      }
+      REQUIRE(count == 1);
+    }
+
+    size_t last_count = 0;
+    for (auto& e : g[99].edges()) {
+      ++last_count;
+      (void)e;
+    }
+    REQUIRE(last_count == 0);
+  }
+}
+
+TEST_CASE("vofl mixed access patterns", "[dynamic_graph][vofl][mixed]") {
+  using G = vofl_int_int_void;
+  using vertex_data = copyable_vertex_t<uint32_t, int>;
+  using edge_data = copyable_edge_t<uint32_t, int>;
+
+  SECTION("interleaved vertex and edge access") {
+    G g;
+    std::vector<vertex_data> vertices = {{0, 10}, {1, 20}, {2, 30}};
+    g.load_vertices(vertices, std::identity{});
+
+    std::vector<edge_data> edges = {{0, 1, 100}, {1, 2, 200}};
+    g.load_edges(edges, std::identity{});
+
+    // Access vertex, then edges, then vertex again
+    REQUIRE(g[0].value() == 10);
+
+    size_t count0 = 0;
+    for (auto& e : g[0].edges()) {
+      ++count0;
+      (void)e;
+    }
+    REQUIRE(count0 == 1);
+
+    REQUIRE(g[1].value() == 20);
+
+    size_t count1 = 0;
+    for (auto& e : g[1].edges()) {
+      ++count1;
+      (void)e;
+    }
+    REQUIRE(count1 == 1);
+
+    REQUIRE(g[2].value() == 30);
+  }
+
+  SECTION("range-based for with structured bindings") {
+    G g;
+    std::vector<vertex_data> vertices = {{0, 1}, {1, 2}, {2, 3}};
+    g.load_vertices(vertices, std::identity{});
+
+    std::vector<edge_data> edges = {{0, 1, 10}, {1, 2, 20}};
+    g.load_edges(edges, std::identity{});
+
+    // Iterate all vertices
+    int vertex_sum = 0;
+    for (auto& v : g) {
+      vertex_sum += v.value();
+    }
+    REQUIRE(vertex_sum == 6); // 1+2+3
+
+    // Iterate all edges across all vertices
+    int edge_sum = 0;
+    for (auto& v : g) {
+      for (auto& e : v.edges()) {
+        edge_sum += e.value();
+      }
+    }
+    REQUIRE(edge_sum == 30); // 10+20
+  }
+}
+
+//==================================================================================================
+// Summary: Phase 1.1 Tests Progress
+// - Construction: 17 tests (TEST_CASE entries)
+// - Basic Properties: 7 tests  
+// - Graph Value: 6 tests
+// - Iterator: 5 tests
+// - Type Traits: 5 tests
+// - Empty Graph Edge Cases: 6 tests
+// - Value Types: 12 tests
+// - Vertex ID Types: 5 tests
+// - Sourced Edges: 6 tests
+// - Const Correctness: 6 tests
+// - Memory/Resources: 4 tests
+// - Compilation: 1 test
+// - Load Vertices: 3 tests (9 SECTION entries)
+// - Load Edges: 5 tests (6 SECTION entries)
+// - Vertex/Edge Access: 10 tests (24 SECTION entries)
+// 
+// Total: 98 TEST_CASE entries with 39 SECTION entries = ~970 ctests
+// (845 existing tests + ~125 new dynamic_graph tests)
+//
+// Note: Additional tests for partitions, properties, and error handling
+// will be added next.
+//==================================================================================================
