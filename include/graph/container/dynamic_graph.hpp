@@ -1279,6 +1279,13 @@ public: // Operations
     // ignored for this graph; may be meaningful for another data structure like CSR
   }
 
+  void clear() noexcept {
+    vertices_.clear();
+    partition_.clear();
+    partition_.push_back(0);
+    edge_count_ = 0;
+  }
+
 private: // Member Variables
   vertices_type    vertices_;
   partition_vector partition_; // partition_[n] holds the first vertex id for each partition n
@@ -1388,6 +1395,16 @@ public: // Construction/Destruction/Assignment
   dynamic_graph& operator=(const dynamic_graph&) = default;
   dynamic_graph& operator=(dynamic_graph&&)      = default;
 
+public: // Properties
+  // graph_value() - only available when GV is not void
+  template<typename GV2 = GV>
+  requires (!std::is_void_v<GV2>)
+  [[nodiscard]] constexpr GV2& graph_value() noexcept { return value_; }
+  
+  template<typename GV2 = GV>
+  requires (!std::is_void_v<GV2>)
+  [[nodiscard]] constexpr const GV2& graph_value() const noexcept { return value_; }
+
   // gv&,  alloc
   // gv&&, alloc
   //       alloc
@@ -1406,14 +1423,21 @@ public: // Construction/Destruction/Assignment
    * @param gv    Initialize the graph value with a copy of this value.
    * @param alloc Construct the vertices container with this allocator. Edges will use this allocator also.
   */
-  dynamic_graph(const GV& gv, allocator_type alloc = allocator_type()) : base_type(alloc), value_(gv) {}
+  template<typename GV2 = GV>
+  requires (!std::is_void_v<GV2>) && std::convertible_to<const GV2&, GV>
+  dynamic_graph(const GV2& gv, allocator_type alloc = allocator_type()) 
+  : base_type(alloc), value_(gv) {}
   /**
    * @brief Construct a dynamic_graph with an empty collection of vertices that .
    * 
    * @param gv    Initialize the graph value by moving this value to it.
    * @param alloc Construct the vertices container with this allocator. Edges will use this allocator also.
   */
-  dynamic_graph(GV&& gv, allocator_type alloc = allocator_type()) : base_type(alloc), value_(move(gv)) {}
+  template<typename GV2 = GV>
+  requires (!std::is_void_v<GV2>) && std::convertible_to<GV2, GV> && 
+           (!std::same_as<std::remove_cvref_t<GV2>, graph_type>)
+  dynamic_graph(GV2&& gv, allocator_type alloc = allocator_type())
+  : base_type(alloc), value_(std::forward<GV2>(gv)) {}
 
 
   //       erng, eproj, vproj, alloc
@@ -1487,9 +1511,9 @@ public: // Construction/Destruction/Assignment
    * @param partition_start_ids Range of starting vertex ids for each partition. If empty, all vertices are in partition 0.
    * @param alloc               The allocator used for the vertices and edges containers.
   */
-  template <class ERng, class VRng, forward_range PartRng, class EProj = identity, class VProj = identity>
-  requires convertible_to<range_value_t<PartRng>, VId>
-  dynamic_graph(const GV&      gv,
+  template <class ERng, class VRng, forward_range PartRng, class EProj = identity, class VProj = identity, typename GV2 = GV>
+  requires convertible_to<range_value_t<PartRng>, VId> && (!std::is_void_v<GV2>)
+  dynamic_graph(const GV2&     gv,
                 const ERng&    erng,
                 const VRng&    vrng,
                 EProj          eproj               = {},
@@ -1527,9 +1551,9 @@ public: // Construction/Destruction/Assignment
    * @param partition_start_ids Range of starting vertex ids for each partition. If empty, all vertices are in partition 0.
    * @param alloc               The allocator used for the vertices and edges containers.
   */
-  template <class ERng, class EProj, class VRng, forward_range PartRng, class VProj = identity>
-  requires convertible_to<range_value_t<PartRng>, VId>
-  dynamic_graph(GV&&           gv,
+  template <class ERng, class EProj, class VRng, forward_range PartRng, class VProj = identity, typename GV2 = GV>
+  requires convertible_to<range_value_t<PartRng>, VId> && (!std::is_void_v<GV2>)
+  dynamic_graph(GV2&&          gv,
                 const ERng&    erng,
                 const VRng&    vrng,
                 EProj          eproj,
@@ -1596,9 +1620,9 @@ public: // Construction/Destruction/Assignment
    * @param partition_start_ids Range of starting vertex ids for each partition. If empty, all vertices are in partition 0.
    * @param alloc               The allocator used for the vertices and edges containers.
   */
-  template <class ERng, forward_range PartRng, class EProj = identity>
-  requires convertible_to<range_value_t<PartRng>, VId>
-  dynamic_graph(const GV&      gv,
+  template <class ERng, forward_range PartRng, class EProj = identity, typename GV2 = GV>
+  requires convertible_to<range_value_t<PartRng>, VId> && (!std::is_void_v<GV2>)
+  dynamic_graph(const GV2&     gv,
                 vertex_id_type max_vertex_id,
                 ERng&          erng,
                 EProj          eproj               = {},
@@ -1631,9 +1655,9 @@ public: // Construction/Destruction/Assignment
    * @param partition_start_ids Range of starting vertex ids for each partition. If empty, all vertices are in partition 0.
    * @param alloc               The allocator used for the vertices and edges containers.
   */
-  template <class ERng, forward_range PartRng, class EProj = identity>
-  requires convertible_to<range_value_t<PartRng>, VId>
-  dynamic_graph(GV&&           gv,
+  template <class ERng, forward_range PartRng, class EProj = identity, typename GV2 = GV>
+  requires convertible_to<range_value_t<PartRng>, VId> && (!std::is_void_v<GV2>)
+  dynamic_graph(GV2&&          gv,
                 vertex_id_type max_vertex_id,
                 ERng&          erng,
                 EProj          eproj               = {},
@@ -1659,6 +1683,9 @@ public: // Construction/Destruction/Assignment
   dynamic_graph(const std::initializer_list<copyable_edge_t<VId, EV>>& il,
                 edge_allocator_type                                    alloc = edge_allocator_type())
         : base_type(il, alloc) {}
+
+private: // Member variables
+  [[no_unique_address]] std::conditional_t<std::is_void_v<GV>, std::monostate, GV> value_ = {};
 };
 
 // Policy Notes:

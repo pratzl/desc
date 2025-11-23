@@ -44,6 +44,7 @@ add_executable(graph3_tests
     test_adjacency_list_traits.cpp
     test_compressed_graph.cpp
     test_compressed_graph_cpo.cpp
+    test_dynamic_graph_vofl.cpp
 )
 
 target_link_libraries(graph3_tests

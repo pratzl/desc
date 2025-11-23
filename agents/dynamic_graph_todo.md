@@ -3,6 +3,14 @@
 ## Overview
 This plan outlines a phased approach to comprehensively test and enhance the `dynamic_graph` container, starting with existing functionality and progressively adding new container types and features. The goal is to achieve 95% test coverage while maintaining code stability.
 
+## Conventions
+Variable names must follow the following rules
+- Variable names must follow the naming conventions in `common_graph_guidelines.md`
+- Variable names must never be the same as a CPO function.
+- The default variable name for a range/container of edges must be `edge_rng`
+- The default variable name for a range/container of vertices must be `vertex_rng`
+
+
 ## Phase 1: Test Existing Functionality (Vector Vertices + List-based Edges)
 
 ### Phase 1.1: Core Container Combinations
