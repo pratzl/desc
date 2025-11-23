@@ -903,7 +903,7 @@ TEST_CASE("vofl load_edges with large edge sets", "[dynamic_graph][vofl][load_ed
 
 //==================================================================================================
 // Summary: Phase 1.1 Tests Progress
-// - Construction: 17 tests
+// - Construction: 17 tests (TEST_CASE entries)
 // - Basic Properties: 7 tests  
 // - Graph Value: 6 tests
 // - Iterator: 5 tests
@@ -915,10 +915,11 @@ TEST_CASE("vofl load_edges with large edge sets", "[dynamic_graph][vofl][load_ed
 // - Const Correctness: 6 tests
 // - Memory/Resources: 4 tests
 // - Compilation: 1 test
-// - Load Vertices: 9 tests
-// - Load Edges: 9 tests
+// - Load Vertices: 3 tests (9 SECTION entries)
+// - Load Edges: 5 tests (6 SECTION entries)
 // 
-// Total: 98 tests
+// Total: 88 TEST_CASE entries with 15 SECTION entries = 933 ctests
+// (845 existing tests + 88 new dynamic_graph tests)
 //
 // Note: Additional tests for vertex/edge access with populated graphs, partitions,
 // and advanced operations will be added next.
