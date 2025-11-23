@@ -43,98 +43,102 @@ tests/
 
 **Test Coverage per File (~200-300 tests each):**
 
-1. **Construction Tests (40 tests)**
-   - Default constructor
-   - Constructor with allocator
-   - Constructor with edge range only (with/without vertex count)
-   - Constructor with edge + vertex ranges
-   - Constructor with initializer_list
-   - Constructor with graph value (copy/move)
-   - Constructor with partitions
-   - Test all combinations of value types (void/int/string)
-   - Test sourced vs unsourced edges
+1. **Construction Tests (40 tests)** ✅ (17 foundation tests completed in Phase 1.1)
+   - [x] Default constructor
+   - [x] Constructor with allocator
+   - [ ] Constructor with edge range only (with/without vertex count)
+   - [ ] Constructor with edge + vertex ranges
+   - [ ] Constructor with initializer_list
+   - [x] Constructor with graph value (copy/move)
+   - [ ] Constructor with partitions
+   - [x] Test all combinations of value types (void/int/string)
+   - [x] Test sourced vs unsourced edges
 
-2. **Load Operations Tests (30 tests)**
-   - `load_vertices()` with various projections
-   - `load_vertices()` with move semantics
-   - `load_edges()` with various projections
-   - `load_edges()` with move semantics
-   - `load_edges()` with vertex inference
-   - `load_edges()` with explicit vertex count
-   - Edge count hints
-   - Out-of-range vertex ID error handling
+2. **Load Operations Tests (30 tests)** (Not yet started)
+   - [ ] `load_vertices()` with various projections
+   - [ ] `load_vertices()` with move semantics
+   - [ ] `load_edges()` with various projections
+   - [ ] `load_edges()` with move semantics
+   - [ ] `load_edges()` with vertex inference
+   - [ ] `load_edges()` with explicit vertex count
+   - [ ] Edge count hints
+   - [ ] Out-of-range vertex ID error handling
 
-3. **Vertex Access Tests (25 tests)**
-   - `operator[]` access
-   - `begin()/end()` iteration
-   - `size()` queries
-   - Const correctness
-   - Empty graph behavior
-   - Single vertex graphs
-   - Large graphs (1000+ vertices)
+3. **Vertex Access Tests (25 tests)** ✅ (Partially complete - basic tests done)
+   - [x] `operator[]` access
+   - [x] `begin()/end()` iteration
+   - [x] `size()` queries
+   - [x] Const correctness
+   - [x] Empty graph behavior
+   - [ ] Single vertex graphs
+   - [ ] Large graphs (1000+ vertices)
 
-4. **Edge Access Tests (30 tests)**
-   - Access via vertex iterator
-   - Access via vertex ID
-   - Edge iteration for each vertex
-   - Empty edge lists
-   - Self-loops
-   - Multiple edges to same target
-   - Const correctness
+4. **Edge Access Tests (30 tests)** (Not yet started)
+   - [ ] Access via vertex iterator
+   - [ ] Access via vertex ID
+   - [ ] Edge iteration for each vertex
+   - [ ] Empty edge lists
+   - [ ] Self-loops
+   - [ ] Multiple edges to same target
+   - [ ] Const correctness
 
-5. **Value Access Tests (25 tests)**
-   - `vertex.value()` for non-void VV
-   - `edge.value()` for non-void EV
-   - Graph value access for non-void GV
-   - Compile-time errors for void types (static_assert checks)
-   - Value modification
-   - Move semantics
+5. **Value Access Tests (25 tests)** ✅ (Foundation tests completed)
+   - [x] `vertex.value()` for non-void VV
+   - [x] `edge.value()` for non-void EV
+   - [x] Graph value access for non-void GV
+   - [x] Compile-time errors for void types (static_assert checks)
+   - [x] Value modification
+   - [x] Move semantics
 
-6. **Partition Tests (20 tests)**
-   - Single partition (default)
-   - Multiple partitions
-   - Partition ID lookup
-   - Partition vertex ranges
-   - Invalid partition access
-   - Empty partitions
-   - Partition boundary vertices
+6. **Partition Tests (20 tests)** (Not yet started)
+   - [ ] Single partition (default)
+   - [ ] Multiple partitions
+   - [ ] Partition ID lookup
+   - [ ] Partition vertex ranges
+   - [ ] Invalid partition access
+   - [ ] Empty partitions
+   - [ ] Partition boundary vertices
 
-7. **Sourced Edge Tests (15 tests)**
-   - Source ID access when Sourced=true
-   - Compile-time error when Sourced=false
-   - Source vertex lookup
-   - Consistency checks (source matches vertex)
+7. **Sourced Edge Tests (15 tests)** ✅ (Foundation tests completed)
+   - [x] Source ID access when Sourced=true
+   - [x] Compile-time error when Sourced=false
+   - [ ] Source vertex lookup
+   - [ ] Consistency checks (source matches vertex)
 
-8. **Property Tests (20 tests)**
-   - Vertex count queries
-   - Edge count queries
-   - Degree queries (per vertex)
-   - `has_edge()` queries
-   - Empty graph properties
-   - Graph with only vertices (no edges)
+8. **Property Tests (20 tests)** ✅ (Basic tests completed)
+   - [x] Vertex count queries
+   - [ ] Edge count queries
+   - [ ] Degree queries (per vertex)
+   - [ ] `has_edge()` queries
+   - [x] Empty graph properties
+   - [ ] Graph with only vertices (no edges)
 
-9. **Memory & Performance Tests (15 tests)**
-   - Reserve operations
-   - Resize operations
-   - Memory layout for void types (verify no storage)
-   - Large graph construction (10k vertices)
-   - Iterator stability after modifications
+9. **Memory & Performance Tests (15 tests)** ✅ (Foundation tests completed)
+   - [ ] Reserve operations
+   - [ ] Resize operations
+   - [x] Memory layout for void types (verify no storage)
+   - [ ] Large graph construction (10k vertices)
+   - [x] Iterator stability after modifications
 
-10. **Edge Cases & Error Handling (25 tests)**
-    - Null/empty ranges
-    - Invalid vertex IDs
-    - Overflow detection
-    - Exception safety
-    - Duplicate edges behavior
-    - Malformed partition data
-    - max_vertex_id boundary conditions
+10. **Edge Cases & Error Handling (25 tests)** ✅ (Foundation tests completed)
+    - [x] Null/empty ranges
+    - [ ] Invalid vertex IDs
+    - [ ] Overflow detection
+    - [ ] Exception safety
+    - [x] Duplicate edges behavior
+    - [ ] Malformed partition data
+    - [ ] max_vertex_id boundary conditions
 
 **Implementation Approach:**
-- Create one test file at a time
-- Start with `test_dynamic_graph_vofl.cpp` (most common use case)
-- Use Catch2 test framework with SECTION organization
-- Employ test generators for value type combinations where appropriate
-- Include both positive tests (correct usage) and negative tests (error detection)
+- [x] Create one test file at a time
+- [x] Start with `test_dynamic_graph_vofl.cpp` (most common use case) - **79 foundation tests completed**
+- [x] Use Catch2 test framework with SECTION organization
+- [x] Employ test generators for value type combinations where appropriate
+- [x] Include both positive tests (correct usage) and negative tests (error detection)
+
+**Status:** Phase 1.1 foundation tests completed (79/200+ tests)
+- ✅ test_dynamic_graph_vofl.cpp created with 79 tests
+- ⏳ Remaining: Load operations, vertex/edge access with data, partitions
 
 **Expected Line Count:** ~5000-7000 lines total for Phase 1
 
