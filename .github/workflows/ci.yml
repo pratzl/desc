@@ -1,0 +1,140 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  linux-gcc:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build_type: [Debug, Release]
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ninja-build lcov
+    
+    - name: Configure
+      run: cmake --preset=linux-gcc-${{ matrix.build_type }}
+    
+    - name: Build
+      run: cmake --build --preset=linux-gcc-${{ matrix.build_type }}
+    
+    - name: Test
+      run: ctest --preset=linux-gcc-${{ matrix.build_type }}
+
+  linux-clang:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build_type: [Debug, Release]
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ninja-build clang
+    
+    - name: Configure
+      run: cmake --preset=linux-clang-${{ matrix.build_type }}
+    
+    - name: Build
+      run: cmake --build --preset=linux-clang-${{ matrix.build_type }}
+    
+    - name: Test
+      run: ctest --preset=linux-clang-${{ matrix.build_type }}
+
+  windows-msvc:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        build_type: [Debug, Release]
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Configure
+      run: cmake --preset=windows-msvc-${{ matrix.build_type }}
+    
+    - name: Build
+      run: cmake --build --preset=windows-msvc-${{ matrix.build_type }}
+    
+    - name: Test
+      run: ctest --preset=windows-msvc-${{ matrix.build_type }}
+
+  macos:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        build_type: [Debug, Release]
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install dependencies
+      run: brew install ninja
+    
+    - name: Configure
+      run: cmake --preset=linux-clang-${{ matrix.build_type }}
+    
+    - name: Build
+      run: cmake --build --preset=linux-clang-${{ matrix.build_type }}
+    
+    - name: Test
+      run: ctest --preset=linux-clang-${{ matrix.build_type }}
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ninja-build lcov
+    
+    - name: Configure
+      run: cmake --preset=linux-gcc-coverage
+    
+    - name: Build
+      run: cmake --build --preset=linux-gcc-coverage
+    
+    - name: Test
+      run: ctest --preset=linux-gcc-coverage
+    
+    - name: Generate coverage
+      run: cmake --build build/linux-gcc-coverage --target coverage
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        files: ./build/linux-gcc-coverage/coverage.info
+        fail_ci_if_error: false
+        token: ${{ secrets.CODECOV_TOKEN }}
+
+  sanitizers:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        sanitizer: [asan, tsan]
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ninja-build
+    
+    - name: Configure
+      run: cmake --preset=linux-gcc-${{ matrix.sanitizer }}
+    
+    - name: Build
+      run: cmake --build --preset=linux-gcc-${{ matrix.sanitizer }}
+    
+    - name: Test
+      run: ctest --preset=linux-gcc-${{ matrix.sanitizer }}
