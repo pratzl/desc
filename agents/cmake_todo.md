@@ -1092,8 +1092,8 @@ include(${CPM_DOWNLOAD_LOCATION})
 ```
 
 #### 6.2: Format Checking
-- [ ] Add clang-format configuration
-- [ ] Create format checking script
+- [x] Add clang-format configuration
+- [x] Create format checking script
 
 **File: .clang-format**
 ```yaml
