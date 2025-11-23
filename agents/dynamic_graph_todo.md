@@ -30,7 +30,9 @@ Test all combinations of existing container types with various value types.
   1. `vector` vertices + `forward_list` edges (vofl_graph_traits - most lightweight)
   2. `vector` vertices + `list` edges (vol_graph_traits - bidirectional edges)
   3. `vector` vertices + `vector` edges (vov_graph_traits - best cache locality)
-  4. `deque` vertices + `list` edges (future extension)
+  4. `deque` vertices + `forward_list` edges (dofl_graph_traits - stable iterators)
+  5. `deque` vertices + `list` edges (dol_graph_traits - bidirectional with stability)
+  6. `deque` vertices + `vector` edges (dov_graph_traits - random access edges)
 
 **Test Files Organization:**
 ```
@@ -38,7 +40,9 @@ tests/
   test_dynamic_graph_vofl.cpp      # vector + forward_list tests
   test_dynamic_graph_vol.cpp       # vector + list tests  
   test_dynamic_graph_vov.cpp       # vector + vector tests
-  test_dynamic_graph_deque.cpp     # deque-based tests
+  test_dynamic_graph_dofl.cpp      # deque + forward_list tests
+  test_dynamic_graph_dol.cpp       # deque + list tests
+  test_dynamic_graph_dov.cpp       # deque + vector tests
 ```
 
 **Test Coverage per File (~200-300 tests each):**
@@ -179,7 +183,9 @@ tests/
 - [x] Start with `test_dynamic_graph_vofl.cpp` (most common use case) - **COMPLETE**
 - [x] Continue with `test_dynamic_graph_vol.cpp` (bidirectional edges) - **COMPLETE**
 - [x] Next: `test_dynamic_graph_vov.cpp` (best cache locality) - **COMPLETE**
-- [ ] Final: `test_dynamic_graph_deque.cpp` (deque vertices)
+- [ ] Phase 1.4a: `test_dynamic_graph_dofl.cpp` (deque + forward_list)
+- [ ] Phase 1.4b: `test_dynamic_graph_dol.cpp` (deque + list)
+- [ ] Phase 1.4c: `test_dynamic_graph_dov.cpp` (deque + vector)
 - [x] Use Catch2 test framework with SECTION organization
 - [x] Employ test generators for value type combinations where appropriate
 - [x] Include both positive tests (correct usage) and negative tests (error detection)
@@ -188,7 +194,7 @@ tests/
 - ✅ test_dynamic_graph_vofl.cpp created with 123 tests (2673 lines)
 - ✅ test_dynamic_graph_vol.cpp expanded to 115 tests (2677 lines)
 - ✅ test_dynamic_graph_vov.cpp created with 115 tests (2677 lines)
-- ⏳ Remaining: test_dynamic_graph_deque.cpp
+- ⏳ Remaining: test_dynamic_graph_dofl.cpp, test_dynamic_graph_dol.cpp, test_dynamic_graph_dov.cpp
 
 **Expected Line Count:** ~8000-10000 lines total for Phase 1 (currently at 8027 lines)
 
@@ -895,10 +901,12 @@ For Phase 5 (non-integral):
 ```
 tests/
   # Phase 1: Existing functionality
-  test_dynamic_graph_vofl.cpp      # ~1800 lines
-  test_dynamic_graph_vol.cpp       # ~1800 lines
-  test_dynamic_graph_vov.cpp       # ~1800 lines
-  test_dynamic_graph_deque.cpp     # ~1200 lines
+  test_dynamic_graph_vofl.cpp      # ~2673 lines
+  test_dynamic_graph_vol.cpp       # ~2677 lines
+  test_dynamic_graph_vov.cpp       # ~2677 lines
+  test_dynamic_graph_dofl.cpp      # ~2677 lines
+  test_dynamic_graph_dol.cpp       # ~2677 lines
+  test_dynamic_graph_dov.cpp       # ~2677 lines
   
   # Phase 2: CPO support
   test_dynamic_graph_cpo.cpp       # ~2000 lines
@@ -924,8 +932,8 @@ tests/
   test_dynamic_graph_edge_cases.cpp    # ~1000 lines
 ```
 
-**Total Estimated Lines:** ~18,800 lines of test code
-**Total Estimated Tests:** ~2,800-3,500 test cases
+**Total Estimated Lines:** ~24,800 lines of test code
+**Total Estimated Tests:** ~3,800-4,500 test cases
 
 **Note:** Graph algorithms (BFS, DFS, shortest path, MST, flow algorithms, etc.) will be implemented and tested in a separate phase after the CPO layer is complete and stable, ensuring they work generically across all graph types.
 
