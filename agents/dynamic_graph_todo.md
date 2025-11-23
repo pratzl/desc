@@ -1099,23 +1099,23 @@ public:
 
 ```bash
 # Run all tests
-./descriptor_tests
+./graph3_tests
 
 # Run specific phase
-./descriptor_tests "[vofl]"
-./descriptor_tests "[cpo]"
+./graph3_tests "[vofl]"
+./graph3_tests "[cpo]"
 
 # Run with coverage
-cmake --build build --target descriptor_tests_coverage
+cmake --build build --target graph3_tests_coverage
 lcov --capture --directory . --output-file coverage.info
 genhtml coverage.info --output-directory coverage_html
 
 # Run with sanitizers
 cmake -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined" ..
-./descriptor_tests
+./graph3_tests
 
 # Run performance benchmarks
-./descriptor_tests "[.benchmark]" --benchmark-samples 100
+./graph3_tests "[.benchmark]" --benchmark-samples 100
 ```
 
 ### Test Organization Best Practices

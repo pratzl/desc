@@ -11,7 +11,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(Catch2)
 
 # Test executable
-add_executable(descriptor_tests
+add_executable(graph3_tests
     test_main.cpp
     test_vertex_descriptor.cpp
     test_edge_descriptor.cpp
@@ -46,7 +46,7 @@ add_executable(descriptor_tests
     test_compressed_graph_cpo.cpp
 )
 
-target_link_libraries(descriptor_tests
+target_link_libraries(graph3_tests
     PRIVATE
         graph3
         Catch2::Catch2WithMain
@@ -55,4 +55,4 @@ target_link_libraries(descriptor_tests
 # Register tests with CTest
 include(CTest)
 include(Catch)
-catch_discover_tests(descriptor_tests)
+catch_discover_tests(graph3_tests)
