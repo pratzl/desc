@@ -1045,7 +1045,7 @@ jobs:
 ```
 
 #### 5.4: Testing
-- [ ] Verify workflows run successfully
+- [x] Verify workflows run successfully
 - [ ] Check coverage reporting
 - [ ] Test documentation generation
 - [ ] Verify GitHub Pages deployment
@@ -1064,8 +1064,8 @@ jobs:
 **Tasks:**
 
 #### 6.1: CPM (CMake Package Manager) Integration
-- [x] Add CPM.cmake support
-- [x] Replace FetchContent with CPM where beneficial
+- [ ] Add CPM.cmake support
+- [ ] Replace FetchContent with CPM where beneficial
 
 **File: cmake/CPM.cmake**
 ```cmake
