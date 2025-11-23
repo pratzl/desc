@@ -74,19 +74,19 @@ jobs:
       matrix:
         build_type: [debug, release]
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install dependencies
-      run: brew install ninja
-    
-    - name: Configure
-      run: cmake --preset=linux-clang-${{ matrix.build_type }}
-    
-    - name: Build
-      run: cmake --build --preset=linux-clang-${{ matrix.build_type }}
-    
-    - name: Test
-      run: ctest --preset=linux-clang-${{ matrix.build_type }}
+      - uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: brew install ninja
+      
+      - name: Configure
+        run: cmake --preset=macos-clang-${{ matrix.build_type }}
+      
+      - name: Build
+        run: cmake --build --preset=macos-clang-${{ matrix.build_type }}
+      
+      - name: Test
+        run: ctest --preset=macos-clang-${{ matrix.build_type }}
 
   coverage:
     runs-on: ubuntu-latest

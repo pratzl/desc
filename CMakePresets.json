@@ -53,6 +53,21 @@
       }
     },
     {
+      "name": "macos-base",
+      "hidden": true,
+      "inherits": "default",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "hostOS": ["macOS"]
+        }
+      }
+    },
+    {
       "name": "windows-msvc-debug",
       "displayName": "Windows MSVC Debug",
       "description": "Windows development build with MSVC (Debug)",
@@ -155,6 +170,32 @@
       "displayName": "Linux Clang Release",
       "description": "Linux development build with Clang (Release)",
       "inherits": "linux-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "BUILD_TESTS": "ON",
+        "BUILD_EXAMPLES": "ON"
+      }
+    },
+    {
+      "name": "macos-clang-debug",
+      "displayName": "macOS Clang Debug",
+      "description": "macOS development build with Clang (Debug)",
+      "inherits": "macos-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "BUILD_TESTS": "ON",
+        "BUILD_EXAMPLES": "ON"
+      }
+    },
+    {
+      "name": "macos-clang-release",
+      "displayName": "macOS Clang Release",
+      "description": "macOS development build with Clang (Release)",
+      "inherits": "macos-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_C_COMPILER": "clang",
@@ -273,6 +314,16 @@
       "configurePreset": "linux-clang-release"
     },
     {
+      "name": "macos-clang-debug",
+      "displayName": "macOS Clang Debug Build",
+      "configurePreset": "macos-clang-debug"
+    },
+    {
+      "name": "macos-clang-release",
+      "displayName": "macOS Clang Release Build",
+      "configurePreset": "macos-clang-release"
+    },
+    {
       "name": "linux-gcc-asan",
       "displayName": "Linux GCC ASan Build",
       "configurePreset": "linux-gcc-asan"
@@ -369,6 +420,20 @@
       "displayName": "Linux Clang Release Tests",
       "description": "Run tests on Linux Clang Release build",
       "configurePreset": "linux-clang-release",
+      "inherits": "default"
+    },
+    {
+      "name": "macos-clang-debug",
+      "displayName": "macOS Clang Debug Tests",
+      "description": "Run tests on macOS Clang Debug build",
+      "configurePreset": "macos-clang-debug",
+      "inherits": "default"
+    },
+    {
+      "name": "macos-clang-release",
+      "displayName": "macOS Clang Release Tests",
+      "description": "Run tests on macOS Clang Release build",
+      "configurePreset": "macos-clang-release",
       "inherits": "default"
     },
     {
