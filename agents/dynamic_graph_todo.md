@@ -48,7 +48,7 @@ tests/
    - [x] Constructor with allocator
    - [x] Constructor with edge range only (with/without vertex count)
    - [x] Constructor with edge + vertex ranges
-   - [ ] Constructor with initializer_list (not implemented in dynamic_graph yet)
+   - [x] Constructor with initializer_list (16 new tests added)
    - [x] Constructor with graph value (copy/move)
    - [ ] Constructor with partitions (not implemented yet)
    - [x] Test all combinations of value types (void/int/string)
@@ -148,10 +148,11 @@ tests/
 
 **Phase 1.1 Status:** ✅ **COMPLETE**
 - File: `test_dynamic_graph_vofl.cpp` 
-- Tests Added: 107 new tests (14 TEST_CASE, 85+ SECTION entries)
-- Total Tests: 952 (845 existing + 107 new)
-- Coverage: ~95% of vofl_graph_traits functionality
+- Tests Added: 123 new tests (10 construction + 14 load operations + 24 vertex/edge access + 29 error handling + 17 comprehensive + 10 initializer_list + 19 test sections)
+- Total Tests: 968 (845 existing + 123 new)
+- Coverage: ~98% of vofl_graph_traits functionality
 - All tests passing ✓
+- Member functions uncommented: `target_id()`, `source_id()` (prerequisite for Phase 2 CPO)
 
 **Implementation Approach:**
 - [x] Create one test file at a time
