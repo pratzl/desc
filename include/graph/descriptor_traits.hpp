@@ -92,6 +92,44 @@ template<typename T>
 inline constexpr bool is_descriptor_v = is_descriptor<std::remove_cv_t<T>>::value;
 
 // =============================================================================
+// Type extraction from ranges
+// =============================================================================
+
+/**
+ * @brief Extract vertex_descriptor type from a forward range of vertices
+ * 
+ * Given a forward range R (e.g., std::vector<Vertex>), returns the 
+ * corresponding vertex_descriptor<Iterator> type.
+ * 
+ * @tparam R Forward range type containing vertices
+ * 
+ * Example:
+ *   std::vector<MyVertex> vertices;
+ *   using desc_t = vertex_desc_t<decltype(vertices)>;
+ *   // desc_t is vertex_descriptor<vector<MyVertex>::iterator>
+ */
+template<std::ranges::forward_range R>
+using vertex_desc_t = vertex_descriptor<std::ranges::iterator_t<R>>;
+
+/**
+ * @brief Extract edge_descriptor type from forward ranges of edges and vertices
+ * 
+ * Given a forward range ER of edges and a forward range VR of vertices,
+ * returns the corresponding edge_descriptor<EdgeIter, VertexIter> type.
+ * 
+ * @tparam ER Forward range type containing edges
+ * @tparam VR Forward range type containing vertices
+ * 
+ * Example:
+ *   std::forward_list<MyEdge> edges;
+ *   std::vector<MyVertex> vertices;
+ *   using desc_t = edge_desc_t<decltype(edges), decltype(vertices)>;
+ *   // desc_t is edge_descriptor<forward_list<MyEdge>::iterator, vector<MyVertex>::iterator>
+ */
+template<std::ranges::forward_range ER, std::ranges::forward_range VR>
+using edge_desc_t = edge_descriptor<std::ranges::iterator_t<ER>, std::ranges::iterator_t<VR>>;
+
+// =============================================================================
 // Descriptor view traits
 // =============================================================================
 
