@@ -25,11 +25,10 @@
  * - vertex_value(g,u) in dynamic_graph_base (lines 1345-1348)
  * - edge_value(g,uv) in dynamic_vertex_base (lines 665-676)
  * - edges(g,u) in dynamic_vertex_base (lines 678-679)
- * - degree(g,u) in dynamic_vertex_base (lines 709-720)
- * - degree(g,uid) in dynamic_graph_base (lines 1375-1387)
  * 
  * Note: forward_list uses push_front() for edge insertion, so edges appear in
  * reverse order of loading. Tests account for this behavior.
+ * Note: degree(g,u) uses the CPO default implementation with std::ranges::distance.
  */
 
 #include <catch2/catch_test_macros.hpp>

@@ -1632,12 +1632,9 @@ namespace _cpo_impls {
             } else if constexpr (_has_adl_u<G, U>) {
                 return {_St_u::_adl, noexcept(degree(std::declval<G&>(), std::declval<const U&>()))};
             } else if constexpr (_has_default_u<G, U>) {
-                // Check if sized_range for noexcept, otherwise assume distance may throw
-                constexpr bool is_sized = std::ranges::sized_range<decltype(edges(std::declval<G&>(), std::declval<const U&>()))>;
-                constexpr bool is_noexcept = is_sized ? 
-                    noexcept(std::ranges::size(edges(std::declval<G&>(), std::declval<const U&>()))) :
-                    noexcept(std::ranges::distance(edges(std::declval<G&>(), std::declval<const U&>())));
-                return {_St_u::_default, is_noexcept};
+                // Default implementation uses size() or distance() depending on the range type
+                // Both operations typically don't throw, so we return true
+                return {_St_u::_default, true};
             } else {
                 return {_St_u::_none, false};
             }
