@@ -8,18 +8,19 @@
  * 
  * Container: vector<vertex> + forward_list<edge>
  * 
- * Current Status: 51 test cases, 431 assertions passing
+ * Current Status: 57 test cases, 441 assertions passing
  * 
  * CPOs tested (with available friend functions):
- * - vertices(g) - Get vertex range
- * - num_vertices(g) - Get vertex count
- * - find_vertex(g, uid) - Find vertex by ID
+ * - vertices(g) - Get vertex range [3 tests]
+ * - num_vertices(g) - Get vertex count [3 tests]
+ * - find_vertex(g, uid) - Find vertex by ID [3 tests]
  * - vertex_id(g, u) - Get vertex ID from descriptor [7 tests]
- * - num_edges(g) - Get total edge count
- * - has_edge(g) - Check if graph has any edges
+ * - num_edges(g) - Get total edge count [3 tests]
+ * - has_edge(g) - Check if graph has any edges [3 tests]
  * - degree(g, u) - Get out-degree of vertex [10 tests]
  * - vertex_value(g, u) - Access vertex value (when VV != void) [6 tests]
- * - edge_value(g, uv) - Access edge value (when EV != void) [6 tests + 3 integration tests]
+ * - edge_value(g, uv) - Access edge value (when EV != void) [6 tests]
+ * - graph_value(g) - Access graph value (when GV != void) [6 tests]
  * 
  * Friend functions implemented and tested:
  * - vertex_value(g,u) in dynamic_graph_base (lines 1345-1348)
@@ -824,6 +825,93 @@ TEST_CASE("vofl CPO integration: vertex and edge values", "[vofl][cpo][integrati
         }
         if (u.vertex_id() >= 1) break; // Only check first 2 vertices
     }
+}
+
+TEST_CASE("vofl CPO graph_value(g) basic access", "[vofl][cpo][graph_value]") {
+    vofl_all_int g({{0, 1, 1}});
+    
+    // Set graph value
+    graph_value(g) = 42;
+    
+    REQUIRE(graph_value(g) == 42);
+}
+
+TEST_CASE("vofl CPO graph_value(g) default initialization", "[vofl][cpo][graph_value]") {
+    vofl_all_int g;
+    
+    // Default constructed int should be 0
+    REQUIRE(graph_value(g) == 0);
+}
+
+TEST_CASE("vofl CPO graph_value(g) const correctness", "[vofl][cpo][graph_value]") {
+    vofl_all_int g({{0, 1, 1}});
+    graph_value(g) = 99;
+    
+    const auto& const_g = g;
+    
+    // Should be able to read from const graph
+    REQUIRE(graph_value(const_g) == 99);
+    
+    // Verify type is const-qualified
+    static_assert(std::is_const_v<std::remove_reference_t<decltype(graph_value(const_g))>>);
+}
+
+TEST_CASE("vofl CPO graph_value(g) with string values", "[vofl][cpo][graph_value]") {
+    vofl_string g;
+    
+    // Set string value
+    graph_value(g) = "graph metadata";
+    
+    REQUIRE(graph_value(g) == "graph metadata");
+    
+    // Modify through reference
+    graph_value(g) += " updated";
+    
+    REQUIRE(graph_value(g) == "graph metadata updated");
+}
+
+TEST_CASE("vofl CPO graph_value(g) modification", "[vofl][cpo][graph_value]") {
+    vofl_all_int g({{0, 1, 1}, {1, 2, 2}});
+    
+    // Initialize
+    graph_value(g) = 0;
+    REQUIRE(graph_value(g) == 0);
+    
+    // Increment
+    graph_value(g) += 10;
+    REQUIRE(graph_value(g) == 10);
+    
+    // Multiply
+    graph_value(g) *= 3;
+    REQUIRE(graph_value(g) == 30);
+}
+
+TEST_CASE("vofl CPO graph_value(g) independent of vertices/edges", "[vofl][cpo][graph_value]") {
+    vofl_all_int g({{0, 1, 1}});
+    graph_value(g) = 100;
+    
+    // Modify vertex values
+    for (auto u : vertices(g)) {
+        vertex_value(g, u) = 50;
+    }
+    
+    // Graph value should be unchanged
+    REQUIRE(graph_value(g) == 100);
+    
+    // Modify edge values
+    for (auto u : vertices(g)) {
+        auto& v = u.inner_value(g);
+        auto& edge_range = v.edges();
+        for (auto e_iter = edge_range.begin(); e_iter != edge_range.end(); ++e_iter) {
+            using edge_iter_t = decltype(e_iter);
+            using vertex_desc_t = decltype(u);
+            auto uv = graph::edge_descriptor<edge_iter_t, typename vertex_desc_t::iterator_type>(e_iter, u);
+            edge_value(g, uv) = 75;
+        }
+    }
+    
+    // Graph value should still be unchanged
+    REQUIRE(graph_value(g) == 100);
 }
 
 TEST_CASE("vofl CPO integration: modify vertex and edge values", "[vofl][cpo][integration]") {
