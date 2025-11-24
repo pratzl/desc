@@ -1168,11 +1168,24 @@ public: // Friend functions
    * Returns an iterator to the vertex descriptor for the given vertex ID.
    * For compressed_graph, vertex IDs are sequential indices [0, size()).
    * 
+   * The returned iterator is lightweight (stores only the index) and can be
+   * compared with vertices(g).end() to check validity:
+   * 
+   * @code
+   * auto v_it = find_vertex(g, uid);
+   * if (v_it != vertices(g).end()) {
+   *     // Valid vertex - safe to dereference
+   *     auto v_desc = *v_it;
+   *     // Use descriptor...
+   * }
+   * @endcode
+   * 
    * @param g The graph to search in (forwarding reference)
    * @param uid The vertex ID to find
    * @return Iterator to the vertex descriptor at position uid
    * @note Complexity: O(1) - direct indexed access
    * @note No bounds checking is performed; uid must be valid
+   * @note The iterator stores only the vertex index and is independent of view lifetime
   */
   template<typename G, typename VId2>
     requires std::derived_from<std::remove_cvref_t<G>, compressed_graph_base>

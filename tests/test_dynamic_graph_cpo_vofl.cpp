@@ -8,12 +8,13 @@
  * 
  * Container: vector<vertex> + forward_list<edge>
  * 
- * Current Status: 34 test cases, 71 assertions passing
+ * Current Status: 41 test cases, 92 assertions passing
  * 
  * CPOs tested (with available friend functions):
  * - vertices(g) - Get vertex range
  * - num_vertices(g) - Get vertex count
- * - find_vertex(g, uid) - Find vertex by ID  
+ * - find_vertex(g, uid) - Find vertex by ID
+ * - vertex_id(g, u) - Get vertex ID from descriptor [7 tests]
  * - num_edges(g) - Get total edge count
  * - has_edge(g) - Check if graph has any edges
  * - vertex_value(g, u) - Access vertex value (when VV != void) [6 tests]
@@ -141,7 +142,108 @@ TEST_CASE("vofl CPO find_vertex(g, uid) bounds check", "[vofl][cpo][find_vertex]
 }
 
 //==================================================================================================
-// 4. num_edges(g) CPO Tests
+// 4. vertex_id(g, u) CPO Tests
+//==================================================================================================
+
+TEST_CASE("vofl CPO vertex_id(g, u) basic access", "[vofl][cpo][vertex_id]") {
+    vofl_void g;
+    g.resize_vertices(5);
+    
+    auto v_range = vertices(g);
+    auto v_it = v_range.begin();
+    auto v_desc = *v_it;
+    
+    auto id = vertex_id(g, v_desc);
+    REQUIRE(id == 0);
+}
+
+TEST_CASE("vofl CPO vertex_id(g, u) all vertices", "[vofl][cpo][vertex_id]") {
+    vofl_void g;
+    g.resize_vertices(10);
+    
+    size_t expected_id = 0;
+    for (auto v : vertices(g)) {
+        REQUIRE(vertex_id(g, v) == expected_id);
+        ++expected_id;
+    }
+}
+
+TEST_CASE("vofl CPO vertex_id(g, u) const correctness", "[vofl][cpo][vertex_id]") {
+    const vofl_void g;
+    
+    // Empty graph - should compile even though no vertices to iterate
+    for (auto v : vertices(g)) {
+        [[maybe_unused]] auto id = vertex_id(g, v);
+    }
+    REQUIRE(num_vertices(g) == 0);
+}
+
+TEST_CASE("vofl CPO vertex_id(g, u) with vertex values", "[vofl][cpo][vertex_id]") {
+    vofl_int_vv g;
+    g.resize_vertices(5);
+    
+    // Initialize vertex values to their IDs
+    for (auto v : vertices(g)) {
+        auto id = vertex_id(g, v);
+        vertex_value(g, v) = static_cast<int>(id) * 10;
+    }
+    
+    // Verify IDs match expected values
+    for (auto v : vertices(g)) {
+        auto id = vertex_id(g, v);
+        REQUIRE(vertex_value(g, v) == static_cast<int>(id) * 10);
+    }
+}
+
+TEST_CASE("vofl CPO vertex_id(g, u) with find_vertex", "[vofl][cpo][vertex_id]") {
+    vofl_void g;
+    g.resize_vertices(8);
+    
+    // Find vertex by ID and verify round-trip
+    for (uint32_t expected_id = 0; expected_id < 8; ++expected_id) {
+        auto v_it = find_vertex(g, expected_id);
+        REQUIRE(v_it != vertices(g).end());
+        
+        auto v_desc = *v_it;
+        auto actual_id = vertex_id(g, v_desc);
+        REQUIRE(actual_id == expected_id);
+    }
+}
+
+TEST_CASE("vofl CPO vertex_id(g, u) sequential iteration", "[vofl][cpo][vertex_id]") {
+    vofl_void g;
+    g.resize_vertices(100);
+    
+    // Verify IDs are sequential
+    auto v_range = vertices(g);
+    auto it = v_range.begin();
+    for (size_t expected = 0; expected < 100; ++expected) {
+        REQUIRE(it != v_range.end());
+        auto v = *it;
+        REQUIRE(vertex_id(g, v) == expected);
+        ++it;
+    }
+}
+
+TEST_CASE("vofl CPO vertex_id(g, u) consistency across calls", "[vofl][cpo][vertex_id]") {
+    vofl_void g;
+    g.resize_vertices(5);
+    
+    auto v_range = vertices(g);
+    auto v_it = v_range.begin();
+    auto v_desc = *v_it;
+    
+    // Call vertex_id multiple times - should be stable
+    auto id1 = vertex_id(g, v_desc);
+    auto id2 = vertex_id(g, v_desc);
+    auto id3 = vertex_id(g, v_desc);
+    
+    REQUIRE(id1 == id2);
+    REQUIRE(id2 == id3);
+}
+
+//==================================================================================================
+// 5. num_edges(g) CPO Tests
 //==================================================================================================
 
 TEST_CASE("vofl CPO num_edges(g) empty graph", "[vofl][cpo][num_edges]") {
@@ -169,7 +271,7 @@ TEST_CASE("vofl CPO num_edges(g) after multiple edge additions", "[vofl][cpo][nu
 }
 
 //==================================================================================================
-// 5. has_edge(g) CPO Tests
+// 6. has_edge(g) CPO Tests
 //==================================================================================================
 
 TEST_CASE("vofl CPO has_edge(g) empty graph", "[vofl][cpo][has_edge]") {
@@ -193,7 +295,7 @@ TEST_CASE("vofl CPO has_edge(g) matches num_edges", "[vofl][cpo][has_edge]") {
 }
 
 //==================================================================================================
-// 6. Integration Tests - Multiple CPOs Working Together
+// 7. Integration Tests - Multiple CPOs Working Together
 //==================================================================================================
 
 TEST_CASE("vofl CPO integration: graph construction and traversal", "[vofl][cpo][integration]") {
@@ -257,7 +359,7 @@ TEST_CASE("vofl CPO integration: const graph access", "[vofl][cpo][integration]"
 }
 
 //==================================================================================================
-// 7. vertex_value(g, u) CPO Tests
+// 8. vertex_value(g, u) CPO Tests
 //==================================================================================================
 
 TEST_CASE("vofl CPO vertex_value(g, u) basic access", "[vofl][cpo][vertex_value]") {
@@ -345,7 +447,7 @@ TEST_CASE("vofl CPO vertex_value(g, u) modification", "[vofl][cpo][vertex_value]
 }
 
 //==================================================================================================
-// 8. edge_value(g, uv) CPO Tests
+// 9. edge_value(g, uv) CPO Tests
 //==================================================================================================
 
 TEST_CASE("vofl CPO edge_value(g, uv) basic access", "[vofl][cpo][edge_value]") {
@@ -494,7 +596,7 @@ TEST_CASE("vofl CPO edge_value(g, uv) iteration over all edges", "[vofl][cpo][ed
 }
 
 //==================================================================================================
-// 9. Integration Tests - vertex_value and edge_value Together
+// 10. Integration Tests - vertex_value and edge_value Together
 //==================================================================================================
 
 TEST_CASE("vofl CPO integration: vertex values only", "[vofl][cpo][integration]") {

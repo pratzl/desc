@@ -488,6 +488,10 @@ namespace _cpo_impls {
             /**
              * @brief Find vertex by ID
              * 
+             * Returns an iterator to a vertex descriptor for the given vertex ID. The returned
+             * iterator can be compared with vertices(g).end() to check validity, following the
+             * standard STL pattern for find operations.
+             * 
              * Resolution order:
              * 1. g.find_vertex(uid) - member function (highest priority)
              * 2. find_vertex(g, uid) - ADL
@@ -503,7 +507,33 @@ namespace _cpo_impls {
              * @tparam VId Vertex ID type (typically vertex_id_t<G>)
              * @param g Graph container
              * @param uid Vertex ID to find
-             * @return Iterator to the vertex (vertex_iterator_t<G>)
+             * @return Iterator to the vertex descriptor (typically vertex_descriptor_view<...>::iterator)
+             * 
+             * @note The returned iterator is lightweight and stores only the vertex position
+             *       (index or underlying iterator). It does not hold a reference to any view
+             *       object, making it independent of view lifetime.
+             * 
+             * @example Checking validity and using the result
+             * @code
+             * auto v_it = find_vertex(g, 5);
+             * if (v_it != vertices(g).end()) {
+             *     // Valid vertex found
+             *     auto v_desc = *v_it;  // Dereference to get vertex_descriptor
+             *     auto& e = edges(g, v_desc);
+             *     // Process edges...
+             * }
+             * @endcode
+             * 
+             * @example Direct usage with CPOs (most common pattern)
+             * @code
+             * auto v_it = find_vertex(g, uid);
+             * if (v_it != vertices(g).end()) {
+             *     // CPOs accept iterators directly in many cases
+             *     for (auto e : edges(g, *v_it)) {
+             *         // Process edge...
+             *     }
+             * }
+             * @endcode
              */
             template<typename G, typename VId>
             [[nodiscard]] constexpr auto operator()(G&& g, const VId& uid) const
@@ -543,9 +573,20 @@ inline namespace _cpo_instances {
     /**
      * @brief CPO for finding a vertex by its ID
      * 
-     * Usage: auto v_iter = graph::find_vertex(my_graph, vertex_id);
+     * Returns an iterator to the vertex descriptor that can be compared with
+     * vertices(g).end() to check if the vertex was found. The iterator is lightweight
+     * and independent of any view lifetime.
      * 
-     * Returns: Iterator to the vertex (vertex_iterator_t<G>)
+     * @example Basic usage with validity check
+     * @code
+     * auto v_it = graph::find_vertex(g, vertex_id);
+     * if (v_it != graph::vertices(g).end()) {
+     *     // Vertex exists - safe to use
+     *     auto edges_range = graph::edges(g, *v_it);
+     * }
+     * @endcode
+     * 
+     * @see _cpo_impls::_find_vertex::_fn::operator() for detailed documentation
      */
     inline constexpr _cpo_impls::_find_vertex::_fn find_vertex{};
 } // namespace _cpo_instances
