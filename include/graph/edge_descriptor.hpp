@@ -101,6 +101,10 @@ public:
             // Simple type: the value itself is the target ID
             return edge_val;
         }
+        else if constexpr (requires { edge_val.target_id(); }) {
+            // Edge object with target_id() member (e.g., dynamic_edge)
+            return edge_val.target_id();
+        }
         else if constexpr (requires { edge_val.first; }) {
             // Pair-like: .first is the target ID
             return edge_val.first;
