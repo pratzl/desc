@@ -697,6 +697,33 @@ private: // CPO properties
     return u.inner_value(g).edges_;
   }
 
+  /**
+   * @brief Get the out-degree of a vertex (ADL customization)
+   * @param g The graph
+   * @param u The vertex descriptor (must reference vertex_type in this graph)
+   * @return Number of outgoing edges from the vertex
+   * @note Complexity: O(n) where n is the degree (forward_list requires traversal to count)
+   * @note This is the ADL customization point for the degree(g, u) CPO
+   */
+  template<typename U>
+    requires vertex_descriptor_type<U> &&
+             std::same_as<typename U::value_type, vertex_type>
+  [[nodiscard]] friend constexpr size_t degree(const graph_type& g, const U& u) noexcept {
+    return static_cast<size_t>(std::ranges::distance(u.inner_value(g).edges_));
+  }
+
+  /**
+   * @brief Get the out-degree of a vertex by ID (ADL customization)
+   * @param g The graph
+   * @param uid The vertex ID
+   * @return Number of outgoing edges from the vertex
+   * @note Complexity: O(1) + O(n) where n is the degree
+   * @note This is the ADL customization point for the degree(g, uid) CPO
+   */
+  [[nodiscard]] friend constexpr size_t degree(const graph_type& g, vertex_id_type uid) noexcept {
+    return static_cast<size_t>(std::ranges::distance(g.vertices_[uid].edges_));
+  }
+
   // friend constexpr typename edges_type::iterator
   // find_vertex_edge(graph_type& g, vertex_id_type uid, vertex_id_type vid) {
   //   return std::ranges::find(g[uid].edges_,
@@ -1343,6 +1370,18 @@ private: // CPO properties
 
   friend constexpr auto num_edges(const dynamic_graph_base& g) { return g.edge_count_; }
   friend constexpr bool has_edge(const dynamic_graph_base& g) { return g.edge_count_ > 0; }
+  
+  /**
+   * @brief Get the out-degree of a vertex by ID (ADL customization)
+   * @param g The graph
+   * @param uid The vertex ID
+   * @return Number of outgoing edges from the vertex
+   * @note Complexity: O(n) where n is the degree (for forward_list)
+   * @note This is the ADL customization point for the degree(g, uid) CPO
+   */
+  [[nodiscard]] friend constexpr size_t degree(const dynamic_graph_base& g, vertex_id_type uid) noexcept {
+    return static_cast<size_t>(std::ranges::distance(g.vertices_[uid].edges()));
+  }
   
   /**
    * @brief Get the user-defined value associated with a vertex

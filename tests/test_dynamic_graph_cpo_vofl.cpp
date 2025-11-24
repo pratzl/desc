@@ -8,7 +8,7 @@
  * 
  * Container: vector<vertex> + forward_list<edge>
  * 
- * Current Status: 41 test cases, 92 assertions passing
+ * Current Status: 51 test cases, 431 assertions passing
  * 
  * CPOs tested (with available friend functions):
  * - vertices(g) - Get vertex range
@@ -17,6 +17,7 @@
  * - vertex_id(g, u) - Get vertex ID from descriptor [7 tests]
  * - num_edges(g) - Get total edge count
  * - has_edge(g) - Check if graph has any edges
+ * - degree(g, u) - Get out-degree of vertex [10 tests]
  * - vertex_value(g, u) - Access vertex value (when VV != void) [6 tests]
  * - edge_value(g, uv) - Access edge value (when EV != void) [6 tests + 3 integration tests]
  * 
@@ -24,6 +25,8 @@
  * - vertex_value(g,u) in dynamic_graph_base (lines 1345-1348)
  * - edge_value(g,uv) in dynamic_vertex_base (lines 665-676)
  * - edges(g,u) in dynamic_vertex_base (lines 678-679)
+ * - degree(g,u) in dynamic_vertex_base (lines 709-720)
+ * - degree(g,uid) in dynamic_graph_base (lines 1375-1387)
  * 
  * Note: forward_list uses push_front() for edge insertion, so edges appear in
  * reverse order of loading. Tests account for this behavior.
@@ -295,7 +298,174 @@ TEST_CASE("vofl CPO has_edge(g) matches num_edges", "[vofl][cpo][has_edge]") {
 }
 
 //==================================================================================================
-// 7. Integration Tests - Multiple CPOs Working Together
+// 7. degree(g, u) CPO Tests
+//==================================================================================================
+
+TEST_CASE("vofl CPO degree(g, u) isolated vertex", "[vofl][cpo][degree]") {
+    vofl_void g;
+    g.resize_vertices(3);
+    
+    // Vertices with no edges should have degree 0
+    for (auto u : vertices(g)) {
+        REQUIRE(degree(g, u) == 0);
+    }
+}
+
+TEST_CASE("vofl CPO degree(g, u) single edge", "[vofl][cpo][degree]") {
+    vofl_void g({{0, 1}});
+    
+    auto v_range = vertices(g);
+    auto v0 = *v_range.begin();
+    
+    REQUIRE(degree(g, v0) == 1);
+}
+
+TEST_CASE("vofl CPO degree(g, u) multiple edges from vertex", "[vofl][cpo][degree]") {
+    std::vector<copyable_edge_t<uint32_t, void>> edge_data = {
+        {0, 1}, {0, 2}, {0, 3}, {1, 2}
+    };
+    vofl_void g;
+    g.resize_vertices(4);
+    g.load_edges(edge_data);
+    
+    // Vertex 0 has 3 outgoing edges
+    auto v0 = *vertices(g).begin();
+    REQUIRE(degree(g, v0) == 3);
+    
+    // Vertex 1 has 1 outgoing edge
+    auto v1 = *std::next(vertices(g).begin(), 1);
+    REQUIRE(degree(g, v1) == 1);
+    
+    // Vertices 2 and 3 have no outgoing edges
+    auto v2 = *std::next(vertices(g).begin(), 2);
+    auto v3 = *std::next(vertices(g).begin(), 3);
+    REQUIRE(degree(g, v2) == 0);
+    REQUIRE(degree(g, v3) == 0);
+}
+
+TEST_CASE("vofl CPO degree(g, u) all vertices", "[vofl][cpo][degree]") {
+    std::vector<copyable_edge_t<uint32_t, void>> edge_data = {
+        {0, 1}, {0, 2},
+        {1, 2}, {1, 3},
+        {2, 3},
+        {3, 0}
+    };
+    vofl_void g;
+    g.resize_vertices(4);
+    g.load_edges(edge_data);
+    
+    // Expected degrees: v0=2, v1=2, v2=1, v3=1
+    size_t expected_degrees[] = {2, 2, 1, 1};
+    size_t idx = 0;
+    
+    for (auto u : vertices(g)) {
+        REQUIRE(degree(g, u) == expected_degrees[idx]);
+        ++idx;
+    }
+}
+
+TEST_CASE("vofl CPO degree(g, u) const correctness", "[vofl][cpo][degree]") {
+    vofl_void g({{0, 1}, {0, 2}});
+    
+    const vofl_void& const_g = g;
+    
+    auto v0 = *vertices(const_g).begin();
+    REQUIRE(degree(const_g, v0) == 2);
+}
+
+TEST_CASE("vofl CPO degree(g, uid) by vertex ID", "[vofl][cpo][degree]") {
+    std::vector<copyable_edge_t<uint32_t, void>> edge_data = {
+        {0, 1}, {0, 2}, {0, 3}
+    };
+    vofl_void g;
+    g.resize_vertices(4);
+    g.load_edges(edge_data);
+    
+    // Access degree by vertex ID
+    REQUIRE(degree(g, uint32_t{0}) == 3);
+    REQUIRE(degree(g, uint32_t{1}) == 0);
+    REQUIRE(degree(g, uint32_t{2}) == 0);
+    REQUIRE(degree(g, uint32_t{3}) == 0);
+}
+
+TEST_CASE("vofl CPO degree(g, u) matches manual count", "[vofl][cpo][degree]") {
+    std::vector<copyable_edge_t<uint32_t, void>> edge_data = {
+        {0, 1}, {0, 2}, {0, 3},
+        {1, 0}, {1, 2},
+        {2, 1}
+    };
+    vofl_void g;
+    g.resize_vertices(4);
+    g.load_edges(edge_data);
+    
+    for (auto u : vertices(g)) {
+        auto deg = degree(g, u);
+        
+        // Manual count
+        size_t manual_count = 0;
+        for ([[maybe_unused]] auto e : edges(g, u)) {
+            ++manual_count;
+        }
+        
+        REQUIRE(deg == manual_count);
+    }
+}
+
+TEST_CASE("vofl CPO degree(g, u) with edge values", "[vofl][cpo][degree]") {
+    std::vector<copyable_edge_t<uint32_t, int>> edge_data = {
+        {0, 1, 10}, {0, 2, 20}, {1, 2, 30}
+    };
+    vofl_int_ev g;
+    g.resize_vertices(3);
+    g.load_edges(edge_data);
+    
+    auto v0 = *vertices(g).begin();
+    auto v1 = *std::next(vertices(g).begin(), 1);
+    auto v2 = *std::next(vertices(g).begin(), 2);
+    
+    REQUIRE(degree(g, v0) == 2);
+    REQUIRE(degree(g, v1) == 1);
+    REQUIRE(degree(g, v2) == 0);
+}
+
+TEST_CASE("vofl CPO degree(g, u) self-loop", "[vofl][cpo][degree]") {
+    std::vector<copyable_edge_t<uint32_t, void>> edge_data = {
+        {0, 0}, {0, 1}  // Self-loop plus normal edge
+    };
+    vofl_void g;
+    g.resize_vertices(2);
+    g.load_edges(edge_data);
+    
+    auto v0 = *vertices(g).begin();
+    REQUIRE(degree(g, v0) == 2);  // Self-loop counts as one edge
+}
+
+TEST_CASE("vofl CPO degree(g, u) large graph", "[vofl][cpo][degree]") {
+    vofl_void g;
+    g.resize_vertices(100);
+    
+    // Create a star graph: vertex 0 connects to all others
+    std::vector<copyable_edge_t<uint32_t, void>> edge_data;
+    for (uint32_t i = 1; i < 100; ++i) {
+        edge_data.push_back({0, i});
+    }
+    g.load_edges(edge_data);
+    
+    auto v0 = *vertices(g).begin();
+    REQUIRE(degree(g, v0) == 99);
+    
+    // All other vertices have degree 0
+    size_t idx = 0;
+    for (auto u : vertices(g)) {
+        if (idx > 0) {
+            REQUIRE(degree(g, u) == 0);
+        }
+        ++idx;
+    }
+}
+
+//==================================================================================================
+// 8. Integration Tests - Multiple CPOs Working Together
 //==================================================================================================
 
 TEST_CASE("vofl CPO integration: graph construction and traversal", "[vofl][cpo][integration]") {
@@ -359,7 +529,7 @@ TEST_CASE("vofl CPO integration: const graph access", "[vofl][cpo][integration]"
 }
 
 //==================================================================================================
-// 8. vertex_value(g, u) CPO Tests
+// 9. vertex_value(g, u) CPO Tests
 //==================================================================================================
 
 TEST_CASE("vofl CPO vertex_value(g, u) basic access", "[vofl][cpo][vertex_value]") {
@@ -447,7 +617,7 @@ TEST_CASE("vofl CPO vertex_value(g, u) modification", "[vofl][cpo][vertex_value]
 }
 
 //==================================================================================================
-// 9. edge_value(g, uv) CPO Tests
+// 10. edge_value(g, uv) CPO Tests
 //==================================================================================================
 
 TEST_CASE("vofl CPO edge_value(g, uv) basic access", "[vofl][cpo][edge_value]") {
@@ -596,7 +766,7 @@ TEST_CASE("vofl CPO edge_value(g, uv) iteration over all edges", "[vofl][cpo][ed
 }
 
 //==================================================================================================
-// 10. Integration Tests - vertex_value and edge_value Together
+// 11. Integration Tests - vertex_value and edge_value Together
 //==================================================================================================
 
 TEST_CASE("vofl CPO integration: vertex values only", "[vofl][cpo][integration]") {
