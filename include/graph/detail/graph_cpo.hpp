@@ -1619,10 +1619,10 @@ namespace _cpo_impls {
             { degree(g, u) } -> std::integral;
         };
         
-        // Check if we can use default: std::ranges::size(edges(g, u))
+        // Check if we can use default: count edges via size() or distance()
         template<typename G, typename U>
         concept _has_default_u = requires(G& g, const U& u) {
-            { edges(g, u) } -> std::ranges::sized_range;
+            { edges(g, u) } -> std::ranges::forward_range;
         };
         
         template<typename G, typename U>
@@ -1632,7 +1632,12 @@ namespace _cpo_impls {
             } else if constexpr (_has_adl_u<G, U>) {
                 return {_St_u::_adl, noexcept(degree(std::declval<G&>(), std::declval<const U&>()))};
             } else if constexpr (_has_default_u<G, U>) {
-                return {_St_u::_default, noexcept(std::ranges::size(edges(std::declval<G&>(), std::declval<const U&>())))};
+                // Check if sized_range for noexcept, otherwise assume distance may throw
+                constexpr bool is_sized = std::ranges::sized_range<decltype(edges(std::declval<G&>(), std::declval<const U&>()))>;
+                constexpr bool is_noexcept = is_sized ? 
+                    noexcept(std::ranges::size(edges(std::declval<G&>(), std::declval<const U&>()))) :
+                    noexcept(std::ranges::distance(edges(std::declval<G&>(), std::declval<const U&>())));
+                return {_St_u::_default, is_noexcept};
             } else {
                 return {_St_u::_none, false};
             }
@@ -1697,7 +1702,12 @@ namespace _cpo_impls {
                 } else if constexpr (_Choice_u<_G, _U>._Strategy == _St_u::_adl) {
                     return degree(g, u);
                 } else if constexpr (_Choice_u<_G, _U>._Strategy == _St_u::_default) {
-                    return std::ranges::size(edges(std::forward<G>(g), u));
+                    auto edge_range = edges(std::forward<G>(g), u);
+                    if constexpr (std::ranges::sized_range<decltype(edge_range)>) {
+                        return std::ranges::size(edge_range);
+                    } else {
+                        return std::ranges::distance(edge_range);
+                    }
                 }
             }
             
