@@ -678,19 +678,21 @@ private: // CPO properties
   /**
    * @brief Get the edges container for a vertex (ADL customization)
    * @param g The graph
-   * @param u The vertex descriptor
+   * @param u The vertex descriptor (must reference vertex_type in this graph)
    * @return Reference to the edges container
    * @note Complexity: O(1) - direct member access
    * @note This is the ADL customization point for the edges(g, u) CPO
    */
   template<typename U>
-    requires vertex_descriptor_type<U>
+    requires vertex_descriptor_type<U> &&
+             std::same_as<typename U::value_type, vertex_type>
   [[nodiscard]] friend constexpr edges_type& edges(graph_type& g, U& u) noexcept {
     return u.inner_value(g).edges_;
   }
 
   template<typename U>
-    requires vertex_descriptor_type<U>
+    requires vertex_descriptor_type<U> &&
+             std::same_as<typename U::value_type, vertex_type>
   [[nodiscard]] friend constexpr const edges_type& edges(const graph_type& g, const U& u) noexcept {
     return u.inner_value(g).edges_;
   }
