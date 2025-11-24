@@ -677,18 +677,22 @@ private: // CPO properties
 
   /**
    * @brief Get the edges container for a vertex (ADL customization)
-   * @tparam G Graph type (deduced, forwarding reference)
-   * @tparam U Vertex descriptor type (deduced, forwarding reference)
    * @param g The graph
    * @param u The vertex descriptor
-   * @return Reference to the edges container (const if graph is const)
+   * @return Reference to the edges container
    * @note Complexity: O(1) - direct member access
    * @note This is the ADL customization point for the edges(g, u) CPO
    */
-  template<typename G, typename U>
+  template<typename U>
     requires vertex_descriptor_type<U>
-  [[nodiscard]] friend constexpr decltype(auto) edges(G&& g, U&& u) noexcept {
-    return std::forward<U>(u).inner_value(std::forward<G>(g)).edges_;
+  [[nodiscard]] friend constexpr edges_type& edges(graph_type& g, U& u) noexcept {
+    return u.inner_value(g).edges_;
+  }
+
+  template<typename U>
+    requires vertex_descriptor_type<U>
+  [[nodiscard]] friend constexpr const edges_type& edges(const graph_type& g, const U& u) noexcept {
+    return u.inner_value(g).edges_;
   }
 
   // friend constexpr typename edges_type::iterator
