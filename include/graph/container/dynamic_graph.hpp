@@ -676,25 +676,29 @@ private: // CPO properties
   }
 
   /**
-   * @brief Get the edges container for a vertex (ADL customization)
+   * @brief Get the edges for a vertex as an edge_descriptor_view (ADL customization)
    * @param g The graph
    * @param u The vertex descriptor (must reference vertex_type in this graph)
-   * @return Reference to the edges container
+   * @return edge_descriptor_view over the vertex's edges
    * @note Complexity: O(1) - direct member access
    * @note This is the ADL customization point for the edges(g, u) CPO
    */
   template<typename U>
     requires vertex_descriptor_type<U> &&
              std::same_as<typename U::value_type, vertex_type>
-  [[nodiscard]] friend constexpr edges_type& edges(graph_type& g, U& u) noexcept {
-    return u.inner_value(g).edges_;
+  [[nodiscard]] friend constexpr auto edges(graph_type& g, const U& u) noexcept {
+    using edge_iter_t = typename edges_type::iterator;
+    using vertex_iter_t = typename U::iterator_type;
+    return edge_descriptor_view<edge_iter_t, vertex_iter_t>(u.inner_value(g).edges_, u);
   }
 
   template<typename U>
     requires vertex_descriptor_type<U> &&
              std::same_as<typename U::value_type, vertex_type>
-  [[nodiscard]] friend constexpr const edges_type& edges(const graph_type& g, const U& u) noexcept {
-    return u.inner_value(g).edges_;
+  [[nodiscard]] friend constexpr auto edges(const graph_type& g, const U& u) noexcept {
+    using edge_iter_t = typename edges_type::const_iterator;
+    using vertex_iter_t = typename U::iterator_type;
+    return edge_descriptor_view<edge_iter_t, vertex_iter_t>(u.inner_value(g).edges_, u);
   }
 
   // friend constexpr typename edges_type::iterator
