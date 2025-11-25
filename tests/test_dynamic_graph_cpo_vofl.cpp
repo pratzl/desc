@@ -8,7 +8,7 @@
  * 
  * Container: vector<vertex> + forward_list<edge>
  * 
- * Current Status: 67 test cases, 528 assertions passing
+ * Current Status: 100 test cases, 744 assertions passing
  * 
  * CPOs tested (with available friend functions):
  * - vertices(g) - Get vertex range [3 tests]
@@ -17,8 +17,11 @@
  * - vertex_id(g, u) - Get vertex ID from descriptor [7 tests]
  * - num_edges(g) - Get total edge count [3 tests]
  * - has_edge(g) - Check if graph has any edges [3 tests]
+ * - edges(g, u) - Get edge range for vertex [13 tests]
+ * - edges(g, uid) - Get edge range by vertex ID [10 tests]
  * - degree(g, u) - Get out-degree of vertex [10 tests]
  * - target_id(g, uv) - Get target vertex ID from edge [10 tests]
+ * - target(g, uv) - Get target vertex descriptor from edge [11 tests]
  * - vertex_value(g, u) - Access vertex value (when VV != void) [6 tests]
  * - edge_value(g, uv) - Access edge value (when EV != void) [6 tests]
  * - graph_value(g) - Access graph value (when GV != void) [6 tests]
@@ -299,7 +302,414 @@ TEST_CASE("vofl CPO has_edge(g) matches num_edges", "[vofl][cpo][has_edge]") {
 }
 
 //==================================================================================================
-// 7. degree(g, u) CPO Tests
+// 7. edges(g, u) CPO Tests
+//==================================================================================================
+
+TEST_CASE("vofl CPO edges(g, u) returns edge_descriptor_view", "[vofl][cpo][edges]") {
+    vofl_void g({{0, 1}, {0, 2}});
+    
+    auto u0 = *find_vertex(g, 0);
+    auto edge_range = edges(g, u0);
+    
+    // Verify it's a range
+    static_assert(std::ranges::forward_range<decltype(edge_range)>);
+    
+    // Should be able to iterate
+    size_t count = 0;
+    for ([[maybe_unused]] auto uv : edge_range) {
+        ++count;
+    }
+    REQUIRE(count == 2);
+}
+
+TEST_CASE("vofl CPO edges(g, u) empty edge list", "[vofl][cpo][edges]") {
+    vofl_void g;
+    g.resize_vertices(3);
+    
+    auto u0 = *find_vertex(g, 0);
+    auto edge_range = edges(g, u0);
+    
+    // Vertex with no edges should return empty range
+    REQUIRE(edge_range.begin() == edge_range.end());
+    
+    size_t count = 0;
+    for ([[maybe_unused]] auto uv : edge_range) {
+        ++count;
+    }
+    REQUIRE(count == 0);
+}
+
+TEST_CASE("vofl CPO edges(g, u) single edge", "[vofl][cpo][edges]") {
+    vofl_void g({{0, 1}});
+    
+    auto u0 = *find_vertex(g, 0);
+    auto edge_range = edges(g, u0);
+    
+    size_t count = 0;
+    for (auto uv : edge_range) {
+        REQUIRE(target_id(g, uv) == 1);
+        ++count;
+    }
+    REQUIRE(count == 1);
+}
+
+TEST_CASE("vofl CPO edges(g, u) multiple edges", "[vofl][cpo][edges]") {
+    vofl_void g({{0, 1}, {0, 2}, {0, 3}});
+    
+    auto u0 = *find_vertex(g, 0);
+    auto edge_range = edges(g, u0);
+    
+    std::vector<uint32_t> targets;
+    for (auto uv : edge_range) {
+        targets.push_back(target_id(g, uv));
+    }
+    
+    // forward_list: last added appears first (reverse order)
+    REQUIRE(targets.size() == 3);
+    REQUIRE(targets[0] == 3);
+    REQUIRE(targets[1] == 2);
+    REQUIRE(targets[2] == 1);
+}
+
+TEST_CASE("vofl CPO edges(g, u) const correctness", "[vofl][cpo][edges]") {
+    vofl_void g({{0, 1}, {0, 2}});
+    const auto& const_g = g;
+    
+    auto u0 = *find_vertex(const_g, 0);
+    auto edge_range = edges(const_g, u0);
+    
+    size_t count = 0;
+    for ([[maybe_unused]] auto uv : edge_range) {
+        ++count;
+    }
+    REQUIRE(count == 2);
+}
+
+TEST_CASE("vofl CPO edges(g, u) with edge values", "[vofl][cpo][edges]") {
+    vofl_int_ev g({{0, 1, 100}, {0, 2, 200}});
+    
+    auto u0 = *find_vertex(g, 0);
+    auto edge_range = edges(g, u0);
+    
+    std::vector<int> values;
+    for (auto uv : edge_range) {
+        values.push_back(edge_value(g, uv));
+    }
+    
+    REQUIRE(values.size() == 2);
+    // forward_list order: reverse of insertion
+    REQUIRE(values[0] == 200);
+    REQUIRE(values[1] == 100);
+}
+
+TEST_CASE("vofl CPO edges(g, u) multiple iterations", "[vofl][cpo][edges]") {
+    vofl_void g({{0, 1}, {0, 2}});
+    
+    auto u0 = *find_vertex(g, 0);
+    auto edge_range = edges(g, u0);
+    
+    // First iteration
+    size_t count1 = 0;
+    for ([[maybe_unused]] auto uv : edge_range) {
+        ++count1;
+    }
+    
+    // Second iteration should work the same
+    size_t count2 = 0;
+    for ([[maybe_unused]] auto uv : edge_range) {
+        ++count2;
+    }
+    
+    REQUIRE(count1 == 2);
+    REQUIRE(count2 == 2);
+}
+
+TEST_CASE("vofl CPO edges(g, u) all vertices", "[vofl][cpo][edges]") {
+    vofl_void g({{0, 1}, {0, 2}, {1, 2}, {2, 0}});
+    
+    // Check each vertex's edges
+    std::vector<size_t> edge_counts;
+    for (auto u : vertices(g)) {
+        size_t count = 0;
+        for ([[maybe_unused]] auto uv : edges(g, u)) {
+            ++count;
+        }
+        edge_counts.push_back(count);
+    }
+    
+    REQUIRE(edge_counts.size() == 3);
+    REQUIRE(edge_counts[0] == 2);  // vertex 0 has 2 edges
+    REQUIRE(edge_counts[1] == 1);  // vertex 1 has 1 edge
+    REQUIRE(edge_counts[2] == 1);  // vertex 2 has 1 edge
+}
+
+TEST_CASE("vofl CPO edges(g, u) with self-loop", "[vofl][cpo][edges]") {
+    vofl_void g({{0, 0}, {0, 1}});
+    
+    auto u0 = *find_vertex(g, 0);
+    auto edge_range = edges(g, u0);
+    
+    std::vector<uint32_t> targets;
+    for (auto uv : edge_range) {
+        targets.push_back(target_id(g, uv));
+    }
+    
+    REQUIRE(targets.size() == 2);
+    // Should include self-loop
+    REQUIRE((targets[0] == 0 || targets[1] == 0));
+    REQUIRE((targets[0] == 1 || targets[1] == 1));
+}
+
+TEST_CASE("vofl CPO edges(g, u) with parallel edges", "[vofl][cpo][edges]") {
+    std::vector<copyable_edge_t<uint32_t, int>> edge_data = {
+        {0, 1, 10}, {0, 1, 20}, {0, 1, 30}
+    };
+    vofl_int_ev g;
+    g.resize_vertices(2);
+    g.load_edges(edge_data);
+    
+    auto u0 = *find_vertex(g, 0);
+    auto edge_range = edges(g, u0);
+    
+    size_t count = 0;
+    for (auto uv : edge_range) {
+        REQUIRE(target_id(g, uv) == 1);
+        ++count;
+    }
+    
+    // Should return all three parallel edges
+    REQUIRE(count == 3);
+}
+
+TEST_CASE("vofl CPO edges(g, u) large graph", "[vofl][cpo][edges]") {
+    std::vector<copyable_edge_t<uint32_t, void>> edge_data;
+    for (uint32_t i = 0; i < 20; ++i) {
+        edge_data.push_back({0, i + 1});
+    }
+    
+    vofl_void g;
+    g.resize_vertices(21);
+    g.load_edges(edge_data);
+    
+    auto u0 = *find_vertex(g, 0);
+    auto edge_range = edges(g, u0);
+    
+    size_t count = 0;
+    for ([[maybe_unused]] auto uv : edge_range) {
+        ++count;
+    }
+    
+    REQUIRE(count == 20);
+}
+
+TEST_CASE("vofl CPO edges(g, uid) with vertex ID", "[vofl][cpo][edges]") {
+    vofl_void g({{0, 1}, {0, 2}});
+    
+    auto edge_range = edges(g, uint32_t(0));
+    
+    size_t count = 0;
+    for ([[maybe_unused]] auto uv : edge_range) {
+        ++count;
+    }
+    REQUIRE(count == 2);
+}
+
+TEST_CASE("vofl CPO edges(g, uid) returns edge_descriptor_view", "[vofl][cpo][edges]") {
+    vofl_void g({{0, 1}, {0, 2}, {1, 2}});
+    
+    auto edge_range = edges(g, uint32_t(1));
+    
+    // Verify return type is edge_descriptor_view
+    static_assert(std::ranges::forward_range<decltype(edge_range)>);
+    
+    size_t count = 0;
+    for ([[maybe_unused]] auto uv : edge_range) {
+        ++count;
+    }
+    REQUIRE(count == 1);
+}
+
+TEST_CASE("vofl CPO edges(g, uid) with isolated vertex", "[vofl][cpo][edges]") {
+    vofl_void g({{0, 1}, {0, 2}});
+    g.resize_vertices(4);  // Vertex 3 is isolated
+    
+    auto edge_range = edges(g, uint32_t(3));
+    
+    size_t count = 0;
+    for ([[maybe_unused]] auto uv : edge_range) {
+        ++count;
+    }
+    REQUIRE(count == 0);
+}
+
+TEST_CASE("vofl CPO edges(g, uid) with different ID types", "[vofl][cpo][edges]") {
+    vofl_void g({{0, 1}, {0, 2}});
+    
+    // Test with different integral types
+    auto range1 = edges(g, uint32_t(0));
+    auto range2 = edges(g, 0);  // int literal
+    auto range3 = edges(g, size_t(0));
+    
+    size_t count1 = 0, count2 = 0, count3 = 0;
+    for ([[maybe_unused]] auto uv : range1) ++count1;
+    for ([[maybe_unused]] auto uv : range2) ++count2;
+    for ([[maybe_unused]] auto uv : range3) ++count3;
+    
+    REQUIRE(count1 == 2);
+    REQUIRE(count2 == 2);
+    REQUIRE(count3 == 2);
+}
+
+TEST_CASE("vofl CPO edges(g, uid) const correctness", "[vofl][cpo][edges]") {
+    const vofl_void g({{0, 1}, {0, 2}, {1, 2}});
+    
+    auto edge_range = edges(g, uint32_t(0));
+    
+    size_t count = 0;
+    for ([[maybe_unused]] auto uv : edge_range) {
+        ++count;
+    }
+    REQUIRE(count == 2);
+}
+
+TEST_CASE("vofl CPO edges(g, uid) with edge values", "[vofl][cpo][edges]") {
+    vofl_int_ev g;
+    g.resize_vertices(3);
+    
+    std::vector<copyable_edge_t<uint32_t, int>> edge_data = {
+        {0, 1, 10}, {0, 2, 20}
+    };
+    g.load_edges(edge_data);
+    
+    auto edge_range = edges(g, uint32_t(0));
+    
+    std::vector<int> values;
+    for (auto uv : edge_range) {
+        values.push_back(edge_value(g, uv));
+    }
+    
+    REQUIRE(values.size() == 2);
+    // forward_list reverse order
+    REQUIRE(values[0] == 20);
+    REQUIRE(values[1] == 10);
+}
+
+TEST_CASE("vofl CPO edges(g, uid) multiple vertices", "[vofl][cpo][edges]") {
+    vofl_void g({{0, 1}, {0, 2}, {1, 2}, {1, 0}});
+    
+    auto edges0 = edges(g, uint32_t(0));
+    auto edges1 = edges(g, uint32_t(1));
+    auto edges2 = edges(g, uint32_t(2));
+    
+    size_t count0 = 0, count1 = 0, count2 = 0;
+    for ([[maybe_unused]] auto uv : edges0) ++count0;
+    for ([[maybe_unused]] auto uv : edges1) ++count1;
+    for ([[maybe_unused]] auto uv : edges2) ++count2;
+    
+    REQUIRE(count0 == 2);
+    REQUIRE(count1 == 2);
+    REQUIRE(count2 == 0);
+}
+
+TEST_CASE("vofl CPO edges(g, uid) with parallel edges", "[vofl][cpo][edges]") {
+    vofl_int_ev g;
+    g.resize_vertices(3);
+    
+    std::vector<copyable_edge_t<uint32_t, int>> edge_data = {
+        {0, 1, 10}, {0, 1, 20}, {0, 1, 30}  // 3 parallel edges
+    };
+    g.load_edges(edge_data);
+    
+    auto edge_range = edges(g, uint32_t(0));
+    
+    std::vector<int> values;
+    for (auto uv : edge_range) {
+        values.push_back(edge_value(g, uv));
+    }
+    
+    REQUIRE(values.size() == 3);
+    // All target vertex 1, different values
+    REQUIRE(values[0] == 30);  // reverse order
+    REQUIRE(values[1] == 20);
+    REQUIRE(values[2] == 10);
+}
+
+TEST_CASE("vofl CPO edges(g, uid) consistency with edges(g, u)", "[vofl][cpo][edges]") {
+    vofl_int_ev g;
+    g.resize_vertices(4);
+    
+    std::vector<copyable_edge_t<uint32_t, int>> edge_data = {
+        {0, 1, 10}, {0, 2, 20}, {0, 3, 30}
+    };
+    g.load_edges(edge_data);
+    
+    auto u0 = *find_vertex(g, 0);
+    
+    // Test edges(g, uid) and edges(g, u) give same results
+    auto range_by_id = edges(g, uint32_t(0));
+    auto range_by_desc = edges(g, u0);
+    
+    std::vector<int> values_by_id;
+    std::vector<int> values_by_desc;
+    
+    for (auto uv : range_by_id) {
+        values_by_id.push_back(edge_value(g, uv));
+    }
+    
+    for (auto uv : range_by_desc) {
+        values_by_desc.push_back(edge_value(g, uv));
+    }
+    
+    REQUIRE(values_by_id.size() == values_by_desc.size());
+    REQUIRE(values_by_id == values_by_desc);
+}
+
+TEST_CASE("vofl CPO edges(g, uid) large graph", "[vofl][cpo][edges]") {
+    vofl_void g;
+    g.resize_vertices(50);
+    
+    // Add 20 edges from vertex 0
+    std::vector<copyable_edge_t<uint32_t, void>> edge_data;
+    for (uint32_t i = 1; i <= 20; ++i) {
+        edge_data.push_back({0, i});
+    }
+    g.load_edges(edge_data);
+    
+    auto edge_range = edges(g, uint32_t(0));
+    
+    size_t count = 0;
+    for ([[maybe_unused]] auto uv : edge_range) {
+        ++count;
+    }
+    
+    REQUIRE(count == 20);
+}
+
+TEST_CASE("vofl CPO edges(g, u) with string edge values", "[vofl][cpo][edges]") {
+    vofl_string g;
+    g.resize_vertices(3);
+    
+    std::vector<copyable_edge_t<uint32_t, std::string>> edge_data = {
+        {0, 1, "first"}, {0, 2, "second"}
+    };
+    g.load_edges(edge_data);
+    
+    auto u0 = *find_vertex(g, 0);
+    auto edge_range = edges(g, u0);
+    
+    std::vector<std::string> edge_vals;
+    for (auto uv : edge_range) {
+        edge_vals.push_back(edge_value(g, uv));
+    }
+    
+    REQUIRE(edge_vals.size() == 2);
+    // forward_list order
+    REQUIRE(edge_vals[0] == "second");
+    REQUIRE(edge_vals[1] == "first");
+}
+
+//==================================================================================================
+// 8. degree(g, u) CPO Tests
 //==================================================================================================
 
 TEST_CASE("vofl CPO degree(g, u) isolated vertex", "[vofl][cpo][degree]") {
@@ -466,7 +876,7 @@ TEST_CASE("vofl CPO degree(g, u) large graph", "[vofl][cpo][degree]") {
 }
 
 //==================================================================================================
-// 8. target_id(g, uv) CPO Tests
+// 9. target_id(g, uv) CPO Tests
 //==================================================================================================
 
 TEST_CASE("vofl CPO target_id(g, uv) basic access", "[vofl][cpo][target_id]") {
@@ -649,7 +1059,242 @@ TEST_CASE("vofl CPO target_id(g, uv) iteration order", "[vofl][cpo][target_id]")
 }
 
 //==================================================================================================
-// 9. Integration Tests - Multiple CPOs Working Together
+// 10. target(g, uv) CPO Tests
+//==================================================================================================
+
+TEST_CASE("vofl CPO target(g, uv) basic access", "[vofl][cpo][target]") {
+    vofl_void g({{0, 1}, {0, 2}, {1, 2}});
+    
+    // Get edge from vertex 0
+    auto u0 = *find_vertex(g, 0);
+    auto edge_view = edges(g, u0);
+    auto it = edge_view.begin();
+    
+    REQUIRE(it != edge_view.end());
+    auto uv = *it;
+    
+    // Get target vertex descriptor
+    auto target_vertex = target(g, uv);
+    
+    // Verify it's the correct vertex (forward_list: last added appears first)
+    REQUIRE(vertex_id(g, target_vertex) == 2);
+}
+
+TEST_CASE("vofl CPO target(g, uv) returns vertex descriptor", "[vofl][cpo][target]") {
+    vofl_void g({{0, 1}, {1, 2}});
+    
+    auto u0 = *find_vertex(g, 0);
+    auto edge_view = edges(g, u0);
+    
+    for (auto uv : edge_view) {
+        auto target_vertex = target(g, uv);
+        
+        // Should return a vertex descriptor
+        static_assert(vertex_descriptor_type<decltype(target_vertex)>);
+        
+        // Can use it to get vertex_id
+        auto tid = vertex_id(g, target_vertex);
+        REQUIRE(tid == 1);
+        break;
+    }
+}
+
+TEST_CASE("vofl CPO target(g, uv) consistency with target_id", "[vofl][cpo][target]") {
+    vofl_void g({{0, 1}, {0, 2}, {1, 2}, {1, 3}});
+    
+    // For all edges, verify target(g,uv) matches find_vertex(g, target_id(g,uv))
+    for (auto u : vertices(g)) {
+        for (auto uv : edges(g, u)) {
+            auto target_desc = target(g, uv);
+            auto tid = target_id(g, uv);
+            auto expected_desc = *find_vertex(g, tid);
+            
+            REQUIRE(vertex_id(g, target_desc) == vertex_id(g, expected_desc));
+        }
+    }
+}
+
+TEST_CASE("vofl CPO target(g, uv) with edge values", "[vofl][cpo][target]") {
+    vofl_int_ev g({{0, 1, 100}, {0, 2, 200}, {1, 2, 300}});
+    
+    // target() should work regardless of edge value type
+    auto u0 = *find_vertex(g, 0);
+    for (auto uv : edges(g, u0)) {
+        auto target_vertex = target(g, uv);
+        auto tid = vertex_id(g, target_vertex);
+        REQUIRE((tid == 1 || tid == 2));
+    }
+}
+
+TEST_CASE("vofl CPO target(g, uv) const correctness", "[vofl][cpo][target]") {
+    vofl_void g({{0, 1}, {1, 2}});
+    const auto& const_g = g;
+    
+    auto u0 = *find_vertex(const_g, 0);
+    auto edge_view = edges(const_g, u0);
+    
+    for (auto uv : edge_view) {
+        auto target_vertex = target(const_g, uv);
+        REQUIRE(vertex_id(const_g, target_vertex) == 1);
+        break;
+    }
+}
+
+TEST_CASE("vofl CPO target(g, uv) self-loop", "[vofl][cpo][target]") {
+    vofl_void g({{0, 0}, {0, 1}});  // Self-loop and regular edge
+    
+    auto u0 = *find_vertex(g, 0);
+    auto edge_view = edges(g, u0);
+    auto it = edge_view.begin();
+    
+    // forward_list: last added (0,1) appears first
+    auto uv1 = *it;
+    auto target1 = target(g, uv1);
+    REQUIRE(vertex_id(g, target1) == 1);
+    
+    ++it;
+    // First added (0,0) appears second - self-loop
+    auto uv0 = *it;
+    auto target0 = target(g, uv0);
+    REQUIRE(vertex_id(g, target0) == 0);  // Target is same as source
+}
+
+TEST_CASE("vofl CPO target(g, uv) access target properties", "[vofl][cpo][target]") {
+    vofl_int_vv g;
+    g.resize_vertices(3);
+    
+    // Set vertex values
+    for (auto u : vertices(g)) {
+        vertex_value(g, u) = static_cast<int>(vertex_id(g, u)) * 10;
+    }
+    
+    // Add edges
+    std::vector<copyable_edge_t<uint32_t, void>> edge_data = {{0, 1}, {0, 2}};
+    g.load_edges(edge_data);
+    
+    // Access target vertex values through target()
+    auto u0 = *find_vertex(g, 0);
+    for (auto uv : edges(g, u0)) {
+        auto target_vertex = target(g, uv);
+        auto target_value = vertex_value(g, target_vertex);
+        auto tid = vertex_id(g, target_vertex);
+        
+        REQUIRE(target_value == static_cast<int>(tid) * 10);
+    }
+}
+
+TEST_CASE("vofl CPO target(g, uv) with string vertex values", "[vofl][cpo][target]") {
+    vofl_string g;
+    g.resize_vertices(3);
+    
+    // Set string vertex values
+    std::vector<std::string> names = {"Alice", "Bob", "Charlie"};
+    size_t idx = 0;
+    for (auto u : vertices(g)) {
+        vertex_value(g, u) = names[idx++];
+    }
+    
+    // Add edges with string edge values
+    std::vector<copyable_edge_t<uint32_t, std::string>> edge_data = {
+        {0, 1, "likes"}, {0, 2, "knows"}
+    };
+    g.load_edges(edge_data);
+    
+    // Verify we can access target names
+    auto u0 = *find_vertex(g, 0);
+    std::vector<std::string> target_names;
+    for (auto uv : edges(g, u0)) {
+        auto target_vertex = target(g, uv);
+        target_names.push_back(vertex_value(g, target_vertex));
+    }
+    
+    // Should have 2 targets (reverse order due to forward_list)
+    REQUIRE(target_names.size() == 2);
+    REQUIRE((target_names[0] == "Charlie" || target_names[0] == "Bob"));
+}
+
+TEST_CASE("vofl CPO target(g, uv) parallel edges", "[vofl][cpo][target]") {
+    // Multiple edges to same target
+    std::vector<copyable_edge_t<uint32_t, int>> edge_data = {
+        {0, 1, 10}, {0, 1, 20}, {0, 1, 30}
+    };
+    vofl_int_ev g;
+    g.resize_vertices(2);
+    g.load_edges(edge_data);
+    
+    auto u0 = *find_vertex(g, 0);
+    auto edge_view = edges(g, u0);
+    
+    // All parallel edges should have same target
+    for (auto uv : edge_view) {
+        auto target_vertex = target(g, uv);
+        REQUIRE(vertex_id(g, target_vertex) == 1);
+    }
+}
+
+TEST_CASE("vofl CPO target(g, uv) iteration and navigation", "[vofl][cpo][target]") {
+    // Create a path graph: 0->1->2->3
+    std::vector<copyable_edge_t<uint32_t, void>> edge_data = {
+        {0, 1}, {1, 2}, {2, 3}
+    };
+    vofl_void g;
+    g.resize_vertices(4);
+    g.load_edges(edge_data);
+    
+    // Navigate the path using target()
+    auto current = *find_vertex(g, 0);
+    std::vector<uint32_t> path;
+    path.push_back(vertex_id(g, current));
+    
+    // Follow edges to build path
+    while (true) {
+        auto edge_view = edges(g, current);
+        auto it = edge_view.begin();
+        if (it == edge_view.end()) break;
+        
+        auto uv = *it;
+        current = target(g, uv);
+        path.push_back(vertex_id(g, current));
+        
+        if (path.size() >= 4) break;  // Prevent infinite loop
+    }
+    
+    // Should have followed path 0->1->2->3
+    REQUIRE(path.size() == 4);
+    REQUIRE(path[0] == 0);
+    REQUIRE(path[1] == 1);
+    REQUIRE(path[2] == 2);
+    REQUIRE(path[3] == 3);
+}
+
+TEST_CASE("vofl CPO target(g, uv) large graph", "[vofl][cpo][target]") {
+    // Create a graph with many edges
+    std::vector<copyable_edge_t<uint32_t, void>> edge_data;
+    for (uint32_t i = 0; i < 50; ++i) {
+        edge_data.push_back({i, (i + 1) % 100});
+        edge_data.push_back({i, (i + 2) % 100});
+    }
+    
+    vofl_void g;
+    g.resize_vertices(100);
+    g.load_edges(edge_data);
+    
+    // Verify target() works for all edges
+    size_t edge_count = 0;
+    for (auto u : vertices(g)) {
+        for (auto uv : edges(g, u)) {
+            auto target_vertex = target(g, uv);
+            auto tid = vertex_id(g, target_vertex);
+            REQUIRE(tid < 100);
+            ++edge_count;
+        }
+    }
+    
+    REQUIRE(edge_count == 100);
+}
+
+//==================================================================================================
+// 11. Integration Tests - Multiple CPOs Working Together
 //==================================================================================================
 
 TEST_CASE("vofl CPO integration: graph construction and traversal", "[vofl][cpo][integration]") {
