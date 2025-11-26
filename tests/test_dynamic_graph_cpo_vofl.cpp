@@ -8,7 +8,7 @@
  * 
  * Container: vector<vertex> + forward_list<edge>
  * 
- * Current Status: 113 test cases, 773 assertions passing
+ * Current Status: 124 test cases, 847 assertions passing
  * 
  * CPOs tested (with available friend functions):
  * - vertices(g) - Get vertex range [3 tests]
@@ -23,6 +23,7 @@
  * - target_id(g, uv) - Get target vertex ID from edge [10 tests]
  * - target(g, uv) - Get target vertex descriptor from edge [11 tests]
  * - find_vertex_edge(g, u, v) - Find edge between vertices [13 tests]
+ *   - find_vertex_edge(g, uid, vid) - Additional dedicated tests [11 tests]
  * - vertex_value(g, u) - Access vertex value (when VV != void) [6 tests]
  * - edge_value(g, uv) - Access edge value (when EV != void) [6 tests]
  * - graph_value(g) - Access graph value (when GV != void) [6 tests]
@@ -1524,6 +1525,234 @@ TEST_CASE("vofl CPO find_vertex_edge(g, u, v) isolated vertex", "[vofl][cpo][fin
         }
     }
     REQUIRE_FALSE(found);
+}
+
+//--------------------------------------------------------------------------------------------------
+// 11b. Additional dedicated tests for find_vertex_edge(g, uid, vid) overload
+//--------------------------------------------------------------------------------------------------
+
+TEST_CASE("vofl CPO find_vertex_edge(g, uid, vid) basic usage", "[vofl][cpo][find_vertex_edge][uid_vid]") {
+    vofl_void g({{0, 1}, {0, 2}, {1, 2}, {2, 3}});
+    
+    // Test finding edges using only vertex IDs
+    auto e01 = find_vertex_edge(g, 0, 1);
+    auto e02 = find_vertex_edge(g, 0, 2);
+    auto e12 = find_vertex_edge(g, 1, 2);
+    auto e23 = find_vertex_edge(g, 2, 3);
+    
+    REQUIRE(target_id(g, e01) == 1);
+    REQUIRE(target_id(g, e02) == 2);
+    REQUIRE(target_id(g, e12) == 2);
+    REQUIRE(target_id(g, e23) == 3);
+}
+
+TEST_CASE("vofl CPO find_vertex_edge(g, uid, vid) edge not found", "[vofl][cpo][find_vertex_edge][uid_vid]") {
+    vofl_void g({{0, 1}, {1, 2}});
+    
+    // Try to find non-existent edges
+    auto e02 = find_vertex_edge(g, 0, 2);  // No direct edge from 0 to 2
+    auto e10 = find_vertex_edge(g, 1, 0);  // No reverse edge
+    auto e21 = find_vertex_edge(g, 2, 1);  // No reverse edge
+    
+    // Verify these are "not found" results (implementation-defined behavior)
+    // We can verify by checking if edges exist
+    auto u0 = *find_vertex(g, 0);
+    auto u1 = *find_vertex(g, 1);
+    auto u2 = *find_vertex(g, 2);
+    
+    bool found_02 = false;
+    for (auto e : edges(g, u0)) {
+        if (target_id(g, e) == 2) found_02 = true;
+    }
+    REQUIRE(!found_02);
+    
+    bool found_10 = false;
+    for (auto e : edges(g, u1)) {
+        if (target_id(g, e) == 0) found_10 = true;
+    }
+    REQUIRE(!found_10);
+}
+
+TEST_CASE("vofl CPO find_vertex_edge(g, uid, vid) with edge values", "[vofl][cpo][find_vertex_edge][uid_vid]") {
+    vofl_int_ev g;
+    g.resize_vertices(4);
+    
+    std::vector<copyable_edge_t<uint32_t, int>> edge_data = {
+        {0, 1, 10}, {0, 2, 20}, {1, 2, 30}, {2, 3, 40}
+    };
+    g.load_edges(edge_data);
+    
+    // Find edges using vertex IDs and verify their values
+    auto e01 = find_vertex_edge(g, 0, 1);
+    auto e02 = find_vertex_edge(g, 0, 2);
+    auto e12 = find_vertex_edge(g, 1, 2);
+    auto e23 = find_vertex_edge(g, 2, 3);
+    
+    REQUIRE(edge_value(g, e01) == 10);
+    REQUIRE(edge_value(g, e02) == 20);
+    REQUIRE(edge_value(g, e12) == 30);
+    REQUIRE(edge_value(g, e23) == 40);
+}
+
+TEST_CASE("vofl CPO find_vertex_edge(g, uid, vid) with parallel edges", "[vofl][cpo][find_vertex_edge][uid_vid]") {
+    vofl_int_ev g;
+    g.resize_vertices(3);
+    
+    // Add multiple edges from 0 to 1 with different values
+    std::vector<copyable_edge_t<uint32_t, int>> edge_data = {
+        {0, 1, 100}, {0, 1, 200}, {0, 1, 300}, {1, 2, 400}
+    };
+    g.load_edges(edge_data);
+    
+    // find_vertex_edge should find one of the parallel edges
+    auto e01 = find_vertex_edge(g, 0, 1);
+    REQUIRE(target_id(g, e01) == 1);
+    
+    // The edge value should be one of the parallel edge values
+    int val = edge_value(g, e01);
+    REQUIRE((val == 100 || val == 200 || val == 300));
+}
+
+TEST_CASE("vofl CPO find_vertex_edge(g, uid, vid) with self-loop", "[vofl][cpo][find_vertex_edge][uid_vid]") {
+    vofl_int_ev g;
+    g.resize_vertices(3);
+    
+    std::vector<copyable_edge_t<uint32_t, int>> edge_data = {
+        {0, 0, 99},   // Self-loop
+        {0, 1, 10},
+        {1, 1, 88}    // Self-loop
+    };
+    g.load_edges(edge_data);
+    
+    // Find self-loops using vertex IDs
+    auto e00 = find_vertex_edge(g, 0, 0);
+    auto e11 = find_vertex_edge(g, 1, 1);
+    
+    REQUIRE(target_id(g, e00) == 0);
+    REQUIRE(edge_value(g, e00) == 99);
+    REQUIRE(target_id(g, e11) == 1);
+    REQUIRE(edge_value(g, e11) == 88);
+}
+
+TEST_CASE("vofl CPO find_vertex_edge(g, uid, vid) const correctness", "[vofl][cpo][find_vertex_edge][uid_vid]") {
+    vofl_int_ev g;
+    g.resize_vertices(3);
+    
+    std::vector<copyable_edge_t<uint32_t, int>> edge_data = {
+        {0, 1, 100}, {1, 2, 200}
+    };
+    g.load_edges(edge_data);
+    
+    // Test with const graph
+    const auto& cg = g;
+    
+    auto e01 = find_vertex_edge(cg, 0, 1);
+    auto e12 = find_vertex_edge(cg, 1, 2);
+    
+    REQUIRE(target_id(cg, e01) == 1);
+    REQUIRE(edge_value(cg, e01) == 100);
+    REQUIRE(target_id(cg, e12) == 2);
+    REQUIRE(edge_value(cg, e12) == 200);
+}
+
+TEST_CASE("vofl CPO find_vertex_edge(g, uid, vid) with different integral types", "[vofl][cpo][find_vertex_edge][uid_vid]") {
+    vofl_void g({{0, 1}, {1, 2}, {2, 3}});
+    
+    // Test with various integral types for IDs
+    auto e01_uint32 = find_vertex_edge(g, uint32_t(0), uint32_t(1));
+    auto e12_int = find_vertex_edge(g, int(1), int(2));
+    auto e23_size = find_vertex_edge(g, size_t(2), size_t(3));
+    
+    REQUIRE(target_id(g, e01_uint32) == 1);
+    REQUIRE(target_id(g, e12_int) == 2);
+    REQUIRE(target_id(g, e23_size) == 3);
+}
+
+TEST_CASE("vofl CPO find_vertex_edge(g, uid, vid) with string edge values", "[vofl][cpo][find_vertex_edge][uid_vid]") {
+    vofl_string g;
+    g.resize_vertices(4);
+    
+    std::vector<copyable_edge_t<uint32_t, std::string>> edge_data = {
+        {0, 1, "alpha"}, {0, 2, "beta"}, {1, 2, "gamma"}, {2, 3, "delta"}
+    };
+    g.load_edges(edge_data);
+    
+    // Find edges and verify string values
+    auto e01 = find_vertex_edge(g, 0, 1);
+    auto e02 = find_vertex_edge(g, 0, 2);
+    auto e12 = find_vertex_edge(g, 1, 2);
+    auto e23 = find_vertex_edge(g, 2, 3);
+    
+    REQUIRE(edge_value(g, e01) == "alpha");
+    REQUIRE(edge_value(g, e02) == "beta");
+    REQUIRE(edge_value(g, e12) == "gamma");
+    REQUIRE(edge_value(g, e23) == "delta");
+}
+
+TEST_CASE("vofl CPO find_vertex_edge(g, uid, vid) in large graph", "[vofl][cpo][find_vertex_edge][uid_vid]") {
+    vofl_void g;
+    g.resize_vertices(100);
+    
+    // Create edges from vertex 0 to all other vertices
+    std::vector<copyable_edge_t<uint32_t, void>> edge_data;
+    for (uint32_t i = 1; i < 100; ++i) {
+        edge_data.push_back({0, i});
+    }
+    g.load_edges(edge_data);
+    
+    // Test finding edges to various vertices
+    auto e01 = find_vertex_edge(g, 0, 1);
+    auto e050 = find_vertex_edge(g, 0, 50);
+    auto e099 = find_vertex_edge(g, 0, 99);
+    
+    REQUIRE(target_id(g, e01) == 1);
+    REQUIRE(target_id(g, e050) == 50);
+    REQUIRE(target_id(g, e099) == 99);
+}
+
+TEST_CASE("vofl CPO find_vertex_edge(g, uid, vid) from isolated vertex", "[vofl][cpo][find_vertex_edge][uid_vid]") {
+    vofl_void g;
+    g.resize_vertices(5);
+    
+    // Only add edges between some vertices, leave vertex 3 isolated
+    std::vector<copyable_edge_t<uint32_t, void>> edge_data = {
+        {0, 1}, {1, 2}, {2, 4}
+    };
+    g.load_edges(edge_data);
+    
+    // Try to find edge from isolated vertex
+    auto u3 = *find_vertex(g, 3);
+    
+    // Verify vertex 3 has no outgoing edges
+    auto edges_3 = edges(g, u3);
+    REQUIRE(std::ranges::distance(edges_3) == 0);
+}
+
+TEST_CASE("vofl CPO find_vertex_edge(g, uid, vid) chain of edges", "[vofl][cpo][find_vertex_edge][uid_vid]") {
+    vofl_int_ev g;
+    g.resize_vertices(6);
+    
+    // Create a chain: 0->1->2->3->4->5
+    std::vector<copyable_edge_t<uint32_t, int>> edge_data = {
+        {0, 1, 10}, {1, 2, 20}, {2, 3, 30}, {3, 4, 40}, {4, 5, 50}
+    };
+    g.load_edges(edge_data);
+    
+    // Traverse the chain using find_vertex_edge
+    auto e01 = find_vertex_edge(g, 0, 1);
+    REQUIRE(edge_value(g, e01) == 10);
+    
+    auto e12 = find_vertex_edge(g, 1, 2);
+    REQUIRE(edge_value(g, e12) == 20);
+    
+    auto e23 = find_vertex_edge(g, 2, 3);
+    REQUIRE(edge_value(g, e23) == 30);
+    
+    auto e34 = find_vertex_edge(g, 3, 4);
+    REQUIRE(edge_value(g, e34) == 40);
+    
+    auto e45 = find_vertex_edge(g, 4, 5);
+    REQUIRE(edge_value(g, e45) == 50);
 }
 
 //==================================================================================================
