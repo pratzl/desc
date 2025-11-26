@@ -37,308 +37,322 @@ using vofl_int_sourced = dynamic_graph<int, void, void, uint32_t, true, vofl_gra
 // 1. Construction Tests (40 tests)
 //==================================================================================================
 
-TEST_CASE("vofl default constructor creates empty graph", "[vofl][construction]") {
-    vofl_void_void_void g;
-    REQUIRE(g.size() == 0);
-    REQUIRE(g.size() == 0);
+TEST_CASE("vofl construction", "[vofl][construction]") {
+    SECTION("default constructor creates empty graph") {
+        vofl_void_void_void g;
+        REQUIRE(g.size() == 0);
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("default constructor with void types") {
+        vofl_void_void_void g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("default constructor with int edge values") {
+        vofl_int_void_void g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("default constructor with int vertex values") {
+        vofl_void_int_void g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("default constructor with int graph value") {
+        vofl_void_void_int g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("default constructor with all int values") {
+        vofl_int_int_int g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("default constructor with string values") {
+        vofl_string_string_string g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("constructor with graph value - void GV") {
+        // For void GV, no graph value can be passed
+        vofl_void_void_void g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("constructor with graph value - int GV") {
+        vofl_void_void_int g(42);
+        REQUIRE(g.size() == 0);
+        REQUIRE(g.graph_value() == 42);
+    }
+
+    SECTION("constructor with graph value - string GV") {
+        vofl_string_string_string g(std::string("test"));
+        REQUIRE(g.size() == 0);
+        REQUIRE(g.graph_value() == "test");
+    }
+
+    SECTION("copy constructor") {
+        vofl_int_int_int g1;
+        // TODO: Add vertices and edges once load functions are available
+        vofl_int_int_int g2(g1);
+        REQUIRE(g2.size() == g1.size());
+    }
+
+    SECTION("move constructor") {
+        vofl_int_int_int g1;
+        // TODO: Add vertices and edges
+        vofl_int_int_int g2(std::move(g1));
+        REQUIRE(g2.size() == 0); // g1 was empty
+    }
+
+    SECTION("copy assignment") {
+        vofl_int_int_int g1, g2;
+        g2 = g1;
+        REQUIRE(g2.size() == g1.size());
+    }
+
+    SECTION("move assignment") {
+        vofl_int_int_int g1, g2;
+        g2 = std::move(g1);
+        REQUIRE(g2.size() == 0);
+    }
 }
 
-TEST_CASE("vofl default constructor with void types", "[vofl][construction]") {
-    vofl_void_void_void g;
-    REQUIRE(g.size() == 0);
-}
+TEST_CASE("vofl construction sourced", "[vofl][construction][sourced]") {
+    SECTION("sourced edge construction") {
+        vofl_sourced g;
+        REQUIRE(g.size() == 0);
+    }
 
-TEST_CASE("vofl default constructor with int edge values", "[vofl][construction]") {
-    vofl_int_void_void g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vofl default constructor with int vertex values", "[vofl][construction]") {
-    vofl_void_int_void g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vofl default constructor with int graph value", "[vofl][construction]") {
-    vofl_void_void_int g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vofl default constructor with all int values", "[vofl][construction]") {
-    vofl_int_int_int g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vofl default constructor with string values", "[vofl][construction]") {
-    vofl_string_string_string g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vofl constructor with graph value - void GV", "[vofl][construction]") {
-    // For void GV, no graph value can be passed
-    vofl_void_void_void g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vofl constructor with graph value - int GV", "[vofl][construction]") {
-    vofl_void_void_int g(42);
-    REQUIRE(g.size() == 0);
-    REQUIRE(g.graph_value() == 42);
-}
-
-TEST_CASE("vofl constructor with graph value - string GV", "[vofl][construction]") {
-    vofl_string_string_string g(std::string("test"));
-    REQUIRE(g.size() == 0);
-    REQUIRE(g.graph_value() == "test");
-}
-
-TEST_CASE("vofl copy constructor", "[vofl][construction]") {
-    vofl_int_int_int g1;
-    // TODO: Add vertices and edges once load functions are available
-    vofl_int_int_int g2(g1);
-    REQUIRE(g2.size() == g1.size());
-}
-
-TEST_CASE("vofl move constructor", "[vofl][construction]") {
-    vofl_int_int_int g1;
-    // TODO: Add vertices and edges
-    vofl_int_int_int g2(std::move(g1));
-    REQUIRE(g2.size() == 0); // g1 was empty
-}
-
-TEST_CASE("vofl copy assignment", "[vofl][construction]") {
-    vofl_int_int_int g1, g2;
-    g2 = g1;
-    REQUIRE(g2.size() == g1.size());
-}
-
-TEST_CASE("vofl move assignment", "[vofl][construction]") {
-    vofl_int_int_int g1, g2;
-    g2 = std::move(g1);
-    REQUIRE(g2.size() == 0);
-}
-
-TEST_CASE("vofl sourced edge construction", "[vofl][construction][sourced]") {
-    vofl_sourced g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vofl sourced with edge value construction", "[vofl][construction][sourced]") {
-    vofl_int_sourced g;
-    REQUIRE(g.size() == 0);
+    SECTION("sourced with edge value construction") {
+        vofl_int_sourced g;
+        REQUIRE(g.size() == 0);
+    }
 }
 
 //==================================================================================================
 // 2. Basic Properties Tests (20 tests)
 //==================================================================================================
 
-TEST_CASE("vofl size() on empty graph", "[vofl][properties]") {
-    vofl_void_void_void g;
-    REQUIRE(g.size() == 0);
-}
+TEST_CASE("vofl properties", "[vofl][properties]") {
+    SECTION("size() on empty graph") {
+        vofl_void_void_void g;
+        REQUIRE(g.size() == 0);
+    }
 
-TEST_CASE("vofl size() == 0 for empty graph", "[vofl][properties]") {
-    vofl_void_void_void g;
-    REQUIRE(g.size() == 0);
-}
+    SECTION("size() == 0 for empty graph") {
+        vofl_void_void_void g;
+        REQUIRE(g.size() == 0);
+    }
 
-TEST_CASE("vofl size() != 0 for non-empty graph", "[vofl][properties]") {
-    // TODO: This test requires load_vertices or similar functionality
-    vofl_void_void_void g;
-    REQUIRE(g.size() == 0); // Will change once we can add vertices
-}
+    SECTION("size() != 0 for non-empty graph") {
+        // TODO: This test requires load_vertices or similar functionality
+        vofl_void_void_void g;
+        REQUIRE(g.size() == 0); // Will change once we can add vertices
+    }
 
-TEST_CASE("vofl const graph methods", "[vofl][properties]") {
-    const vofl_void_void_void g;
-    REQUIRE(g.size() == 0);
-    REQUIRE(g.size() == 0);
-}
+    SECTION("const graph methods") {
+        const vofl_void_void_void g;
+        REQUIRE(g.size() == 0);
+        REQUIRE(g.size() == 0);
+    }
 
-TEST_CASE("vofl begin() == end() for empty graph", "[vofl][properties]") {
-    vofl_void_void_void g;
-    REQUIRE(g.begin() == g.end());
-}
+    SECTION("begin() == end() for empty graph") {
+        vofl_void_void_void g;
+        REQUIRE(g.begin() == g.end());
+    }
 
-TEST_CASE("vofl const begin() == const end() for empty graph", "[vofl][properties]") {
-    const vofl_void_void_void g;
-    REQUIRE(g.begin() == g.end());
-}
+    SECTION("const begin() == const end() for empty graph") {
+        const vofl_void_void_void g;
+        REQUIRE(g.begin() == g.end());
+    }
 
-TEST_CASE("vofl cbegin() == cend() for empty graph", "[vofl][properties]") {
-    vofl_void_void_void g;
-    REQUIRE(g.cbegin() == g.cend());
+    SECTION("cbegin() == cend() for empty graph") {
+        vofl_void_void_void g;
+        REQUIRE(g.cbegin() == g.cend());
+    }
 }
 
 //==================================================================================================
 // 3. Graph Value Tests (15 tests)
 //==================================================================================================
 
-TEST_CASE("vofl graph_value() with int GV", "[vofl][graph_value]") {
-    vofl_void_void_int g(100);
-    REQUIRE(g.graph_value() == 100);
-}
+TEST_CASE("vofl graph_value", "[vofl][graph_value]") {
+    SECTION("graph_value() with int GV") {
+        vofl_void_void_int g(100);
+        REQUIRE(g.graph_value() == 100);
+    }
 
-TEST_CASE("vofl graph_value() modification", "[vofl][graph_value]") {
-    vofl_void_void_int g(100);
-    g.graph_value() = 200;
-    REQUIRE(g.graph_value() == 200);
-}
+    SECTION("graph_value() modification") {
+        vofl_void_void_int g(100);
+        g.graph_value() = 200;
+        REQUIRE(g.graph_value() == 200);
+    }
 
-TEST_CASE("vofl graph_value() const correctness", "[vofl][graph_value]") {
-    const vofl_void_void_int g(100);
-    REQUIRE(g.graph_value() == 100);
-}
+    SECTION("graph_value() const correctness") {
+        const vofl_void_void_int g(100);
+        REQUIRE(g.graph_value() == 100);
+    }
 
-TEST_CASE("vofl graph_value() with string GV", "[vofl][graph_value]") {
-    vofl_string_string_string g(std::string("initial"));
-    REQUIRE(g.graph_value() == "initial");
-    g.graph_value() = "modified";
-    REQUIRE(g.graph_value() == "modified");
-}
+    SECTION("graph_value() with string GV") {
+        vofl_string_string_string g(std::string("initial"));
+        REQUIRE(g.graph_value() == "initial");
+        g.graph_value() = "modified";
+        REQUIRE(g.graph_value() == "modified");
+    }
 
-TEST_CASE("vofl graph_value() move semantics", "[vofl][graph_value]") {
-    vofl_string_string_string g(std::string("test"));
-    std::string val = std::move(g.graph_value());
-    REQUIRE(val == "test");
-}
+    SECTION("graph_value() move semantics") {
+        vofl_string_string_string g(std::string("test"));
+        std::string val = std::move(g.graph_value());
+        REQUIRE(val == "test");
+    }
 
-TEST_CASE("vofl graph_value() with copy", "[vofl][graph_value]") {
-    vofl_void_void_int g1(42);
-    vofl_void_void_int g2 = g1;
-    REQUIRE(g2.graph_value() == 42);
-    g2.graph_value() = 100;
-    REQUIRE(g1.graph_value() == 42); // g1 unchanged
-    REQUIRE(g2.graph_value() == 100);
+    SECTION("graph_value() with copy") {
+        vofl_void_void_int g1(42);
+        vofl_void_void_int g2 = g1;
+        REQUIRE(g2.graph_value() == 42);
+        g2.graph_value() = 100;
+        REQUIRE(g1.graph_value() == 42); // g1 unchanged
+        REQUIRE(g2.graph_value() == 100);
+    }
 }
 
 //==================================================================================================
 // 4. Iterator Tests (15 tests)
 //==================================================================================================
 
-TEST_CASE("vofl iterator on empty graph", "[vofl][iterator]") {
-    vofl_void_void_void g;
-    auto it = g.begin();
-    REQUIRE(it == g.end());
-}
-
-TEST_CASE("vofl const iterator on empty graph", "[vofl][iterator]") {
-    const vofl_void_void_void g;
-    auto it = g.begin();
-    REQUIRE(it == g.end());
-}
-
-TEST_CASE("vofl range-based for on empty graph", "[vofl][iterator]") {
-    vofl_void_void_void g;
-    int count = 0;
-    for ([[maybe_unused]] auto& v : g) {
-        ++count;
+TEST_CASE("vofl iterator", "[vofl][iterator]") {
+    SECTION("iterator on empty graph") {
+        vofl_void_void_void g;
+        auto it = g.begin();
+        REQUIRE(it == g.end());
     }
-    REQUIRE(count == 0);
-}
 
-TEST_CASE("vofl const range-based for on empty graph", "[vofl][iterator]") {
-    const vofl_void_void_void g;
-    int count = 0;
-    for ([[maybe_unused]] const auto& v : g) {
-        ++count;
+    SECTION("const iterator on empty graph") {
+        const vofl_void_void_void g;
+        auto it = g.begin();
+        REQUIRE(it == g.end());
     }
-    REQUIRE(count == 0);
-}
 
-TEST_CASE("vofl std::ranges compatibility", "[vofl][iterator]") {
-    vofl_void_void_void g;
-    auto count = std::ranges::distance(g.begin(), g.end());
-    REQUIRE(count == 0);
+    SECTION("range-based for on empty graph") {
+        vofl_void_void_void g;
+        int count = 0;
+        for ([[maybe_unused]] auto& v : g) {
+            ++count;
+        }
+        REQUIRE(count == 0);
+    }
+
+    SECTION("const range-based for on empty graph") {
+        const vofl_void_void_void g;
+        int count = 0;
+        for ([[maybe_unused]] const auto& v : g) {
+            ++count;
+        }
+        REQUIRE(count == 0);
+    }
+
+    SECTION("std::ranges compatibility") {
+        vofl_void_void_void g;
+        auto count = std::ranges::distance(g.begin(), g.end());
+        REQUIRE(count == 0);
+    }
 }
 
 //==================================================================================================
 // 5. Type Trait Tests (15 tests)
 //==================================================================================================
 
-TEST_CASE("vofl_graph_traits types", "[vofl][traits]") {
-    using traits = vofl_graph_traits<int, std::string, void, uint32_t, false>;
-    
-    STATIC_REQUIRE(std::is_same_v<traits::edge_value_type, int>);
-    STATIC_REQUIRE(std::is_same_v<traits::vertex_value_type, std::string>);
-    STATIC_REQUIRE(std::is_same_v<traits::graph_value_type, void>);
-    STATIC_REQUIRE(std::is_same_v<traits::vertex_id_type, uint32_t>);
-    STATIC_REQUIRE(traits::sourced == false);
-}
+TEST_CASE("vofl traits", "[vofl][traits]") {
+    SECTION("vofl_graph_traits types") {
+        using traits = vofl_graph_traits<int, std::string, void, uint32_t, false>;
+        
+        STATIC_REQUIRE(std::is_same_v<traits::edge_value_type, int>);
+        STATIC_REQUIRE(std::is_same_v<traits::vertex_value_type, std::string>);
+        STATIC_REQUIRE(std::is_same_v<traits::graph_value_type, void>);
+        STATIC_REQUIRE(std::is_same_v<traits::vertex_id_type, uint32_t>);
+        STATIC_REQUIRE(traits::sourced == false);
+    }
 
-TEST_CASE("vofl_graph_traits sourced = true", "[vofl][traits]") {
-    using traits = vofl_graph_traits<int, std::string, void, uint32_t, true>;
-    STATIC_REQUIRE(traits::sourced == true);
-}
+    SECTION("vofl_graph_traits sourced = true") {
+        using traits = vofl_graph_traits<int, std::string, void, uint32_t, true>;
+        STATIC_REQUIRE(traits::sourced == true);
+    }
 
-TEST_CASE("vofl vertex_id_type variations", "[vofl][traits]") {
-    using traits_u64 = vofl_graph_traits<void, void, void, uint64_t, false>;
-    using traits_i32 = vofl_graph_traits<void, void, void, int32_t, false>;
-    using traits_i8 = vofl_graph_traits<void, void, void, int8_t, false>;
-    
-    STATIC_REQUIRE(std::is_same_v<traits_u64::vertex_id_type, uint64_t>);
-    STATIC_REQUIRE(std::is_same_v<traits_i32::vertex_id_type, int32_t>);
-    STATIC_REQUIRE(std::is_same_v<traits_i8::vertex_id_type, int8_t>);
-}
+    SECTION("vertex_id_type variations") {
+        using traits_u64 = vofl_graph_traits<void, void, void, uint64_t, false>;
+        using traits_i32 = vofl_graph_traits<void, void, void, int32_t, false>;
+        using traits_i8 = vofl_graph_traits<void, void, void, int8_t, false>;
+        
+        STATIC_REQUIRE(std::is_same_v<traits_u64::vertex_id_type, uint64_t>);
+        STATIC_REQUIRE(std::is_same_v<traits_i32::vertex_id_type, int32_t>);
+        STATIC_REQUIRE(std::is_same_v<traits_i8::vertex_id_type, int8_t>);
+    }
 
-TEST_CASE("vofl vertices_type is vector", "[vofl][traits]") {
-    using traits = vofl_graph_traits<void, void, void, uint32_t, false>;
-    using vertex_t = traits::vertex_type;
-    using vertices_t = traits::vertices_type;
-    
-    STATIC_REQUIRE(std::is_same_v<vertices_t, std::vector<vertex_t>>);
-}
+    SECTION("vertices_type is vector") {
+        using traits = vofl_graph_traits<void, void, void, uint32_t, false>;
+        using vertex_t = traits::vertex_type;
+        using vertices_t = traits::vertices_type;
+        
+        STATIC_REQUIRE(std::is_same_v<vertices_t, std::vector<vertex_t>>);
+    }
 
-TEST_CASE("vofl edges_type is forward_list", "[vofl][traits]") {
-    using traits = vofl_graph_traits<void, void, void, uint32_t, false>;
-    using edge_t = traits::edge_type;
-    using edges_t = traits::edges_type;
-    
-    STATIC_REQUIRE(std::is_same_v<edges_t, std::forward_list<edge_t>>);
+    SECTION("edges_type is forward_list") {
+        using traits = vofl_graph_traits<void, void, void, uint32_t, false>;
+        using edge_t = traits::edge_type;
+        using edges_t = traits::edges_type;
+        
+        STATIC_REQUIRE(std::is_same_v<edges_t, std::forward_list<edge_t>>);
+    }
 }
-
+ 
 //==================================================================================================
 // 6. Empty Graph Edge Cases (15 tests)
 //==================================================================================================
 
-TEST_CASE("vofl multiple empty graphs independent", "[vofl][edge_cases]") {
-    vofl_void_void_void g1, g2, g3;
-    REQUIRE(g1.size() == 0);
-    REQUIRE(g2.size() == 0);
-    REQUIRE(g3.size() == 0);
-}
+TEST_CASE("vofl edge_cases", "[vofl][edge_cases]") {
+    SECTION("multiple empty graphs independent") {
+        vofl_void_void_void g1, g2, g3;
+        REQUIRE(g1.size() == 0);
+        REQUIRE(g2.size() == 0);
+        REQUIRE(g3.size() == 0);
+    }
 
-TEST_CASE("vofl copy of empty graph", "[vofl][edge_cases]") {
-    vofl_int_int_int g1;
-    vofl_int_int_int g2 = g1;
-    REQUIRE(g1.size() == 0);
-    REQUIRE(g2.size() == 0);
-}
+    SECTION("copy of empty graph") {
+        vofl_int_int_int g1;
+        vofl_int_int_int g2 = g1;
+        REQUIRE(g1.size() == 0);
+        REQUIRE(g2.size() == 0);
+    }
 
-TEST_CASE("vofl move of empty graph", "[vofl][edge_cases]") {
-    vofl_int_int_int g1;
-    vofl_int_int_int g2 = std::move(g1);
-    REQUIRE(g2.size() == 0);
-}
+    SECTION("move of empty graph") {
+        vofl_int_int_int g1;
+        vofl_int_int_int g2 = std::move(g1);
+        REQUIRE(g2.size() == 0);
+    }
 
-TEST_CASE("vofl swap empty graphs", "[vofl][edge_cases]") {
-    vofl_int_int_int g1, g2;
-    std::swap(g1, g2);
-    REQUIRE(g1.size() == 0);
-    REQUIRE(g2.size() == 0);
-}
+    SECTION("swap empty graphs") {
+        vofl_int_int_int g1, g2;
+        std::swap(g1, g2);
+        REQUIRE(g1.size() == 0);
+        REQUIRE(g2.size() == 0);
+    }
 
-TEST_CASE("vofl clear on empty graph", "[vofl][edge_cases]") {
-    vofl_void_void_void g;
-    g.clear();
-    REQUIRE(g.size() == 0);
-    REQUIRE(g.size() == 0);
-}
+    SECTION("clear on empty graph") {
+        vofl_void_void_void g;
+        g.clear();
+        REQUIRE(g.size() == 0);
+        REQUIRE(g.size() == 0);
+    }
 
-TEST_CASE("vofl multiple clears", "[vofl][edge_cases]") {
-    vofl_void_void_void g;
-    g.clear();
-    g.clear();
-    g.clear();
-    REQUIRE(g.size() == 0);
+    SECTION("multiple clears") {
+        vofl_void_void_void g;
+        g.clear();
+        g.clear();
+        g.clear();
+        REQUIRE(g.size() == 0);
+    }
 }
 
 //==================================================================================================
