@@ -1096,7 +1096,7 @@ TEST_CASE("vofl CPO target_id(g, uv)", "[dynamic_graph][vofl][cpo][target_id]") 
         
         auto u0 = *find_vertex(g, 0);
         auto edge_view = edges(g, u0);
-        auto it = edge_view.begin();
+        [[maybe_unused]] auto it = edge_view.begin();
         
         // forward_list uses push_front: last loaded appears first
         std::vector<uint32_t> expected_targets = {3, 2, 1};
@@ -1376,9 +1376,9 @@ TEST_CASE("vofl CPO find_vertex_edge(g, u, v)", "[dynamic_graph][vofl][cpo][find
         auto u2 = *find_vertex(g, 2);
         
         // Edge from 0 to 2 doesn't exist (only 0->1->2)
-        auto edge_range = edges(g, u0);
-        auto end_iter = std::ranges::end(edge_range);
-        auto e02 = find_vertex_edge(g, u0, u2);
+        [[maybe_unused]] auto edge_range = edges(g, u0);
+        [[maybe_unused]] auto end_iter = std::ranges::end(edge_range);
+        [[maybe_unused]] auto e02 = find_vertex_edge(g, u0, u2);
         
         // When not found, should return an edge descriptor that equals end
         // We verify by checking if iterating from the result gives us nothing
@@ -1566,7 +1566,7 @@ TEST_CASE("vofl CPO find_vertex_edge(g, u, v)", "[dynamic_graph][vofl][cpo][find
         vofl_void g({{0, 1}});
         g.resize_vertices(3);  // Vertex 2 is isolated
         
-        auto u0 = *find_vertex(g, 0);
+        [[maybe_unused]] auto u0 = *find_vertex(g, 0);
         auto u2 = *find_vertex(g, 2);
         
         // Try to find edge from isolated vertex
@@ -1715,7 +1715,7 @@ TEST_CASE("vofl CPO find_vertex_edge(g, uid, vid)", "[dynamic_graph][vofl][cpo][
         
         // Test with various integral types for IDs
         auto e01_uint32 = find_vertex_edge(g, uint32_t(0), uint32_t(1));
-        auto e12_int = find_vertex_edge(g, int(1), int(2));
+        auto e12_int = find_vertex_edge(g, 1, 2);
         auto e23_size = find_vertex_edge(g, size_t(2), size_t(3));
         
         REQUIRE(target_id(g, e01_uint32) == 1);
@@ -1969,11 +1969,11 @@ TEST_CASE("vofl CPO contains_edge(g, u, v)", "[dynamic_graph][vofl][cpo][contain
         
         // Test with various integral types
         REQUIRE(contains_edge(g, uint32_t(0), uint32_t(1)));
-        REQUIRE(contains_edge(g, int(1), int(2)));
+        REQUIRE(contains_edge(g, 1, 2));
         REQUIRE(contains_edge(g, size_t(2), size_t(3)));
         
         REQUIRE_FALSE(contains_edge(g, uint32_t(0), uint32_t(3)));
-        REQUIRE_FALSE(contains_edge(g, int(3), int(0)));
+        REQUIRE_FALSE(contains_edge(g, 3, 0));
     }
 
     SECTION("empty graph") {
@@ -2170,16 +2170,16 @@ TEST_CASE("vofl CPO contains_edge(g, uid, vid)", "[dynamic_graph][vofl][cpo][con
         
         // Test with various integral types for IDs
         REQUIRE(contains_edge(g, uint32_t(0), uint32_t(1)));
-        REQUIRE(contains_edge(g, int(1), int(2)));
+        REQUIRE(contains_edge(g, 1, 2));
         REQUIRE(contains_edge(g, size_t(2), size_t(3)));
         
         // Mixed types
         REQUIRE(contains_edge(g, uint32_t(0), size_t(1)));
-        REQUIRE(contains_edge(g, int(1), uint32_t(2)));
+        REQUIRE(contains_edge(g, 1, uint32_t(2)));
         
         // Non-existent with different types
         REQUIRE_FALSE(contains_edge(g, uint32_t(0), uint32_t(3)));
-        REQUIRE_FALSE(contains_edge(g, size_t(3), int(0)));
+        REQUIRE_FALSE(contains_edge(g, size_t(3), 0));
     }
 
     SECTION("star graph") {

@@ -2265,7 +2265,6 @@ TEST_CASE("vov iterator stability", "[dynamic_graph][vov][iterators]") {
 TEST_CASE("vov std::ranges integration", "[dynamic_graph][vov][ranges]") {
   using G = vov_int_int_void;
   using vertex_data = copyable_vertex_t<uint32_t, int>;
-  using edge_data = copyable_edge_t<uint32_t, int>;
 
   SECTION("ranges::count_if on vertices") {
     G g;
@@ -2341,7 +2340,6 @@ TEST_CASE("vov std::ranges integration", "[dynamic_graph][vov][ranges]") {
 TEST_CASE("vov algorithm compatibility", "[dynamic_graph][vov][algorithms]") {
   using G = vov_int_int_void;
   using vertex_data = copyable_vertex_t<uint32_t, int>;
-  using edge_data = copyable_edge_t<uint32_t, int>;
 
   SECTION("std::accumulate on vertex values") {
     G g;
@@ -2417,7 +2415,7 @@ TEST_CASE("vov performance characteristics", "[dynamic_graph][vov][performance]"
     std::vector<edge_data> edges;
     for (uint32_t i = 0; i < n; ++i) {
       for (uint32_t j = 0; j < 10; ++j) {
-        edges.push_back({i, (i + j + 1) % n, static_cast<int>(i * 100 + j)});
+        edges.push_back({i, static_cast<uint32_t>((i + j + 1) % n), static_cast<int>(i * 100 + j)});
       }
     }
     g.load_edges(edges, std::identity{});
