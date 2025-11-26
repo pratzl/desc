@@ -58,7 +58,7 @@ public:
         if constexpr (std::random_access_iterator<VertexIter>) {
             return storage_;
         } else {
-            // Bidirectional iterator - extract key from pair-like value_type
+            // Extract key from pair-like value_type (e.g. map and unordered_map iterator)
             return std::get<0>(*storage_);
         }
     }

@@ -222,6 +222,10 @@ private:
  * A specialization for @c Sourced=false exists as an empty class so any call to @c source_id(g,uv) will
  * generate a compile error.
  * 
+ * The edge descriptor provides a reliable way to get the source vertex id, so storing it on the edge
+ * is optional for most use cases. Howeever, it's useful to support it to provide a fully self-contained
+ * edge object that can be used in the context of an independent graph that is effective in its own right.
+ * 
  * @tparam EV      The edge value type. If "void" is used no user value is stored on the edge and 
  *                 calls to @c edge_value(g,uv) will generate a compile error.
  * @tparam VV      The vertex value type. If "void" is used no user value is stored on the vertex
