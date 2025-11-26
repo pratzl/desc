@@ -37,7 +37,7 @@ using vofl_int_sourced = dynamic_graph<int, void, void, uint32_t, true, vofl_gra
 // 1. Construction Tests (40 tests)
 //==================================================================================================
 
-TEST_CASE("vofl construction", "[vofl][construction]") {
+TEST_CASE("vofl construction", "[dynamic_graph][vofl][construction]") {
     SECTION("default constructor creates empty graph") {
         vofl_void_void_void g;
         REQUIRE(g.size() == 0);
@@ -119,7 +119,7 @@ TEST_CASE("vofl construction", "[vofl][construction]") {
     }
 }
 
-TEST_CASE("vofl construction sourced", "[vofl][construction][sourced]") {
+TEST_CASE("vofl construction sourced", "[dynamic_graph][vofl][construction][sourced]") {
     SECTION("sourced edge construction") {
         vofl_sourced g;
         REQUIRE(g.size() == 0);
@@ -135,7 +135,7 @@ TEST_CASE("vofl construction sourced", "[vofl][construction][sourced]") {
 // 2. Basic Properties Tests (20 tests)
 //==================================================================================================
 
-TEST_CASE("vofl properties", "[vofl][properties]") {
+TEST_CASE("vofl properties", "[dynamic_graph][vofl][properties]") {
     SECTION("size() on empty graph") {
         vofl_void_void_void g;
         REQUIRE(g.size() == 0);
@@ -178,7 +178,7 @@ TEST_CASE("vofl properties", "[vofl][properties]") {
 // 3. Graph Value Tests (15 tests)
 //==================================================================================================
 
-TEST_CASE("vofl graph_value", "[vofl][graph_value]") {
+TEST_CASE("vofl graph_value", "[dynamic_graph][vofl][graph_value]") {
     SECTION("graph_value() with int GV") {
         vofl_void_void_int g(100);
         REQUIRE(g.graph_value() == 100);
@@ -222,7 +222,7 @@ TEST_CASE("vofl graph_value", "[vofl][graph_value]") {
 // 4. Iterator Tests (15 tests)
 //==================================================================================================
 
-TEST_CASE("vofl iterator", "[vofl][iterator]") {
+TEST_CASE("vofl iterator", "[dynamic_graph][vofl][iterator]") {
     SECTION("iterator on empty graph") {
         vofl_void_void_void g;
         auto it = g.begin();
@@ -264,7 +264,7 @@ TEST_CASE("vofl iterator", "[vofl][iterator]") {
 // 5. Type Trait Tests (15 tests)
 //==================================================================================================
 
-TEST_CASE("vofl traits", "[vofl][traits]") {
+TEST_CASE("vofl traits", "[dynamic_graph][vofl][traits]") {
     SECTION("vofl_graph_traits types") {
         using traits = vofl_graph_traits<int, std::string, void, uint32_t, false>;
         
@@ -311,7 +311,7 @@ TEST_CASE("vofl traits", "[vofl][traits]") {
 // 6. Empty Graph Edge Cases (15 tests)
 //==================================================================================================
 
-TEST_CASE("vofl edge_cases", "[vofl][edge_cases]") {
+TEST_CASE("vofl edge_cases", "[dynamic_graph][vofl][edge_cases]") {
     SECTION("multiple empty graphs independent") {
         vofl_void_void_void g1, g2, g3;
         REQUIRE(g1.size() == 0);
@@ -359,236 +359,246 @@ TEST_CASE("vofl edge_cases", "[vofl][edge_cases]") {
 // 7. Value Type Tests (20 tests)
 //==================================================================================================
 
-TEST_CASE("vofl with void edge value", "[vofl][value_types]") {
-    using graph_t = dynamic_graph<void, int, int, uint32_t, false, vofl_graph_traits<void, int, int, uint32_t, false>>;
-    graph_t g(100);
-    REQUIRE(g.graph_value() == 100);
-}
+TEST_CASE("vofl value_types", "[dynamic_graph][vofl][value_types]") {
+    SECTION("with void edge value") {
+        using graph_t = dynamic_graph<void, int, int, uint32_t, false, vofl_graph_traits<void, int, int, uint32_t, false>>;
+        graph_t g(100);
+        REQUIRE(g.graph_value() == 100);
+    }
 
-TEST_CASE("vofl with void vertex value", "[vofl][value_types]") {
-    using graph_t = dynamic_graph<int, void, int, uint32_t, false, vofl_graph_traits<int, void, int, uint32_t, false>>;
-    graph_t g(100);
-    REQUIRE(g.graph_value() == 100);
-}
+    SECTION("with void vertex value") {
+        using graph_t = dynamic_graph<int, void, int, uint32_t, false, vofl_graph_traits<int, void, int, uint32_t, false>>;
+        graph_t g(100);
+        REQUIRE(g.graph_value() == 100);
+    }
 
-TEST_CASE("vofl with void graph value", "[vofl][value_types]") {
-    using graph_t = dynamic_graph<int, int, void, uint32_t, false, vofl_graph_traits<int, int, void, uint32_t, false>>;
-    graph_t g;
-    REQUIRE(g.size() == 0);
-}
+    SECTION("with void graph value") {
+        using graph_t = dynamic_graph<int, int, void, uint32_t, false, vofl_graph_traits<int, int, void, uint32_t, false>>;
+        graph_t g;
+        REQUIRE(g.size() == 0);
+    }
 
-TEST_CASE("vofl with all void values", "[vofl][value_types]") {
-    vofl_void_void_void g;
-    REQUIRE(g.size() == 0);
-}
+    SECTION("with all void values") {
+        vofl_void_void_void g;
+        REQUIRE(g.size() == 0);
+    }
 
-TEST_CASE("vofl with int edge value type", "[vofl][value_types]") {
-    vofl_int_void_void g;
-    REQUIRE(g.size() == 0);
-}
+    SECTION("with int edge value type") {
+        vofl_int_void_void g;
+        REQUIRE(g.size() == 0);
+    }
 
-TEST_CASE("vofl with int vertex value type", "[vofl][value_types]") {
-    vofl_void_int_void g;
-    REQUIRE(g.size() == 0);
-}
+    SECTION("with int vertex value type") {
+        vofl_void_int_void g;
+        REQUIRE(g.size() == 0);
+    }
 
-TEST_CASE("vofl with int graph value type", "[vofl][value_types]") {
-    vofl_void_void_int g(42);
-    REQUIRE(g.graph_value() == 42);
-}
+    SECTION("with int graph value type") {
+        vofl_void_void_int g(42);
+        REQUIRE(g.graph_value() == 42);
+    }
 
-TEST_CASE("vofl with all int values", "[vofl][value_types]") {
-    vofl_int_int_int g(42);
-    REQUIRE(g.graph_value() == 42);
-}
+    SECTION("with all int values") {
+        vofl_int_int_int g(42);
+        REQUIRE(g.graph_value() == 42);
+    }
 
-TEST_CASE("vofl with string edge value type", "[vofl][value_types]") {
-    using graph_t = dynamic_graph<std::string, void, void, uint32_t, false, 
-                                   vofl_graph_traits<std::string, void, void, uint32_t, false>>;
-    graph_t g;
-    REQUIRE(g.size() == 0);
-}
+    SECTION("with string edge value type") {
+        using graph_t = dynamic_graph<std::string, void, void, uint32_t, false, 
+                                       vofl_graph_traits<std::string, void, void, uint32_t, false>>;
+        graph_t g;
+        REQUIRE(g.size() == 0);
+    }
 
-TEST_CASE("vofl with string vertex value type", "[vofl][value_types]") {
-    using graph_t = dynamic_graph<void, std::string, void, uint32_t, false, 
-                                   vofl_graph_traits<void, std::string, void, uint32_t, false>>;
-    graph_t g;
-    REQUIRE(g.size() == 0);
-}
+    SECTION("with string vertex value type") {
+        using graph_t = dynamic_graph<void, std::string, void, uint32_t, false, 
+                                       vofl_graph_traits<void, std::string, void, uint32_t, false>>;
+        graph_t g;
+        REQUIRE(g.size() == 0);
+    }
 
-TEST_CASE("vofl with string graph value type", "[vofl][value_types]") {
-    using graph_t = dynamic_graph<void, void, std::string, uint32_t, false, 
-                                   vofl_graph_traits<void, void, std::string, uint32_t, false>>;
-    graph_t g(std::string("test"));
-    REQUIRE(g.graph_value() == "test");
-}
+    SECTION("with string graph value type") {
+        using graph_t = dynamic_graph<void, void, std::string, uint32_t, false, 
+                                       vofl_graph_traits<void, void, std::string, uint32_t, false>>;
+        graph_t g(std::string("test"));
+        REQUIRE(g.graph_value() == "test");
+    }
 
-TEST_CASE("vofl with all string values", "[vofl][value_types]") {
-    vofl_string_string_string g(std::string("graph"));
-    REQUIRE(g.graph_value() == "graph");
+    SECTION("with all string values") {
+        vofl_string_string_string g(std::string("graph"));
+        REQUIRE(g.graph_value() == "graph");
+    }
 }
 
 //==================================================================================================
 // 8. Vertex ID Type Tests (10 tests)
 //==================================================================================================
 
-TEST_CASE("vofl with uint32_t vertex id", "[vofl][vertex_id]") {
-    using graph_t = dynamic_graph<void, void, void, uint32_t, false, 
-                                   vofl_graph_traits<void, void, void, uint32_t, false>>;
-    graph_t g;
-    REQUIRE(g.size() == 0);
-}
+TEST_CASE("vofl vertex_id", "[dynamic_graph][vofl][vertex_id]") {
+    SECTION("with uint32_t vertex id") {
+        using graph_t = dynamic_graph<void, void, void, uint32_t, false, 
+                                       vofl_graph_traits<void, void, void, uint32_t, false>>;
+        graph_t g;
+        REQUIRE(g.size() == 0);
+    }
 
-TEST_CASE("vofl with uint64_t vertex id", "[vofl][vertex_id]") {
-    using graph_t = dynamic_graph<void, void, void, uint64_t, false, 
-                                   vofl_graph_traits<void, void, void, uint64_t, false>>;
-    graph_t g;
-    REQUIRE(g.size() == 0);
-}
+    SECTION("with uint64_t vertex id") {
+        using graph_t = dynamic_graph<void, void, void, uint64_t, false, 
+                                       vofl_graph_traits<void, void, void, uint64_t, false>>;
+        graph_t g;
+        REQUIRE(g.size() == 0);
+    }
 
-TEST_CASE("vofl with int32_t vertex id", "[vofl][vertex_id]") {
-    using graph_t = dynamic_graph<void, void, void, int32_t, false, 
-                                   vofl_graph_traits<void, void, void, int32_t, false>>;
-    graph_t g;
-    REQUIRE(g.size() == 0);
-}
+    SECTION("with int32_t vertex id") {
+        using graph_t = dynamic_graph<void, void, void, int32_t, false, 
+                                       vofl_graph_traits<void, void, void, int32_t, false>>;
+        graph_t g;
+        REQUIRE(g.size() == 0);
+    }
 
-TEST_CASE("vofl with int8_t vertex id", "[vofl][vertex_id]") {
-    using graph_t = dynamic_graph<void, void, void, int8_t, false, 
-                                   vofl_graph_traits<void, void, void, int8_t, false>>;
-    graph_t g;
-    REQUIRE(g.size() == 0);
-}
+    SECTION("with int8_t vertex id") {
+        using graph_t = dynamic_graph<void, void, void, int8_t, false, 
+                                       vofl_graph_traits<void, void, void, int8_t, false>>;
+        graph_t g;
+        REQUIRE(g.size() == 0);
+    }
 
-TEST_CASE("vofl with int vertex id", "[vofl][vertex_id]") {
-    using graph_t = dynamic_graph<void, void, void, int, false, 
-                                   vofl_graph_traits<void, void, void, int, false>>;
-    graph_t g;
-    REQUIRE(g.size() == 0);
+    SECTION("with int vertex id") {
+        using graph_t = dynamic_graph<void, void, void, int, false, 
+                                       vofl_graph_traits<void, void, void, int, false>>;
+        graph_t g;
+        REQUIRE(g.size() == 0);
+    }
 }
 
 //==================================================================================================
 // 9. Sourced Edge Tests (15 tests)
 //==================================================================================================
 
-TEST_CASE("vofl sourced=false by default", "[vofl][sourced]") {
-    vofl_void_void_void g;
-    using traits = vofl_graph_traits<void, void, void, uint32_t, false>;
-    STATIC_REQUIRE(traits::sourced == false);
-}
+TEST_CASE("vofl sourced", "[dynamic_graph][vofl][sourced]") {
+    SECTION("sourced=false by default") {
+        vofl_void_void_void g;
+        using traits = vofl_graph_traits<void, void, void, uint32_t, false>;
+        STATIC_REQUIRE(traits::sourced == false);
+    }
 
-TEST_CASE("vofl sourced=true explicit", "[vofl][sourced]") {
-    vofl_sourced g;
-    using traits = vofl_graph_traits<void, void, void, uint32_t, true>;
-    STATIC_REQUIRE(traits::sourced == true);
-}
+    SECTION("sourced=true explicit") {
+        vofl_sourced g;
+        using traits = vofl_graph_traits<void, void, void, uint32_t, true>;
+        STATIC_REQUIRE(traits::sourced == true);
+    }
 
-TEST_CASE("vofl sourced with void values", "[vofl][sourced]") {
-    vofl_sourced g;
-    REQUIRE(g.size() == 0);
-}
+    SECTION("sourced with void values") {
+        vofl_sourced g;
+        REQUIRE(g.size() == 0);
+    }
 
-TEST_CASE("vofl sourced with int edge value", "[vofl][sourced]") {
-    vofl_int_sourced g;
-    REQUIRE(g.size() == 0);
-}
+    SECTION("sourced with int edge value") {
+        vofl_int_sourced g;
+        REQUIRE(g.size() == 0);
+    }
 
-TEST_CASE("vofl sourced copy construction", "[vofl][sourced]") {
-    vofl_sourced g1;
-    vofl_sourced g2 = g1;
-    REQUIRE(g2.size() == 0);
-}
+    SECTION("sourced copy construction") {
+        vofl_sourced g1;
+        vofl_sourced g2 = g1;
+        REQUIRE(g2.size() == 0);
+    }
 
-TEST_CASE("vofl sourced move construction", "[vofl][sourced]") {
-    vofl_sourced g1;
-    vofl_sourced g2 = std::move(g1);
-    REQUIRE(g2.size() == 0);
+    SECTION("sourced move construction") {
+        vofl_sourced g1;
+        vofl_sourced g2 = std::move(g1);
+        REQUIRE(g2.size() == 0);
+    }
 }
 
 //==================================================================================================
 // 10. Const Correctness Tests (15 tests)
 //==================================================================================================
 
-TEST_CASE("vofl const graph size()", "[vofl][const]") {
-    const vofl_void_void_void g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vofl const graph empty()", "[vofl][const]") {
-    const vofl_void_void_void g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vofl const graph begin/end", "[vofl][const]") {
-    const vofl_void_void_void g;
-    REQUIRE(g.begin() == g.end());
-}
-
-TEST_CASE("vofl const graph iteration", "[vofl][const]") {
-    const vofl_void_void_void g;
-    int count = 0;
-    for ([[maybe_unused]] const auto& v : g) {
-        ++count;
+TEST_CASE("vofl const", "[dynamic_graph][vofl][const]") {
+    SECTION("const graph size()") {
+        const vofl_void_void_void g;
+        REQUIRE(g.size() == 0);
     }
-    REQUIRE(count == 0);
-}
 
-TEST_CASE("vofl const graph with graph value", "[vofl][const]") {
-    const vofl_void_void_int g(42);
-    REQUIRE(g.graph_value() == 42);
-}
+    SECTION("const graph empty()") {
+        const vofl_void_void_void g;
+        REQUIRE(g.size() == 0);
+    }
 
-TEST_CASE("vofl const graph cbegin/cend", "[vofl][const]") {
-    const vofl_void_void_void g;
-    REQUIRE(g.cbegin() == g.cend());
+    SECTION("const graph begin/end") {
+        const vofl_void_void_void g;
+        REQUIRE(g.begin() == g.end());
+    }
+
+    SECTION("const graph iteration") {
+        const vofl_void_void_void g;
+        int count = 0;
+        for ([[maybe_unused]] const auto& v : g) {
+            ++count;
+        }
+        REQUIRE(count == 0);
+    }
+
+    SECTION("const graph with graph value") {
+        const vofl_void_void_int g(42);
+        REQUIRE(g.graph_value() == 42);
+    }
+
+    SECTION("const graph cbegin/cend") {
+        const vofl_void_void_void g;
+        REQUIRE(g.cbegin() == g.cend());
+    }
 }
 
 //==================================================================================================
 // 11. Memory and Resource Tests (10 tests)
 //==================================================================================================
 
-TEST_CASE("vofl multiple graphs do not interfere", "[vofl][memory]") {
-    vofl_int_int_int g1(100);
-    vofl_int_int_int g2(200);
-    vofl_int_int_int g3(300);
-    
-    REQUIRE(g1.graph_value() == 100);
-    REQUIRE(g2.graph_value() == 200);
-    REQUIRE(g3.graph_value() == 300);
-}
+TEST_CASE("vofl memory", "[dynamic_graph][vofl][memory]") {
+    SECTION("multiple graphs do not interfere") {
+        vofl_int_int_int g1(100);
+        vofl_int_int_int g2(200);
+        vofl_int_int_int g3(300);
+        
+        REQUIRE(g1.graph_value() == 100);
+        REQUIRE(g2.graph_value() == 200);
+        REQUIRE(g3.graph_value() == 300);
+    }
 
-TEST_CASE("vofl copy does not alias", "[vofl][memory]") {
-    vofl_int_int_int g1(100);
-    vofl_int_int_int g2 = g1;
-    
-    g2.graph_value() = 200;
-    REQUIRE(g1.graph_value() == 100);
-    REQUIRE(g2.graph_value() == 200);
-}
+    SECTION("copy does not alias") {
+        vofl_int_int_int g1(100);
+        vofl_int_int_int g2 = g1;
+        
+        g2.graph_value() = 200;
+        REQUIRE(g1.graph_value() == 100);
+        REQUIRE(g2.graph_value() == 200);
+    }
 
-TEST_CASE("vofl clear preserves type", "[vofl][memory]") {
-    vofl_int_int_int g(42);
-    g.clear();
-    REQUIRE(g.size() == 0);
-    // Type is still int, we can set a new value
-    g.graph_value() = 100;
-    REQUIRE(g.graph_value() == 100);
-}
+    SECTION("clear preserves type") {
+        vofl_int_int_int g(42);
+        g.clear();
+        REQUIRE(g.size() == 0);
+        // Type is still int, we can set a new value
+        g.graph_value() = 100;
+        REQUIRE(g.graph_value() == 100);
+    }
 
-TEST_CASE("vofl move leaves source valid but unspecified", "[vofl][memory]") {
-    vofl_int_int_int g1(100);
-    vofl_int_int_int g2 = std::move(g1);
-    
-    // g1 is valid but unspecified, we can still use it safely
-    g1.clear();
-    REQUIRE(g1.size() == 0);
+    SECTION("move leaves source valid but unspecified") {
+        vofl_int_int_int g1(100);
+        vofl_int_int_int g2 = std::move(g1);
+        
+        // g1 is valid but unspecified, we can still use it safely
+        g1.clear();
+        REQUIRE(g1.size() == 0);
+    }
 }
 
 //==================================================================================================
 // 12. Compilation Tests (static assertions)
 //==================================================================================================
 
-TEST_CASE("vofl various template instantiations compile", "[vofl][compilation]") {
+TEST_CASE("vofl various template instantiations compile", "[dynamic_graph][vofl][compilation]") {
     // Just test that these types compile
     [[maybe_unused]] vofl_void_void_void g1;
     [[maybe_unused]] vofl_int_void_void g2;
@@ -612,16 +622,16 @@ static_assert(std::ranges::range<vofl_string_string_string>);
 // Initializer List Constructor Tests
 //==================================================================================================
 
-TEST_CASE("vofl initializer_list constructor with void edge values", "[vofl][construction][initializer_list]") {
-  using G = vofl_void_void_void;
-
-  SECTION("empty initializer list") {
+TEST_CASE("vofl construction initializer_list", "[dynamic_graph][vofl][construction][initializer_list]") {
+  SECTION("void edge values - empty initializer list") {
+    using G = vofl_void_void_void;
     G g({});
     // Empty initializer list may create vertex 0 for sizing
     REQUIRE(g.size() <= 1);
   }
 
-  SECTION("single edge") {
+  SECTION("void edge values - single edge") {
+    using G = vofl_void_void_void;
     G g({{0, 1}});
     REQUIRE(g.size() == 2);
     auto& u = g[0];
@@ -631,7 +641,8 @@ TEST_CASE("vofl initializer_list constructor with void edge values", "[vofl][con
     REQUIRE(it->target_id() == 1);
   }
 
-  SECTION("multiple edges from same vertex") {
+  SECTION("void edge values - multiple edges from same vertex") {
+    using G = vofl_void_void_void;
     G g({{0, 1}, {0, 2}, {0, 3}});
     REQUIRE(g.size() == 4);
     auto& u = g[0];
@@ -639,7 +650,8 @@ TEST_CASE("vofl initializer_list constructor with void edge values", "[vofl][con
     REQUIRE(std::ranges::distance(edges) == 3);
   }
 
-  SECTION("triangle graph") {
+  SECTION("void edge values - triangle graph") {
+    using G = vofl_void_void_void;
     G g({{0, 1}, {1, 2}, {2, 0}});
     REQUIRE(g.size() == 3);
     
@@ -656,7 +668,8 @@ TEST_CASE("vofl initializer_list constructor with void edge values", "[vofl][con
     REQUIRE(v2.edges().begin()->target_id() == 0);
   }
 
-  SECTION("self-loop") {
+  SECTION("void edge values - self-loop") {
+    using G = vofl_void_void_void;
     G g({{0, 0}});
     REQUIRE(g.size() == 1);
     auto& u = g[0];
@@ -665,7 +678,8 @@ TEST_CASE("vofl initializer_list constructor with void edge values", "[vofl][con
     REQUIRE(edges.begin()->target_id() == 0);
   }
 
-  SECTION("parallel edges") {
+  SECTION("void edge values - parallel edges") {
+    using G = vofl_void_void_void;
     G g({{0, 1}, {0, 1}, {0, 1}});
     REQUIRE(g.size() == 2);
     auto& u = g[0];
@@ -674,16 +688,14 @@ TEST_CASE("vofl initializer_list constructor with void edge values", "[vofl][con
     REQUIRE(std::ranges::distance(edges) == 3);
   }
 
-  SECTION("large vertex IDs") {
+  SECTION("void edge values - large vertex IDs") {
+    using G = vofl_void_void_void;
     G g({{100, 200}});
     REQUIRE(g.size() == 201);  // auto-extends to accommodate vertex 200
   }
-}
 
-TEST_CASE("vofl initializer_list constructor with int edge values", "[vofl][construction][initializer_list]") {
-  using G = vofl_int_void_void;
-
-  SECTION("edges with values") {
+  SECTION("int edge values - edges with values") {
+    using G = vofl_int_void_void;
     G g({{0, 1, 10}, {1, 2, 20}, {2, 0, 30}});
     REQUIRE(g.size() == 3);
     
@@ -706,14 +718,16 @@ TEST_CASE("vofl initializer_list constructor with int edge values", "[vofl][cons
     REQUIRE(edges2.begin()->value() == 30);
   }
 
-  SECTION("edges with zero values") {
+  SECTION("int edge values - edges with zero values") {
+    using G = vofl_int_void_void;
     G g({{0, 1, 0}, {1, 2, 0}});
     REQUIRE(g.size() == 3);
     auto& v0 = g[0];
     REQUIRE(v0.edges().begin()->value() == 0);
   }
 
-  SECTION("edges with negative values") {
+  SECTION("int edge values - edges with negative values") {
+    using G = vofl_int_void_void;
     G g({{0, 1, -5}, {1, 2, -10}});
     REQUIRE(g.size() == 3);
     auto& v0 = g[0];
@@ -721,12 +735,9 @@ TEST_CASE("vofl initializer_list constructor with int edge values", "[vofl][cons
     auto& v1 = g[1];
     REQUIRE(v1.edges().begin()->value() == -10);
   }
-}
 
-TEST_CASE("vofl initializer_list constructor with string edge values", "[vofl][construction][initializer_list]") {
-  using G = vofl_string_string_string;
-
-  SECTION("edges with string values") {
+  SECTION("string edge values - edges with string values") {
+    using G = vofl_string_string_string;
     G g({{0, 1, "edge01"}, {1, 2, "edge12"}});
     REQUIRE(g.size() == 3);
     
@@ -739,18 +750,16 @@ TEST_CASE("vofl initializer_list constructor with string edge values", "[vofl][c
     REQUIRE(edges1.begin()->value() == "edge12");
   }
 
-  SECTION("edges with empty string values") {
+  SECTION("string edge values - edges with empty string values") {
+    using G = vofl_string_string_string;
     G g({{0, 1, ""}, {1, 2, ""}});
     REQUIRE(g.size() == 3);
     auto& v0 = g[0];
     REQUIRE(v0.edges().begin()->value() == "");
   }
-}
 
-TEST_CASE("vofl initializer_list constructor with graph value (copy)", "[vofl][construction][initializer_list]") {
-  using G = vofl_void_void_int;
-
-  SECTION("construct with graph value and edges") {
+  SECTION("graph value copy - construct with graph value and edges") {
+    using G = vofl_void_void_int;
     int graph_val = 42;
     G g(graph_val, {{0, 1}, {1, 2}});
     REQUIRE(g.size() == 3);
@@ -762,7 +771,8 @@ TEST_CASE("vofl initializer_list constructor with graph value (copy)", "[vofl][c
     REQUIRE(v0.edges().begin()->target_id() == 1);
   }
 
-  SECTION("construct with graph value and empty edges") {
+  SECTION("graph value copy - construct with graph value and empty edges") {
+    using G = vofl_void_void_int;
     int graph_val = 100;
     G g(graph_val, {});
     // Empty initializer list may create vertex 0 for sizing
@@ -770,19 +780,17 @@ TEST_CASE("vofl initializer_list constructor with graph value (copy)", "[vofl][c
     REQUIRE(g.graph_value() == 100);
   }
 
-  SECTION("graph value is copied") {
+  SECTION("graph value copy - graph value is copied") {
+    using G = vofl_void_void_int;
     int graph_val = 50;
     G g(graph_val, {{0, 1}});
     REQUIRE(g.graph_value() == 50);
     graph_val = 999;  // Modify original
     REQUIRE(g.graph_value() == 50);  // Graph value unchanged
   }
-}
 
-TEST_CASE("vofl initializer_list constructor with graph value (move)", "[vofl][construction][initializer_list]") {
-  using G = vofl_string_string_string;
-
-  SECTION("construct with moved graph value") {
+  SECTION("graph value move - construct with moved graph value") {
+    using G = vofl_string_string_string;
     std::string graph_val = "test_graph";
     G g(std::move(graph_val), {{0, 1, "edge"}, {1, 2, "edge2"}});
     REQUIRE(g.size() == 3);
@@ -790,17 +798,15 @@ TEST_CASE("vofl initializer_list constructor with graph value (move)", "[vofl][c
     // graph_val may or may not be empty after move (implementation-defined)
   }
 
-  SECTION("construct with rvalue graph value") {
+  SECTION("graph value move - construct with rvalue graph value") {
+    using G = vofl_string_string_string;
     G g(std::string("rvalue_graph"), {{0, 1, "e1"}});
     REQUIRE(g.size() == 2);
     REQUIRE(g.graph_value() == "rvalue_graph");
   }
-}
 
-TEST_CASE("vofl initializer_list constructor with all value types", "[vofl][construction][initializer_list]") {
-  using G = vofl_int_int_int;
-
-  SECTION("construct with all int values") {
+  SECTION("all value types - construct with all int values") {
+    using G = vofl_int_int_int;
     int graph_val = 1000;
     G g(graph_val, {{0, 1, 10}, {1, 2, 20}, {2, 3, 30}});
     REQUIRE(g.size() == 4);
@@ -817,29 +823,9 @@ TEST_CASE("vofl initializer_list constructor with all value types", "[vofl][cons
     auto& v1 = g[1];
     REQUIRE(v1.edges().begin()->value() == 20);
   }
-}
 
-TEST_CASE("vofl initializer_list constructor with sourced edges", "[vofl][construction][initializer_list][sourced]") {
-  using G = vofl_sourced;
-
-  SECTION("construct sourced graph with initializer list") {
-    G g({{0, 1}, {1, 2}, {2, 0}});
-    REQUIRE(g.size() == 3);
-    
-    // Verify sourced edges have source_id
-    auto& v0 = g[0];
-    auto edges0 = v0.edges();
-    REQUIRE(std::ranges::distance(edges0) == 1);
-    auto e0 = edges0.begin();
-    REQUIRE(e0->source_id() == 0);
-    REQUIRE(e0->target_id() == 1);
-  }
-}
-
-TEST_CASE("vofl initializer_list complex graph patterns", "[vofl][construction][initializer_list]") {
-  using G = vofl_int_void_void;
-
-  SECTION("star graph") {
+  SECTION("complex - star graph") {
+    using G = vofl_int_void_void;
     // Central vertex 0 connected to vertices 1-5
     G g({{0, 1, 1}, {0, 2, 2}, {0, 3, 3}, {0, 4, 4}, {0, 5, 5}});
     REQUIRE(g.size() == 6);
@@ -847,7 +833,8 @@ TEST_CASE("vofl initializer_list complex graph patterns", "[vofl][construction][
     REQUIRE(std::ranges::distance(center.edges()) == 5);
   }
 
-  SECTION("complete graph K4") {
+  SECTION("complex - complete graph K4") {
+    using G = vofl_int_void_void;
     G g({
       {0, 1, 1}, {0, 2, 2}, {0, 3, 3},
       {1, 0, 4}, {1, 2, 5}, {1, 3, 6},
@@ -861,7 +848,8 @@ TEST_CASE("vofl initializer_list complex graph patterns", "[vofl][construction][
     }
   }
 
-  SECTION("chain graph") {
+  SECTION("complex - chain graph") {
+    using G = vofl_int_void_void;
     G g({{0, 1, 1}, {1, 2, 2}, {2, 3, 3}, {3, 4, 4}});
     REQUIRE(g.size() == 5);
     // Each vertex except last should have 1 edge
@@ -872,7 +860,8 @@ TEST_CASE("vofl initializer_list complex graph patterns", "[vofl][construction][
     REQUIRE(std::ranges::distance(g[4].edges()) == 0);
   }
 
-  SECTION("cycle graph") {
+  SECTION("complex - cycle graph") {
+    using G = vofl_int_void_void;
     G g({{0, 1, 1}, {1, 2, 2}, {2, 3, 3}, {3, 4, 4}, {4, 0, 5}});
     REQUIRE(g.size() == 5);
     // Each vertex should have exactly 1 edge
@@ -882,23 +871,40 @@ TEST_CASE("vofl initializer_list complex graph patterns", "[vofl][construction][
   }
 }
 
+TEST_CASE("vofl construction initializer_list sourced", "[dynamic_graph][vofl][construction][initializer_list][sourced]") {
+  SECTION("construct sourced graph with initializer list") {
+    using G = vofl_sourced;
+    G g({{0, 1}, {1, 2}, {2, 0}});
+    REQUIRE(g.size() == 3);
+    
+    // Verify sourced edges have source_id
+    auto& v0 = g[0];
+    auto edges0 = v0.edges();
+    REQUIRE(std::ranges::distance(edges0) == 1);
+    auto e0 = edges0.begin();
+    REQUIRE(e0->source_id() == 0);
+    REQUIRE(e0->target_id() == 1);
+  }
+}
+
 //==================================================================================================
 //==================================================================================================
 // Load Operations Tests
 //==================================================================================================
 
-TEST_CASE("vofl load_vertices with identity projection", "[dynamic_graph][vofl][load_vertices]") {
-  using G = vofl_int_int_void;
-  using vertex_data = copyable_vertex_t<uint32_t, int>;
-
-  SECTION("load empty vertex range") {
+TEST_CASE("vofl load_vertices", "[dynamic_graph][vofl][load_vertices]") {
+  SECTION("identity projection - load empty vertex range") {
+    using G = vofl_int_int_void;
+    using vertex_data = copyable_vertex_t<uint32_t, int>;
     G g;
     std::vector<vertex_data> vertices;
     g.load_vertices(vertices, std::identity{});
     REQUIRE(g.size() == 0);
   }
 
-  SECTION("load single vertex") {
+  SECTION("identity projection - load single vertex") {
+    using G = vofl_int_int_void;
+    using vertex_data = copyable_vertex_t<uint32_t, int>;
     G g;
     std::vector<vertex_data> vertices = {{0, 100}};
     g.load_vertices(vertices, std::identity{});
@@ -906,7 +912,9 @@ TEST_CASE("vofl load_vertices with identity projection", "[dynamic_graph][vofl][
     REQUIRE(g[0].value() == 100);
   }
 
-  SECTION("load multiple vertices") {
+  SECTION("identity projection - load multiple vertices") {
+    using G = vofl_int_int_void;
+    using vertex_data = copyable_vertex_t<uint32_t, int>;
     G g;
     std::vector<vertex_data> vertices = {{0, 10}, {1, 20}, {2, 30}, {3, 40}, {4, 50}};
     g.load_vertices(vertices, std::identity{});
@@ -917,13 +925,10 @@ TEST_CASE("vofl load_vertices with identity projection", "[dynamic_graph][vofl][
     REQUIRE(g[3].value() == 40);
     REQUIRE(g[4].value() == 50);
   }
-}
 
-TEST_CASE("vofl load_vertices with custom projection", "[dynamic_graph][vofl][load_vertices]") {
-  using G = dynamic_graph<int, std::string, void, uint32_t, false, vofl_graph_traits<int, std::string, void, uint32_t, false>>;
-  using vertex_data = copyable_vertex_t<uint32_t, std::string>;
-
-  SECTION("load with projection from struct") {
+  SECTION("custom projection - load with projection from struct") {
+    using G = dynamic_graph<int, std::string, void, uint32_t, false, vofl_graph_traits<int, std::string, void, uint32_t, false>>;
+    using vertex_data = copyable_vertex_t<uint32_t, std::string>;
     struct Person {
       uint32_t id;
       std::string name;
@@ -941,12 +946,9 @@ TEST_CASE("vofl load_vertices with custom projection", "[dynamic_graph][vofl][lo
     REQUIRE(g[1].value() == "Bob");
     REQUIRE(g[2].value() == "Charlie");
   }
-}
 
-TEST_CASE("vofl load_vertices with void vertex values", "[dynamic_graph][vofl][load_vertices]") {
-  using G = vofl_int_void_void;
-
-  SECTION("load creates vertices without values - using default constructor") {
+  SECTION("void vertex values - load creates vertices without values") {
+    using G = vofl_int_void_void;
     G g;
     // With void vertex values, we can't use load_vertices because copyable_vertex_t<VId, void>
     // only has {id} but load_vertices expects {id, value}. Instead, test construction.
@@ -955,12 +957,11 @@ TEST_CASE("vofl load_vertices with void vertex values", "[dynamic_graph][vofl][l
   }
 }
 
-TEST_CASE("vofl load_edges with identity projection", "[dynamic_graph][vofl][load_edges]") {
-  using G = vofl_int_int_void;
-  using vertex_data = copyable_vertex_t<uint32_t, int>;
-  using edge_data = copyable_edge_t<uint32_t, int>;
-
-  SECTION("load empty edge range") {
+TEST_CASE("vofl load_edges", "[dynamic_graph][vofl][load_edges]") {
+  SECTION("identity projection - load empty edge range") {
+    using G = vofl_int_int_void;
+    using vertex_data = copyable_vertex_t<uint32_t, int>;
+    using edge_data = copyable_edge_t<uint32_t, int>;
     G g;
     std::vector<vertex_data> vertices = {{0, 10}, {1, 20}, {2, 30}};
     g.load_vertices(vertices, std::identity{});
@@ -979,7 +980,10 @@ TEST_CASE("vofl load_edges with identity projection", "[dynamic_graph][vofl][loa
     }
   }
 
-  SECTION("load single edge") {
+  SECTION("identity projection - load single edge") {
+    using G = vofl_int_int_void;
+    using vertex_data = copyable_vertex_t<uint32_t, int>;
+    using edge_data = copyable_edge_t<uint32_t, int>;
     G g;
     std::vector<vertex_data> vertices = {{0, 10}, {1, 20}, {2, 30}};
     g.load_vertices(vertices, std::identity{});
@@ -997,7 +1001,10 @@ TEST_CASE("vofl load_edges with identity projection", "[dynamic_graph][vofl][loa
     REQUIRE(count == 1);
   }
 
-  SECTION("load multiple edges from one vertex") {
+  SECTION("identity projection - load multiple edges from one vertex") {
+    using G = vofl_int_int_void;
+    using vertex_data = copyable_vertex_t<uint32_t, int>;
+    using edge_data = copyable_edge_t<uint32_t, int>;
     G g;
     std::vector<vertex_data> vertices = {{0, 10}, {1, 20}, {2, 30}, {3, 40}};
     g.load_vertices(vertices, std::identity{});
@@ -1013,7 +1020,10 @@ TEST_CASE("vofl load_edges with identity projection", "[dynamic_graph][vofl][loa
     REQUIRE(count == 3);
   }
 
-  SECTION("load edges from multiple vertices") {
+  SECTION("identity projection - load edges from multiple vertices") {
+    using G = vofl_int_int_void;
+    using vertex_data = copyable_vertex_t<uint32_t, int>;
+    using edge_data = copyable_edge_t<uint32_t, int>;
     G g;
     std::vector<vertex_data> vertices = {{0, 10}, {1, 20}, {2, 30}};
     g.load_vertices(vertices, std::identity{});
@@ -1031,14 +1041,11 @@ TEST_CASE("vofl load_edges with identity projection", "[dynamic_graph][vofl][loa
     REQUIRE(count1 == 1);
     REQUIRE(count2 == 1);
   }
-}
 
-TEST_CASE("vofl load_edges with void edge values", "[dynamic_graph][vofl][load_edges]") {
-  using G = vofl_void_int_void;
-  using vertex_data = copyable_vertex_t<uint32_t, int>;
-  using edge_data = copyable_edge_t<uint32_t, void>;
-
-  SECTION("load edges without values") {
+  SECTION("void edge values - load edges without values") {
+    using G = vofl_void_int_void;
+    using vertex_data = copyable_vertex_t<uint32_t, int>;
+    using edge_data = copyable_edge_t<uint32_t, void>;
     G g;
     std::vector<vertex_data> vertices = {{0, 10}, {1, 20}, {2, 30}};
     g.load_vertices(vertices, std::identity{});
@@ -1056,14 +1063,11 @@ TEST_CASE("vofl load_edges with void edge values", "[dynamic_graph][vofl][load_e
     }
     REQUIRE(total_edges == 3);
   }
-}
 
-TEST_CASE("vofl load_edges with custom projection", "[dynamic_graph][vofl][load_edges]") {
-  using G = dynamic_graph<std::string, int, void, uint32_t, false, vofl_graph_traits<std::string, int, void, uint32_t, false>>;
-  using vertex_data = copyable_vertex_t<uint32_t, int>;
-  using edge_data = copyable_edge_t<uint32_t, std::string>;
-
-  SECTION("load with projection from custom struct") {
+  SECTION("custom projection - load with projection from custom struct") {
+    using G = dynamic_graph<std::string, int, void, uint32_t, false, vofl_graph_traits<std::string, int, void, uint32_t, false>>;
+    using vertex_data = copyable_vertex_t<uint32_t, int>;
+    using edge_data = copyable_edge_t<uint32_t, std::string>;
     struct Edge {
       uint32_t from;
       uint32_t to;
@@ -1089,14 +1093,11 @@ TEST_CASE("vofl load_edges with custom projection", "[dynamic_graph][vofl][load_
     }
     REQUIRE(total == 2);
   }
-}
 
-TEST_CASE("vofl load_edges with self-loops", "[dynamic_graph][vofl][load_edges]") {
-  using G = vofl_int_int_void;
-  using vertex_data = copyable_vertex_t<uint32_t, int>;
-  using edge_data = copyable_edge_t<uint32_t, int>;
-
-  SECTION("load single self-loop") {
+  SECTION("self-loops - load single self-loop") {
+    using G = vofl_int_int_void;
+    using vertex_data = copyable_vertex_t<uint32_t, int>;
+    using edge_data = copyable_edge_t<uint32_t, int>;
     G g;
     std::vector<vertex_data> vertices = {{0, 10}, {1, 20}};
     g.load_vertices(vertices, std::identity{});
@@ -1112,7 +1113,10 @@ TEST_CASE("vofl load_edges with self-loops", "[dynamic_graph][vofl][load_edges]"
     REQUIRE(count == 1);
   }
 
-  SECTION("load multiple self-loops") {
+  SECTION("self-loops - load multiple self-loops") {
+    using G = vofl_int_int_void;
+    using vertex_data = copyable_vertex_t<uint32_t, int>;
+    using edge_data = copyable_edge_t<uint32_t, int>;
     G g;
     std::vector<vertex_data> vertices = {{0, 10}};
     g.load_vertices(vertices, std::identity{});
@@ -1127,14 +1131,11 @@ TEST_CASE("vofl load_edges with self-loops", "[dynamic_graph][vofl][load_edges]"
     }
     REQUIRE(count == 3);
   }
-}
 
-TEST_CASE("vofl load_edges with parallel edges", "[dynamic_graph][vofl][load_edges]") {
-  using G = vofl_int_int_void;
-  using vertex_data = copyable_vertex_t<uint32_t, int>;
-  using edge_data = copyable_edge_t<uint32_t, int>;
-
-  SECTION("load multiple edges between same vertices") {
+  SECTION("parallel edges - load multiple edges between same vertices") {
+    using G = vofl_int_int_void;
+    using vertex_data = copyable_vertex_t<uint32_t, int>;
+    using edge_data = copyable_edge_t<uint32_t, int>;
     G g;
     std::vector<vertex_data> vertices = {{0, 10}, {1, 20}};
     g.load_vertices(vertices, std::identity{});
@@ -1154,14 +1155,11 @@ TEST_CASE("vofl load_edges with parallel edges", "[dynamic_graph][vofl][load_edg
     REQUIRE(std::find(values.begin(), values.end(), 200) != values.end());
     REQUIRE(std::find(values.begin(), values.end(), 300) != values.end());
   }
-}
 
-TEST_CASE("vofl load_edges with large edge sets", "[dynamic_graph][vofl][load_edges]") {
-  using G = vofl_int_int_void;
-  using vertex_data = copyable_vertex_t<uint32_t, int>;
-  using edge_data = copyable_edge_t<uint32_t, int>;
-
-  SECTION("load 1000 edges") {
+  SECTION("large edge sets - load 1000 edges") {
+    using G = vofl_int_int_void;
+    using vertex_data = copyable_vertex_t<uint32_t, int>;
+    using edge_data = copyable_edge_t<uint32_t, int>;
     G g;
     std::vector<vertex_data> vertices(100);
     for (uint32_t i = 0; i < 100; ++i) {
