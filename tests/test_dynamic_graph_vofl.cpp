@@ -172,6 +172,134 @@ TEST_CASE("vofl properties", "[dynamic_graph][vofl][properties]") {
         vofl_void_void_void g;
         REQUIRE(g.cbegin() == g.cend());
     }
+
+    SECTION("count total edges in graph") {
+        using G = vofl_int_int_void;
+        using vertex_data = copyable_vertex_t<uint32_t, int>;
+        using edge_data = copyable_edge_t<uint32_t, int>;
+        G g;
+        std::vector<vertex_data> vertices = {{0, 1}, {1, 2}, {2, 3}, {3, 4}};
+        g.load_vertices(vertices, std::identity{});
+
+        std::vector<edge_data> edges = {
+            {0, 1, 1}, {0, 2, 2}, {0, 3, 3},
+            {1, 2, 4}, {1, 3, 5},
+            {2, 3, 6}};
+        g.load_edges(edges, std::identity{});
+
+        size_t total_edges = 0;
+        for (auto& v : g) {
+          for (auto& e : v.edges()) {
+            ++total_edges;
+            (void)e;
+          }
+        }
+        REQUIRE(total_edges == 6);
+    }
+
+    SECTION("find vertices with no outgoing edges") {
+        using G = vofl_int_int_void;
+        using vertex_data = copyable_vertex_t<uint32_t, int>;
+        using edge_data = copyable_edge_t<uint32_t, int>;
+        G g;
+        std::vector<vertex_data> vertices = {{0, 1}, {1, 2}, {2, 3}, {3, 4}};
+        g.load_vertices(vertices, std::identity{});
+
+        std::vector<edge_data> edges = {{0, 1, 10}, {1, 2, 20}};
+        g.load_edges(edges, std::identity{});
+
+        std::vector<size_t> sinks;
+        for (size_t i = 0; i < g.size(); ++i) {
+          size_t count = 0;
+          for (auto& e : g[i].edges()) {
+            ++count;
+            (void)e;
+          }
+          if (count == 0) {
+            sinks.push_back(i);
+          }
+        }
+        
+        REQUIRE(sinks.size() == 2);
+        REQUIRE(std::find(sinks.begin(), sinks.end(), 2) != sinks.end());
+        REQUIRE(std::find(sinks.begin(), sinks.end(), 3) != sinks.end());
+    }
+
+    SECTION("compute out-degree for each vertex") {
+        using G = vofl_int_int_void;
+        using vertex_data = copyable_vertex_t<uint32_t, int>;
+        using edge_data = copyable_edge_t<uint32_t, int>;
+        G g;
+        std::vector<vertex_data> vertices;
+        for (uint32_t i = 0; i < 5; ++i) {
+          vertices.push_back({i, static_cast<int>(i)});
+        }
+        g.load_vertices(vertices, std::identity{});
+
+        std::vector<edge_data> edges = {
+            {0, 1, 1}, {0, 2, 2}, {0, 3, 3}, // vertex 0: degree 3
+            {1, 2, 4}, {1, 4, 5},             // vertex 1: degree 2
+            {2, 4, 6},                         // vertex 2: degree 1
+            // vertex 3: degree 0
+            {4, 0, 7}};                        // vertex 4: degree 1
+
+        g.load_edges(edges, std::identity{});
+
+        std::vector<size_t> degrees;
+        for (auto& v : g) {
+          size_t degree = 0;
+          for (auto& e : v.edges()) {
+            ++degree;
+            (void)e;
+          }
+          degrees.push_back(degree);
+        }
+
+        REQUIRE(degrees[0] == 3);
+        REQUIRE(degrees[1] == 2);
+        REQUIRE(degrees[2] == 1);
+        REQUIRE(degrees[3] == 0);
+        REQUIRE(degrees[4] == 1);
+    }
+
+    SECTION("find maximum degree vertex") {
+        using G = vofl_int_int_void;
+        using vertex_data = copyable_vertex_t<uint32_t, int>;
+        using edge_data = copyable_edge_t<uint32_t, int>;
+        G g;
+        std::vector<vertex_data> vertices;
+        for (uint32_t i = 0; i < 6; ++i) {
+          vertices.push_back({i, static_cast<int>(i)});
+        }
+        g.load_vertices(vertices, std::identity{});
+
+        // Vertex 2 has highest degree
+        std::vector<edge_data> edges = {
+            {0, 1, 1},
+            {1, 2, 2},
+            {2, 0, 3}, {2, 1, 4}, {2, 3, 5}, {2, 4, 6}, {2, 5, 7},
+            {3, 4, 8},
+            {4, 5, 9}};
+        g.load_edges(edges, std::identity{});
+
+        size_t max_degree = 0;
+        size_t max_vertex_idx = 0;
+        
+        for (size_t i = 0; i < g.size(); ++i) {
+          size_t degree = 0;
+          for (auto& e : g[i].edges()) {
+            ++degree;
+            (void)e;
+          }
+          if (degree > max_degree) {
+            max_degree = degree;
+            max_vertex_idx = i;
+          }
+        }
+
+        REQUIRE(max_vertex_idx == 2);
+        REQUIRE(max_degree == 5);
+    }
 }
 
 //==================================================================================================
@@ -1950,128 +2078,6 @@ TEST_CASE("vofl duplicate and redundant edges", "[dynamic_graph][vofl][duplicate
       REQUIRE(e.value() == 200);
     }
     REQUIRE(count1 == 1);
-  }
-}
-
-TEST_CASE("vofl graph properties and queries", "[dynamic_graph][vofl][properties]") {
-  using G = vofl_int_int_void;
-  using vertex_data = copyable_vertex_t<uint32_t, int>;
-  using edge_data = copyable_edge_t<uint32_t, int>;
-
-  SECTION("count total edges in graph") {
-    G g;
-    std::vector<vertex_data> vertices = {{0, 1}, {1, 2}, {2, 3}, {3, 4}};
-    g.load_vertices(vertices, std::identity{});
-
-    std::vector<edge_data> edges = {
-        {0, 1, 1}, {0, 2, 2}, {0, 3, 3},
-        {1, 2, 4}, {1, 3, 5},
-        {2, 3, 6}};
-    g.load_edges(edges, std::identity{});
-
-    size_t total_edges = 0;
-    for (auto& v : g) {
-      for (auto& e : v.edges()) {
-        ++total_edges;
-        (void)e;
-      }
-    }
-    REQUIRE(total_edges == 6);
-  }
-
-  SECTION("find vertices with no outgoing edges") {
-    G g;
-    std::vector<vertex_data> vertices = {{0, 1}, {1, 2}, {2, 3}, {3, 4}};
-    g.load_vertices(vertices, std::identity{});
-
-    std::vector<edge_data> edges = {{0, 1, 10}, {1, 2, 20}};
-    g.load_edges(edges, std::identity{});
-
-    std::vector<size_t> sinks;
-    for (size_t i = 0; i < g.size(); ++i) {
-      size_t count = 0;
-      for (auto& e : g[i].edges()) {
-        ++count;
-        (void)e;
-      }
-      if (count == 0) {
-        sinks.push_back(i);
-      }
-    }
-    
-    REQUIRE(sinks.size() == 2);
-    REQUIRE(std::find(sinks.begin(), sinks.end(), 2) != sinks.end());
-    REQUIRE(std::find(sinks.begin(), sinks.end(), 3) != sinks.end());
-  }
-
-  SECTION("compute out-degree for each vertex") {
-    G g;
-    std::vector<vertex_data> vertices;
-    for (uint32_t i = 0; i < 5; ++i) {
-      vertices.push_back({i, static_cast<int>(i)});
-    }
-    g.load_vertices(vertices, std::identity{});
-
-    std::vector<edge_data> edges = {
-        {0, 1, 1}, {0, 2, 2}, {0, 3, 3}, // vertex 0: degree 3
-        {1, 2, 4}, {1, 4, 5},             // vertex 1: degree 2
-        {2, 4, 6},                         // vertex 2: degree 1
-        // vertex 3: degree 0
-        {4, 0, 7}};                        // vertex 4: degree 1
-
-    g.load_edges(edges, std::identity{});
-
-    std::vector<size_t> degrees;
-    for (auto& v : g) {
-      size_t degree = 0;
-      for (auto& e : v.edges()) {
-        ++degree;
-        (void)e;
-      }
-      degrees.push_back(degree);
-    }
-
-    REQUIRE(degrees[0] == 3);
-    REQUIRE(degrees[1] == 2);
-    REQUIRE(degrees[2] == 1);
-    REQUIRE(degrees[3] == 0);
-    REQUIRE(degrees[4] == 1);
-  }
-
-  SECTION("find maximum degree vertex") {
-    G g;
-    std::vector<vertex_data> vertices;
-    for (uint32_t i = 0; i < 6; ++i) {
-      vertices.push_back({i, static_cast<int>(i)});
-    }
-    g.load_vertices(vertices, std::identity{});
-
-    // Vertex 2 has highest degree
-    std::vector<edge_data> edges = {
-        {0, 1, 1},
-        {1, 2, 2},
-        {2, 0, 3}, {2, 1, 4}, {2, 3, 5}, {2, 4, 6}, {2, 5, 7},
-        {3, 4, 8},
-        {4, 5, 9}};
-    g.load_edges(edges, std::identity{});
-
-    size_t max_degree = 0;
-    size_t max_vertex_idx = 0;
-    
-    for (size_t i = 0; i < g.size(); ++i) {
-      size_t degree = 0;
-      for (auto& e : g[i].edges()) {
-        ++degree;
-        (void)e;
-      }
-      if (degree > max_degree) {
-        max_degree = degree;
-        max_vertex_idx = i;
-      }
-    }
-
-    REQUIRE(max_vertex_idx == 2);
-    REQUIRE(max_degree == 5);
   }
 }
 
