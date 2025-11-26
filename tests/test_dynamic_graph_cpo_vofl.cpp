@@ -8,7 +8,7 @@
  * 
  * Container: vector<vertex> + forward_list<edge>
  * 
- * Current Status: 139 test cases, 879 assertions passing
+ * Current Status: 152 test cases, 984 assertions passing
  * 
  * CPOs tested (with available friend functions):
  * - vertices(g) - Get vertex range [3 tests]
@@ -25,6 +25,7 @@
  * - find_vertex_edge(g, u, v) - Find edge between vertices [13 tests]
  *   - find_vertex_edge(g, uid, vid) - Additional dedicated tests [11 tests]
  * - contains_edge(g, u, v) and contains_edge(g, uid, vid) - Check if edge exists [15 tests]
+ *   - contains_edge(g, uid, vid) - Additional dedicated tests [13 tests]
  * - vertex_value(g, u) - Access vertex value (when VV != void) [6 tests]
  * - edge_value(g, uv) - Access edge value (when EV != void) [6 tests]
  * - graph_value(g) - Access graph value (when GV != void) [6 tests]
@@ -2014,6 +2015,267 @@ TEST_CASE("vofl CPO contains_edge(g, uid, vid) complete small graph", "[vofl][cp
             }
         }
     }
+}
+
+//--------------------------------------------------------------------------------------------------
+// 12b. Additional dedicated tests for contains_edge(g, uid, vid) overload
+//--------------------------------------------------------------------------------------------------
+
+TEST_CASE("vofl CPO contains_edge(g, uid, vid) basic usage", "[vofl][cpo][contains_edge][uid_vid]") {
+    vofl_void g({{0, 1}, {0, 2}, {1, 2}, {2, 3}});
+    
+    // Test checking edges using only vertex IDs
+    REQUIRE(contains_edge(g, 0, 1));
+    REQUIRE(contains_edge(g, 0, 2));
+    REQUIRE(contains_edge(g, 1, 2));
+    REQUIRE(contains_edge(g, 2, 3));
+    
+    // Non-existent edges
+    REQUIRE_FALSE(contains_edge(g, 0, 3));
+    REQUIRE_FALSE(contains_edge(g, 1, 0));
+    REQUIRE_FALSE(contains_edge(g, 3, 2));
+}
+
+TEST_CASE("vofl CPO contains_edge(g, uid, vid) all edges not found", "[vofl][cpo][contains_edge][uid_vid]") {
+    vofl_void g({{0, 1}, {1, 2}});
+    
+    // Check all possible non-existent edges in opposite directions
+    REQUIRE_FALSE(contains_edge(g, 0, 2));  // No transitive edge
+    REQUIRE_FALSE(contains_edge(g, 1, 0));  // No reverse
+    REQUIRE_FALSE(contains_edge(g, 2, 0));  // No reverse
+    REQUIRE_FALSE(contains_edge(g, 2, 1));  // No reverse
+    
+    // Self-loops that don't exist
+    REQUIRE_FALSE(contains_edge(g, 0, 0));
+    REQUIRE_FALSE(contains_edge(g, 1, 1));
+    REQUIRE_FALSE(contains_edge(g, 2, 2));
+}
+
+TEST_CASE("vofl CPO contains_edge(g, uid, vid) with edge values", "[vofl][cpo][contains_edge][uid_vid]") {
+    vofl_int_ev g;
+    g.resize_vertices(5);
+    
+    std::vector<copyable_edge_t<uint32_t, int>> edge_data = {
+        {0, 1, 10}, {0, 2, 20}, {1, 3, 30}, {2, 4, 40}
+    };
+    g.load_edges(edge_data);
+    
+    // Check existing edges using vertex IDs
+    REQUIRE(contains_edge(g, 0, 1));
+    REQUIRE(contains_edge(g, 0, 2));
+    REQUIRE(contains_edge(g, 1, 3));
+    REQUIRE(contains_edge(g, 2, 4));
+    
+    // Check non-existent edges
+    REQUIRE_FALSE(contains_edge(g, 0, 3));
+    REQUIRE_FALSE(contains_edge(g, 0, 4));
+    REQUIRE_FALSE(contains_edge(g, 1, 2));
+    REQUIRE_FALSE(contains_edge(g, 3, 4));
+}
+
+TEST_CASE("vofl CPO contains_edge(g, uid, vid) with parallel edges", "[vofl][cpo][contains_edge][uid_vid]") {
+    vofl_int_ev g;
+    g.resize_vertices(3);
+    
+    // Add multiple edges from 0 to 1
+    std::vector<copyable_edge_t<uint32_t, int>> edge_data = {
+        {0, 1, 100}, {0, 1, 200}, {0, 1, 300}, {1, 2, 400}
+    };
+    g.load_edges(edge_data);
+    
+    // Should return true if any edge exists between uid and vid
+    REQUIRE(contains_edge(g, 0, 1));
+    REQUIRE(contains_edge(g, 1, 2));
+    REQUIRE_FALSE(contains_edge(g, 0, 2));
+}
+
+TEST_CASE("vofl CPO contains_edge(g, uid, vid) bidirectional check", "[vofl][cpo][contains_edge][uid_vid]") {
+    vofl_void g;
+    g.resize_vertices(3);
+    
+    // Create edges in both directions between some vertices
+    std::vector<copyable_edge_t<uint32_t, void>> edge_data = {
+        {0, 1}, {1, 0}, {1, 2}  // Bidirectional between 0 and 1, one-way 1->2
+    };
+    g.load_edges(edge_data);
+    
+    // Check bidirectional
+    REQUIRE(contains_edge(g, 0, 1));
+    REQUIRE(contains_edge(g, 1, 0));
+    
+    // Check unidirectional
+    REQUIRE(contains_edge(g, 1, 2));
+    REQUIRE_FALSE(contains_edge(g, 2, 1));
+    
+    // Check non-existent
+    REQUIRE_FALSE(contains_edge(g, 0, 2));
+    REQUIRE_FALSE(contains_edge(g, 2, 0));
+}
+
+TEST_CASE("vofl CPO contains_edge(g, uid, vid) with different integral types", "[vofl][cpo][contains_edge][uid_vid]") {
+    vofl_void g({{0, 1}, {1, 2}, {2, 3}});
+    
+    // Test with various integral types for IDs
+    REQUIRE(contains_edge(g, uint32_t(0), uint32_t(1)));
+    REQUIRE(contains_edge(g, int(1), int(2)));
+    REQUIRE(contains_edge(g, size_t(2), size_t(3)));
+    
+    // Mixed types
+    REQUIRE(contains_edge(g, uint32_t(0), size_t(1)));
+    REQUIRE(contains_edge(g, int(1), uint32_t(2)));
+    
+    // Non-existent with different types
+    REQUIRE_FALSE(contains_edge(g, uint32_t(0), uint32_t(3)));
+    REQUIRE_FALSE(contains_edge(g, size_t(3), int(0)));
+}
+
+TEST_CASE("vofl CPO contains_edge(g, uid, vid) star graph", "[vofl][cpo][contains_edge][uid_vid]") {
+    vofl_void g;
+    g.resize_vertices(6);
+    
+    // Create a star graph: vertex 0 connected to all others
+    std::vector<copyable_edge_t<uint32_t, void>> edge_data = {
+        {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}
+    };
+    g.load_edges(edge_data);
+    
+    // Check all edges from center
+    for (uint32_t i = 1; i < 6; ++i) {
+        REQUIRE(contains_edge(g, 0, i));
+    }
+    
+    // Check no edges between outer vertices
+    for (uint32_t i = 1; i < 6; ++i) {
+        for (uint32_t j = i + 1; j < 6; ++j) {
+            REQUIRE_FALSE(contains_edge(g, i, j));
+            REQUIRE_FALSE(contains_edge(g, j, i));
+        }
+    }
+    
+    // Check no edges back to center
+    for (uint32_t i = 1; i < 6; ++i) {
+        REQUIRE_FALSE(contains_edge(g, i, 0));
+    }
+}
+
+TEST_CASE("vofl CPO contains_edge(g, uid, vid) chain graph", "[vofl][cpo][contains_edge][uid_vid]") {
+    vofl_int_ev g;
+    g.resize_vertices(6);
+    
+    // Create a chain: 0->1->2->3->4->5
+    std::vector<copyable_edge_t<uint32_t, int>> edge_data = {
+        {0, 1, 10}, {1, 2, 20}, {2, 3, 30}, {3, 4, 40}, {4, 5, 50}
+    };
+    g.load_edges(edge_data);
+    
+    // Check all chain edges exist
+    for (uint32_t i = 0; i < 5; ++i) {
+        REQUIRE(contains_edge(g, i, i + 1));
+    }
+    
+    // Check no reverse edges
+    for (uint32_t i = 1; i < 6; ++i) {
+        REQUIRE_FALSE(contains_edge(g, i, i - 1));
+    }
+    
+    // Check no skip edges
+    REQUIRE_FALSE(contains_edge(g, 0, 2));
+    REQUIRE_FALSE(contains_edge(g, 0, 3));
+    REQUIRE_FALSE(contains_edge(g, 1, 3));
+    REQUIRE_FALSE(contains_edge(g, 2, 5));
+}
+
+TEST_CASE("vofl CPO contains_edge(g, uid, vid) cycle graph", "[vofl][cpo][contains_edge][uid_vid]") {
+    vofl_void g;
+    g.resize_vertices(5);
+    
+    // Create a cycle: 0->1->2->3->4->0
+    std::vector<copyable_edge_t<uint32_t, void>> edge_data = {
+        {0, 1}, {1, 2}, {2, 3}, {3, 4}, {4, 0}
+    };
+    g.load_edges(edge_data);
+    
+    // Check all cycle edges
+    REQUIRE(contains_edge(g, 0, 1));
+    REQUIRE(contains_edge(g, 1, 2));
+    REQUIRE(contains_edge(g, 2, 3));
+    REQUIRE(contains_edge(g, 3, 4));
+    REQUIRE(contains_edge(g, 4, 0));  // Closing edge
+    
+    // Check no shortcuts across cycle
+    REQUIRE_FALSE(contains_edge(g, 0, 2));
+    REQUIRE_FALSE(contains_edge(g, 0, 3));
+    REQUIRE_FALSE(contains_edge(g, 1, 3));
+    REQUIRE_FALSE(contains_edge(g, 1, 4));
+    REQUIRE_FALSE(contains_edge(g, 2, 4));
+}
+
+TEST_CASE("vofl CPO contains_edge(g, uid, vid) dense graph", "[vofl][cpo][contains_edge][uid_vid]") {
+    vofl_void g;
+    g.resize_vertices(4);
+    
+    // Create edges between almost all pairs (missing 2->3)
+    std::vector<copyable_edge_t<uint32_t, void>> edge_data = {
+        {0, 1}, {0, 2}, {0, 3},
+        {1, 0}, {1, 2}, {1, 3},
+        {2, 0}, {2, 1},  // Missing 2->3
+        {3, 0}, {3, 1}, {3, 2}
+    };
+    g.load_edges(edge_data);
+    
+    // Verify most edges exist
+    int edge_count = 0;
+    for (uint32_t i = 0; i < 4; ++i) {
+        for (uint32_t j = 0; j < 4; ++j) {
+            if (i != j && contains_edge(g, i, j)) {
+                edge_count++;
+            }
+        }
+    }
+    REQUIRE(edge_count == 11);  // 12 possible - 1 missing
+    
+    // Verify the missing edge
+    REQUIRE_FALSE(contains_edge(g, 2, 3));
+}
+
+TEST_CASE("vofl CPO contains_edge(g, uid, vid) with string edge values", "[vofl][cpo][contains_edge][uid_vid]") {
+    vofl_string g;
+    g.resize_vertices(5);
+    
+    std::vector<copyable_edge_t<uint32_t, std::string>> edge_data = {
+        {0, 1, "first"}, {1, 2, "second"}, {2, 3, "third"}, {3, 4, "fourth"}
+    };
+    g.load_edges(edge_data);
+    
+    // Check edges exist
+    REQUIRE(contains_edge(g, 0, 1));
+    REQUIRE(contains_edge(g, 1, 2));
+    REQUIRE(contains_edge(g, 2, 3));
+    REQUIRE(contains_edge(g, 3, 4));
+    
+    // Check non-existent
+    REQUIRE_FALSE(contains_edge(g, 0, 2));
+    REQUIRE_FALSE(contains_edge(g, 4, 0));
+}
+
+TEST_CASE("vofl CPO contains_edge(g, uid, vid) single vertex graph", "[vofl][cpo][contains_edge][uid_vid]") {
+    vofl_void g;
+    g.resize_vertices(1);
+    
+    // No edges, not even self-loop
+    REQUIRE_FALSE(contains_edge(g, 0, 0));
+}
+
+TEST_CASE("vofl CPO contains_edge(g, uid, vid) single edge graph", "[vofl][cpo][contains_edge][uid_vid]") {
+    vofl_void g({{0, 1}});
+    
+    // Only one edge exists
+    REQUIRE(contains_edge(g, 0, 1));
+    
+    // All other checks should fail
+    REQUIRE_FALSE(contains_edge(g, 1, 0));
+    REQUIRE_FALSE(contains_edge(g, 0, 0));
+    REQUIRE_FALSE(contains_edge(g, 1, 1));
 }
 
 //==================================================================================================
