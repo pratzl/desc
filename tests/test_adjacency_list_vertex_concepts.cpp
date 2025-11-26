@@ -29,13 +29,12 @@ TEST_CASE("vertex_range concept - vector<vector<int>>", "[adjacency_list][concep
     
     // Should be forward range (can iterate multiple times)
     int count1 = 0;
-    for (auto v : verts) {
-        [[maybe_unused]] auto vid = vertex_id(g, v); // Should be able to get ID
+    for ([[maybe_unused]] auto v : verts) {
         count1++;
     }
     
     int count2 = 0;
-    for (auto v : verts) {
+    for ([[maybe_unused]] auto v : verts) {
         count2++;
     }
     
@@ -149,7 +148,7 @@ TEST_CASE("adjacency_list concept - vector<vector<int>>", "[adjacency_list][conc
     // Each vertex should have edges
     for (auto v : verts) {
         auto edge_range = edges(g, v);
-        REQUIRE(std::ranges::size(edge_range) >= 0);
+        REQUIRE(std::ranges::size(edge_range) >= size_t(0));
     }
 }
 
@@ -166,7 +165,7 @@ TEST_CASE("adjacency_list concept - map<int, vector<int>>", "[adjacency_list][co
     
     // But we can iterate
     int count = 0;
-    for (auto v : verts) {
+    for ([[maybe_unused]] auto v : verts) {
         count++;
     }
     REQUIRE(count == 3);

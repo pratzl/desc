@@ -28,7 +28,7 @@ struct GraphWithFindEdgeMember {
     int find_vertex_edge(size_t uid, size_t vid) const {
         for (auto targ : adj_list[uid]) {
             if (static_cast<size_t>(targ) == vid) {
-                return static_cast<int>(targ * 1000);
+                return targ * 1000;
             }
         }
         return -1;
@@ -54,7 +54,7 @@ namespace test_adl {
     inline int find_vertex_edge(const GraphWithADLFindEdge& g, size_t uid, size_t vid) {
         for (auto targ : g.adj_list[uid]) {
             if (static_cast<size_t>(targ) == vid) {
-                return static_cast<int>(targ * 2000);
+                return targ * 2000;
             }
         }
         return -1;
@@ -62,8 +62,8 @@ namespace test_adl {
 
     inline int find_vertex_edge(GraphWithADLFindEdge& g, size_t uid, size_t vid) {
         for (auto targ : g.adj_list[uid]) {
-            if (targ == vid) {
-                return static_cast<int>(targ * 2000);
+            if (static_cast<size_t>(targ) == vid) {
+                return targ * 2000;
             }
         }
         return -1;
@@ -87,7 +87,7 @@ TEST_CASE("find_vertex_edge(g, u, v) finds edge with vector graph", "[find_verte
     auto v0 = *it++;
     auto v1 = *it++;
     auto v2 = *it++;
-    auto v3 = *it;
+    [[maybe_unused]] auto v3 = *it;
     
     SECTION("Find existing edges") {
         // Find edge 0 -> 1
@@ -105,8 +105,8 @@ TEST_CASE("find_vertex_edge(g, u, v) finds edge with vector graph", "[find_verte
     
     SECTION("Edge not found returns end descriptor") {
         // Try to find non-existent edge 0 -> 0
-        auto e_not_found = find_vertex_edge(graph, v0, v0);
-        auto edge_range = edges(graph, v0);
+        [[maybe_unused]] auto e_not_found = find_vertex_edge(graph, v0, v0);
+        [[maybe_unused]] auto edge_range = edges(graph, v0);
         // The returned edge descriptor should represent "not found"
         // In practice, users would check if the edge matches expected properties
         // or if it equals the end sentinel
@@ -125,9 +125,9 @@ TEST_CASE("find_vertex_edge(g, u, v) works with weighted edges (pair)", "[find_v
     auto verts = vertices(graph);
     auto it = verts.begin();
     auto v0 = *it++;
-    auto v1 = *it++;
+    [[maybe_unused]] auto v1 = *it++;
     auto v2 = *it++;
-    auto v3 = *it;
+    [[maybe_unused]] auto v3 = *it;
     
     // Find edge 0 -> 2
     auto e = find_vertex_edge(graph, v0, v2);
@@ -154,7 +154,7 @@ TEST_CASE("find_vertex_edge(g, u, vid) finds edge by target ID", "[find_vertex_e
     auto it = verts.begin();
     auto v0 = *it++;
     auto v1 = *it++;
-    auto v2 = *it;
+    [[maybe_unused]] auto v2 = *it;
     
     SECTION("Find edges by target ID") {
         // Find edge from v0 to target ID 1
@@ -183,7 +183,7 @@ TEST_CASE("find_vertex_edge(g, u, vid) works with weighted edges", "[find_vertex
     auto verts = vertices(graph);
     auto it = verts.begin();
     auto v0 = *it++;
-    auto v1 = *it;
+    [[maybe_unused]] auto v1 = *it;
     
     // Find edge from v0 to target ID 2
     auto e = find_vertex_edge(graph, v0, 2);
@@ -206,8 +206,8 @@ TEST_CASE("find_vertex_edge(g, uid, vid) finds edge by both IDs", "[find_vertex_
     SECTION("Find edges using both source and target IDs") {
         // Find edge from source ID 0 to target ID 1
         auto e01 = find_vertex_edge(graph, static_cast<size_t>(0), static_cast<size_t>(1));
-        auto verts = vertices(graph);
-        auto v0 = *verts.begin();
+        [[maybe_unused]] auto verts = vertices(graph);
+        [[maybe_unused]] auto v0 = *verts.begin();
         REQUIRE(target_id(graph, e01) == 1);
         
         // Find edge from source ID 1 to target ID 2
@@ -232,8 +232,8 @@ TEST_CASE("find_vertex_edge(g, uid, vid) convenience for ID-based graphs", "[fin
     // Find edge 0 -> 2
     auto e = find_vertex_edge(graph, static_cast<size_t>(0), static_cast<size_t>(2));
     REQUIRE(target_id(graph, e) == 2);
-    auto verts = vertices(graph);
-    auto v0 = *verts.begin();
+    [[maybe_unused]] auto verts = vertices(graph);
+    [[maybe_unused]] auto v0 = *verts.begin();
     REQUIRE(e.underlying_value(graph[0]).second == 2.2);
 }
 
@@ -342,7 +342,7 @@ TEST_CASE("find_vertex_edge handles vertices with no edges", "[find_vertex_edge]
     auto v1 = *it;
     
     // Try to find edge from vertex with no edges
-    auto e = find_vertex_edge(graph, v0, v1);
+    [[maybe_unused]] auto e = find_vertex_edge(graph, v0, v1);
     // Should return end descriptor (not found)
 }
 
@@ -361,7 +361,7 @@ TEST_CASE("find_vertex_edge finds self-loops", "[find_vertex_edge][cpo][self_loo
     auto verts = vertices(graph);
     auto it = verts.begin();
     auto v0 = *it++;
-    auto v1 = *it;
+    [[maybe_unused]] auto v1 = *it;
     
     // Find self-loop at vertex 0
     auto e00 = find_vertex_edge(graph, v0, v0);
@@ -432,10 +432,10 @@ TEST_CASE("find_vertex_edge integrates with edges() CPO", "[find_vertex_edge][cp
 TEST_CASE("find_vertex_edge works with complete graph", "[find_vertex_edge][cpo][topology][complete]") {
     // Complete graph K4
     std::vector<std::vector<int>> graph(4);
-    for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 4; ++j) {
+    for (size_t i = 0; i < 4; ++i) {
+        for (size_t j = 0; j < 4; ++j) {
             if (i != j) {
-                graph[i].push_back(j);
+                graph[i].push_back(static_cast<int>(j));
             }
         }
     }
@@ -499,7 +499,7 @@ TEST_CASE("find_vertex_edge overloads resolve correctly", "[find_vertex_edge][cp
     auto it = verts.begin();
     auto v0 = *it++;
     auto v1 = *it++;
-    auto v2 = *it;
+    [[maybe_unused]] auto v2 = *it;
     
     // Test (u, v) overload - both descriptors
     auto e1 = find_vertex_edge(graph, v0, v1);

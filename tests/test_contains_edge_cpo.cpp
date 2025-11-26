@@ -63,7 +63,7 @@ namespace test_adl {
 
     inline bool contains_edge(GraphWithADLContainsEdge& g, size_t u, size_t v) {
         for (auto targ : g.adj_list[u]) {
-            if (targ == v) {
+            if (static_cast<size_t>(targ) == v) {
                 return true;
             }
         }
@@ -350,10 +350,10 @@ TEST_CASE("contains_edge consistent with find_vertex_edge", "[contains_edge][cpo
 TEST_CASE("contains_edge works with complete graph", "[contains_edge][cpo][topology][complete]") {
     // Complete graph K4
     std::vector<std::vector<int>> graph(4);
-    for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 4; ++j) {
+    for (size_t i = 0; i < 4; ++i) {
+        for (size_t j = 0; j < 4; ++j) {
             if (i != j) {
-                graph[i].push_back(j);
+                graph[i].push_back(static_cast<int>(j));
             }
         }
     }
@@ -483,7 +483,7 @@ TEST_CASE("contains_edge overloads resolve correctly", "[contains_edge][cpo][ove
     auto it = verts.begin();
     auto v0 = *it++;
     auto v1 = *it++;
-    auto v2 = *it;
+    [[maybe_unused]] auto v2 = *it;
     
     // Test (u, v) overload - both descriptors
     bool result1 = contains_edge(graph, v0, v1);
@@ -506,13 +506,13 @@ TEST_CASE("contains_edge works with larger graphs", "[contains_edge][cpo][large]
     std::vector<std::vector<int>> graph(100);
     
     // Create a chain: 0->1->2->...->99
-    for (int i = 0; i < 99; ++i) {
-        graph[i].push_back(i + 1);
+    for (size_t i = 0; i < 99; ++i) {
+        graph[i].push_back(static_cast<int>(i + 1));
     }
     
     // Check consecutive edges exist
-    for (int i = 0; i < 99; ++i) {
-        REQUIRE(contains_edge(graph, static_cast<size_t>(i), static_cast<size_t>(i + 1)) == true);
+    for (size_t i = 0; i < 99; ++i) {
+        REQUIRE(contains_edge(graph, i, i + 1) == true);
     }
     
     // Check some non-edges
