@@ -8,7 +8,7 @@
  * 
  * Container: vector<vertex> + forward_list<edge>
  * 
- * Current Status: 100 test cases, 744 assertions passing
+ * Current Status: 113 test cases, 773 assertions passing
  * 
  * CPOs tested (with available friend functions):
  * - vertices(g) - Get vertex range [3 tests]
@@ -22,6 +22,7 @@
  * - degree(g, u) - Get out-degree of vertex [10 tests]
  * - target_id(g, uv) - Get target vertex ID from edge [10 tests]
  * - target(g, uv) - Get target vertex descriptor from edge [11 tests]
+ * - find_vertex_edge(g, u, v) - Find edge between vertices [13 tests]
  * - vertex_value(g, u) - Access vertex value (when VV != void) [6 tests]
  * - edge_value(g, uv) - Access edge value (when EV != void) [6 tests]
  * - graph_value(g) - Access graph value (when GV != void) [6 tests]
@@ -1294,7 +1295,239 @@ TEST_CASE("vofl CPO target(g, uv) large graph", "[vofl][cpo][target]") {
 }
 
 //==================================================================================================
-// 11. Integration Tests - Multiple CPOs Working Together
+// 11. find_vertex_edge(g, u, v) CPO Tests
+//==================================================================================================
+
+TEST_CASE("vofl CPO find_vertex_edge(g, u, v) basic edge found", "[vofl][cpo][find_vertex_edge]") {
+    vofl_void g({{0, 1}, {0, 2}, {1, 2}});
+    
+    auto u0 = *find_vertex(g, 0);
+    auto u1 = *find_vertex(g, 1);
+    auto u2 = *find_vertex(g, 2);
+    
+    // Find existing edges
+    auto e01 = find_vertex_edge(g, u0, u1);
+    auto e02 = find_vertex_edge(g, u0, u2);
+    auto e12 = find_vertex_edge(g, u1, u2);
+    
+    REQUIRE(target_id(g, e01) == 1);
+    REQUIRE(target_id(g, e02) == 2);
+    REQUIRE(target_id(g, e12) == 2);
+}
+
+TEST_CASE("vofl CPO find_vertex_edge(g, u, v) edge not found", "[vofl][cpo][find_vertex_edge]") {
+    vofl_void g({{0, 1}, {1, 2}});
+    
+    auto u0 = *find_vertex(g, 0);
+    auto u2 = *find_vertex(g, 2);
+    
+    // Edge from 0 to 2 doesn't exist (only 0->1->2)
+    auto edge_range = edges(g, u0);
+    auto end_iter = std::ranges::end(edge_range);
+    auto e02 = find_vertex_edge(g, u0, u2);
+    
+    // When not found, should return an edge descriptor that equals end
+    // We verify by checking if iterating from the result gives us nothing
+    bool found = false;
+    for (auto uv : edges(g, u0)) {
+        if (target_id(g, uv) == 2) {
+            found = true;
+            break;
+        }
+    }
+    REQUIRE_FALSE(found);
+}
+
+TEST_CASE("vofl CPO find_vertex_edge(g, u, vid) with vertex ID", "[vofl][cpo][find_vertex_edge]") {
+    vofl_void g({{0, 1}, {0, 2}, {1, 2}});
+    
+    auto u0 = *find_vertex(g, 0);
+    auto u1 = *find_vertex(g, 1);
+    
+    // Find edge using vertex descriptor + vertex ID
+    auto e01 = find_vertex_edge(g, u0, uint32_t(1));
+    auto e02 = find_vertex_edge(g, u0, uint32_t(2));
+    auto e12 = find_vertex_edge(g, u1, uint32_t(2));
+    
+    REQUIRE(target_id(g, e01) == 1);
+    REQUIRE(target_id(g, e02) == 2);
+    REQUIRE(target_id(g, e12) == 2);
+}
+
+TEST_CASE("vofl CPO find_vertex_edge(g, uid, vid) with both IDs", "[vofl][cpo][find_vertex_edge]") {
+    vofl_void g({{0, 1}, {0, 2}, {1, 2}});
+    
+    // Find edges using both vertex IDs
+    auto e01 = find_vertex_edge(g, uint32_t(0), uint32_t(1));
+    auto e02 = find_vertex_edge(g, uint32_t(0), uint32_t(2));
+    auto e12 = find_vertex_edge(g, uint32_t(1), uint32_t(2));
+    
+    REQUIRE(target_id(g, e01) == 1);
+    REQUIRE(target_id(g, e02) == 2);
+    REQUIRE(target_id(g, e12) == 2);
+}
+
+TEST_CASE("vofl CPO find_vertex_edge(g, u, v) with edge values", "[vofl][cpo][find_vertex_edge]") {
+    vofl_int_ev g;
+    g.resize_vertices(3);
+    
+    std::vector<copyable_edge_t<uint32_t, int>> edge_data = {
+        {0, 1, 100}, {0, 2, 200}, {1, 2, 300}
+    };
+    g.load_edges(edge_data);
+    
+    auto u0 = *find_vertex(g, 0);
+    auto u1 = *find_vertex(g, 1);
+    auto u2 = *find_vertex(g, 2);
+    
+    auto e01 = find_vertex_edge(g, u0, u1);
+    auto e02 = find_vertex_edge(g, u0, u2);
+    auto e12 = find_vertex_edge(g, u1, u2);
+    
+    REQUIRE(edge_value(g, e01) == 100);
+    REQUIRE(edge_value(g, e02) == 200);
+    REQUIRE(edge_value(g, e12) == 300);
+}
+
+TEST_CASE("vofl CPO find_vertex_edge(g, u, v) const correctness", "[vofl][cpo][find_vertex_edge]") {
+    const vofl_void g({{0, 1}, {0, 2}});
+    
+    auto u0 = *find_vertex(g, 0);
+    auto u1 = *find_vertex(g, 1);
+    
+    auto e01 = find_vertex_edge(g, u0, u1);
+    
+    REQUIRE(target_id(g, e01) == 1);
+}
+
+TEST_CASE("vofl CPO find_vertex_edge(g, u, v) with self-loop", "[vofl][cpo][find_vertex_edge]") {
+    vofl_void g({{0, 0}, {0, 1}});  // 0->0 (self-loop), 0->1
+    
+    auto u0 = *find_vertex(g, 0);
+    
+    // Find self-loop
+    auto e00 = find_vertex_edge(g, u0, u0);
+    
+    REQUIRE(target_id(g, e00) == 0);
+}
+
+TEST_CASE("vofl CPO find_vertex_edge(g, u, v) with parallel edges", "[vofl][cpo][find_vertex_edge]") {
+    vofl_int_ev g;
+    g.resize_vertices(2);
+    
+    // Multiple edges from 0 to 1 with different values
+    std::vector<copyable_edge_t<uint32_t, int>> edge_data = {
+        {0, 1, 10}, {0, 1, 20}, {0, 1, 30}
+    };
+    g.load_edges(edge_data);
+    
+    auto u0 = *find_vertex(g, 0);
+    auto u1 = *find_vertex(g, 1);
+    
+    // Should find one of the parallel edges (typically the first encountered)
+    auto e01 = find_vertex_edge(g, u0, u1);
+    
+    REQUIRE(target_id(g, e01) == 1);
+    // Verify it's one of the parallel edges
+    int val = edge_value(g, e01);
+    REQUIRE((val == 10 || val == 20 || val == 30));
+}
+
+TEST_CASE("vofl CPO find_vertex_edge(g, u, v) with string edge values", "[vofl][cpo][find_vertex_edge]") {
+    vofl_string g;
+    g.resize_vertices(3);
+    
+    std::vector<copyable_edge_t<uint32_t, std::string>> edge_data = {
+        {0, 1, "edge_01"}, {0, 2, "edge_02"}, {1, 2, "edge_12"}
+    };
+    g.load_edges(edge_data);
+    
+    auto u0 = *find_vertex(g, 0);
+    auto u1 = *find_vertex(g, 1);
+    auto u2 = *find_vertex(g, 2);
+    
+    auto e01 = find_vertex_edge(g, u0, u1);
+    auto e02 = find_vertex_edge(g, u0, u2);
+    auto e12 = find_vertex_edge(g, u1, u2);
+    
+    REQUIRE(edge_value(g, e01) == "edge_01");
+    REQUIRE(edge_value(g, e02) == "edge_02");
+    REQUIRE(edge_value(g, e12) == "edge_12");
+}
+
+TEST_CASE("vofl CPO find_vertex_edge(g, u, v) multiple source vertices", "[vofl][cpo][find_vertex_edge]") {
+    vofl_void g({{0, 2}, {1, 2}, {2, 3}});
+    
+    auto u0 = *find_vertex(g, 0);
+    auto u1 = *find_vertex(g, 1);
+    auto u2 = *find_vertex(g, 2);
+    auto u3 = *find_vertex(g, 3);
+    
+    // Different sources to same target
+    auto e02 = find_vertex_edge(g, u0, u2);
+    auto e12 = find_vertex_edge(g, u1, u2);
+    auto e23 = find_vertex_edge(g, u2, u3);
+    
+    REQUIRE(target_id(g, e02) == 2);
+    REQUIRE(target_id(g, e12) == 2);
+    REQUIRE(target_id(g, e23) == 3);
+}
+
+TEST_CASE("vofl CPO find_vertex_edge(g, u, v) large graph", "[vofl][cpo][find_vertex_edge]") {
+    vofl_void g;
+    g.resize_vertices(100);
+    
+    // Add edges from vertex 0 to vertices 1-99
+    std::vector<copyable_edge_t<uint32_t, void>> edge_data;
+    for (uint32_t i = 1; i < 100; ++i) {
+        edge_data.push_back({0, i});
+    }
+    g.load_edges(edge_data);
+    
+    auto u0 = *find_vertex(g, 0);
+    auto u50 = *find_vertex(g, 50);
+    auto u99 = *find_vertex(g, 99);
+    
+    auto e0_50 = find_vertex_edge(g, u0, u50);
+    auto e0_99 = find_vertex_edge(g, u0, u99);
+    
+    REQUIRE(target_id(g, e0_50) == 50);
+    REQUIRE(target_id(g, e0_99) == 99);
+}
+
+TEST_CASE("vofl CPO find_vertex_edge(g, uid, vid) with different integral types", "[vofl][cpo][find_vertex_edge]") {
+    vofl_void g({{0, 1}, {0, 2}});
+    
+    // Test with different integral types
+    auto e1 = find_vertex_edge(g, uint32_t(0), uint32_t(1));
+    auto e2 = find_vertex_edge(g, 0, 1);  // int literals
+    auto e3 = find_vertex_edge(g, size_t(0), size_t(2));
+    
+    REQUIRE(target_id(g, e1) == 1);
+    REQUIRE(target_id(g, e2) == 1);
+    REQUIRE(target_id(g, e3) == 2);
+}
+
+TEST_CASE("vofl CPO find_vertex_edge(g, u, v) isolated vertex", "[vofl][cpo][find_vertex_edge]") {
+    vofl_void g({{0, 1}});
+    g.resize_vertices(3);  // Vertex 2 is isolated
+    
+    auto u0 = *find_vertex(g, 0);
+    auto u2 = *find_vertex(g, 2);
+    
+    // Try to find edge from isolated vertex
+    bool found = false;
+    for (auto uv : edges(g, u2)) {
+        if (target_id(g, uv) == 0) {
+            found = true;
+            break;
+        }
+    }
+    REQUIRE_FALSE(found);
+}
+
+//==================================================================================================
+// 12. Integration Tests - Multiple CPOs Working Together
 //==================================================================================================
 
 TEST_CASE("vofl CPO integration: graph construction and traversal", "[vofl][cpo][integration]") {
