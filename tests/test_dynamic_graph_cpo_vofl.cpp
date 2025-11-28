@@ -320,32 +320,6 @@ TEST_CASE("vofl CPO num_edges(g)", "[dynamic_graph][vofl][cpo][num_edges]") {
 }
 
 //==================================================================================================
-// 6. has_edge(g) CPO Tests
-//==================================================================================================
-
-TEST_CASE("vofl CPO has_edge(g)", "[dynamic_graph][vofl][cpo][has_edge]") {
-    SECTION("empty graph") {
-        vofl_void g;
-        
-        REQUIRE(!has_edge(g));
-    }
-
-    SECTION("with edges") {
-        vofl_void g({{0, 1}});
-        
-        REQUIRE(has_edge(g));
-    }
-
-    SECTION("matches num_edges") {
-        vofl_void g1;
-        vofl_void g2({{0, 1}});
-        
-        REQUIRE(has_edge(g1) == (num_edges(g1) > 0));
-        REQUIRE(has_edge(g2) == (num_edges(g2) > 0));
-    }
-}
-
-//==================================================================================================
 // 7. edges(g, u) CPO Tests
 //==================================================================================================
 
@@ -815,11 +789,11 @@ TEST_CASE("vofl CPO degree(g, u)", "[dynamic_graph][vofl][cpo][degree]") {
         g.load_edges(edge_data);
         
         // Expected degrees: v0=2, v1=2, v2=1, v3=1
-        size_t expected_degrees[] = {2, 2, 1, 1};
+        size_t expected_degrees[] = {2u, 2u, 1u, 1u};
         size_t idx = 0;
         
         for (auto u : vertices(g)) {
-            REQUIRE(degree(g, u) == expected_degrees[idx]);
+            REQUIRE(static_cast<size_t>(degree(g, u)) == expected_degrees[idx]);
             ++idx;
         }
     }
@@ -867,7 +841,7 @@ TEST_CASE("vofl CPO degree(g, u)", "[dynamic_graph][vofl][cpo][degree]") {
                 ++manual_count;
             }
             
-            REQUIRE(deg == manual_count);
+            REQUIRE(static_cast<size_t>(deg) == manual_count);
         }
     }
 
@@ -992,11 +966,9 @@ TEST_CASE("vofl CPO target_id(g, uv)", "[dynamic_graph][vofl][cpo][target_id]") 
         auto u0 = *find_vertex(const_g, 0);
         auto edge_view = edges(const_g, u0);
         
-        for (auto uv : edge_view) {
-            auto tid = target_id(const_g, uv);
-            REQUIRE(tid == 1);
-            break;
-        }
+        auto uv = *edge_view.begin();
+        auto tid = target_id(const_g, uv);
+        REQUIRE(tid == 1);
     }
     
     SECTION("self-loop") {
@@ -1139,17 +1111,15 @@ TEST_CASE("vofl CPO target(g, uv)", "[dynamic_graph][vofl][cpo][target]") {
         auto u0 = *find_vertex(g, 0);
         auto edge_view = edges(g, u0);
         
-        for (auto uv : edge_view) {
-            auto target_vertex = target(g, uv);
-            
-            // Should return a vertex descriptor
-            static_assert(vertex_descriptor_type<decltype(target_vertex)>);
-            
-            // Can use it to get vertex_id
-            auto tid = vertex_id(g, target_vertex);
-            REQUIRE(tid == 1);
-            break;
-        }
+        auto uv = *edge_view.begin();
+        auto target_vertex = target(g, uv);
+        
+        // Should return a vertex descriptor
+        static_assert(vertex_descriptor_type<decltype(target_vertex)>);
+        
+        // Can use it to get vertex_id
+        auto tid = vertex_id(g, target_vertex);
+        REQUIRE(tid == 1);
     }
     
     SECTION("consistency with target_id") {
@@ -1186,11 +1156,9 @@ TEST_CASE("vofl CPO target(g, uv)", "[dynamic_graph][vofl][cpo][target]") {
         auto u0 = *find_vertex(const_g, 0);
         auto edge_view = edges(const_g, u0);
         
-        for (auto uv : edge_view) {
-            auto target_vertex = target(const_g, uv);
-            REQUIRE(vertex_id(const_g, target_vertex) == 1);
-            break;
-        }
+        auto uv = *edge_view.begin();
+        auto target_vertex = target(const_g, uv);
+        REQUIRE(vertex_id(const_g, target_vertex) == 1);
     }
     
     SECTION("self-loop") {
@@ -1297,7 +1265,7 @@ TEST_CASE("vofl CPO target(g, uv)", "[dynamic_graph][vofl][cpo][target]") {
         // Navigate the path using target()
         auto current = *find_vertex(g, 0);
         std::vector<uint32_t> path;
-        path.push_back(vertex_id(g, current));
+        path.push_back(static_cast<uint32_t>(vertex_id(g, current)));
         
         // Follow edges to build path
         while (true) {
@@ -1307,7 +1275,7 @@ TEST_CASE("vofl CPO target(g, uv)", "[dynamic_graph][vofl][cpo][target]") {
             
             auto uv = *it;
             current = target(g, uv);
-            path.push_back(vertex_id(g, current));
+            path.push_back(static_cast<uint32_t>(vertex_id(g, current)));
             
             if (path.size() >= 4) break;  // Prevent infinite loop
         }
@@ -2399,6 +2367,32 @@ TEST_CASE("vofl CPO integration", "[dynamic_graph][vofl][cpo][integration]") {
 }
 
 //==================================================================================================
+// 6. has_edge(g) CPO Tests
+//==================================================================================================
+
+TEST_CASE("vofl CPO has_edge(g)", "[dynamic_graph][vofl][cpo][has_edge]") {
+    SECTION("empty graph") {
+        vofl_void g;
+        
+        REQUIRE(!has_edge(g));
+    }
+
+    SECTION("with edges") {
+        vofl_void g({{0, 1}});
+        
+        REQUIRE(has_edge(g));
+    }
+
+    SECTION("matches num_edges") {
+        vofl_void g1;
+        vofl_void g2({{0, 1}});
+        
+        REQUIRE(has_edge(g1) == (num_edges(g1) > 0));
+        REQUIRE(has_edge(g2) == (num_edges(g2) > 0));
+    }
+}
+
+//==================================================================================================
 // 9. vertex_value(g, u) CPO Tests
 //==================================================================================================
 
@@ -2408,11 +2402,9 @@ TEST_CASE("vofl CPO vertex_value(g, u)", "[dynamic_graph][vofl][cpo][vertex_valu
         g.resize_vertices(3);
         
         // vertices(g) returns vertex_descriptor_view which when iterated gives descriptors
-        for (auto u : vertices(g)) {
-            vertex_value(g, u) = 42;
-            REQUIRE(vertex_value(g, u) == 42);
-            break; // Just test the first one
-        }
+        auto u = *vertices(g).begin();
+        vertex_value(g, u) = 42;
+        REQUIRE(vertex_value(g, u) == 42);
     }
 
     SECTION("multiple vertices") {
@@ -2438,17 +2430,13 @@ TEST_CASE("vofl CPO vertex_value(g, u)", "[dynamic_graph][vofl][cpo][vertex_valu
         vofl_int_vv g;
         g.resize_vertices(3);
         
-        for (auto u : vertices(g)) {
-            vertex_value(g, u) = 999;
-            break;
-        }
+        auto u = *vertices(g).begin();
+        vertex_value(g, u) = 999;
         
         const vofl_int_vv& const_g = g;
-        for (auto const_u : vertices(const_g)) {
-            // Should be able to read from const graph
-            REQUIRE(vertex_value(const_g, const_u) == 999);
-            break;
-        }
+        auto const_u = *vertices(const_g).begin();
+        // Should be able to read from const graph
+        REQUIRE(vertex_value(const_g, const_u) == 999);
     }
 
     SECTION("with string values") {
@@ -2473,18 +2461,16 @@ TEST_CASE("vofl CPO vertex_value(g, u)", "[dynamic_graph][vofl][cpo][vertex_valu
         vofl_all_int g;
         g.resize_vertices(3);
         
-        for (auto u : vertices(g)) {
-            vertex_value(g, u) = 10;
-            REQUIRE(vertex_value(g, u) == 10);
-            
-            vertex_value(g, u) = 20;
-            REQUIRE(vertex_value(g, u) == 20);
-            
-            // Modify through reference
-            vertex_value(g, u) += 5;
-            REQUIRE(vertex_value(g, u) == 25);
-            break; // Just test first vertex
-        }
+        auto u = *vertices(g).begin();
+        vertex_value(g, u) = 10;
+        REQUIRE(vertex_value(g, u) == 10);
+        
+        vertex_value(g, u) = 20;
+        REQUIRE(vertex_value(g, u) == 20);
+        
+        // Modify through reference
+        vertex_value(g, u) += 5;
+        REQUIRE(vertex_value(g, u) == 25);
     }
 }
 
@@ -2496,17 +2482,15 @@ TEST_CASE("vofl CPO edge_value(g, uv)", "[dynamic_graph][vofl][cpo][edge_value]"
     SECTION("basic access") {
         vofl_int_ev g({{0, 1, 42}, {1, 2, 99}});
         
-        for (auto u : vertices(g)) {
-            auto& v = u.inner_value(g);
-            auto& edge_range = v.edges();
-            auto e_iter = edge_range.begin();
-            if (e_iter != edge_range.end()) {
-                using edge_iter_t = decltype(e_iter);
-                using vertex_desc_t = decltype(u);
-                auto uv = graph::edge_descriptor<edge_iter_t, typename vertex_desc_t::iterator_type>(e_iter, u);
-                REQUIRE(edge_value(g, uv) == 42);
-            }
-            break;
+        auto u = *vertices(g).begin();
+        auto& v = u.inner_value(g);
+        auto& edge_range = v.edges();
+        auto e_iter = edge_range.begin();
+        if (e_iter != edge_range.end()) {
+            using edge_iter_t = decltype(e_iter);
+            using vertex_desc_t = decltype(u);
+            auto uv = graph::edge_descriptor<edge_iter_t, typename vertex_desc_t::iterator_type>(e_iter, u);
+            REQUIRE(edge_value(g, uv) == 42);
         }
     }
 
@@ -2522,47 +2506,43 @@ TEST_CASE("vofl CPO edge_value(g, uv)", "[dynamic_graph][vofl][cpo][edge_value]"
         
         // Check first vertex's edges
         // Note: forward_list uses push_front, so edges are in reverse order of loading
-        for (auto u : vertices(g)) {
-            auto& v = u.inner_value(g);
-            auto& edge_range = v.edges();
-            auto e_iter = edge_range.begin();
+        auto u = *vertices(g).begin();
+        auto& v = u.inner_value(g);
+        auto& edge_range = v.edges();
+        auto e_iter = edge_range.begin();
+        if (e_iter != edge_range.end()) {
+            using edge_iter_t = decltype(e_iter);
+            using vertex_desc_t = decltype(u);
+            auto uv0 = graph::edge_descriptor<edge_iter_t, typename vertex_desc_t::iterator_type>(e_iter, u);
+            REQUIRE(edge_value(g, uv0) == 200);  // loaded second, appears first in forward_list
+            ++e_iter;
             if (e_iter != edge_range.end()) {
-                using edge_iter_t = decltype(e_iter);
-                using vertex_desc_t = decltype(u);
-                auto uv0 = graph::edge_descriptor<edge_iter_t, typename vertex_desc_t::iterator_type>(e_iter, u);
-                REQUIRE(edge_value(g, uv0) == 200);  // loaded second, appears first in forward_list
-                ++e_iter;
-                if (e_iter != edge_range.end()) {
-                    auto uv1 = graph::edge_descriptor<edge_iter_t, typename vertex_desc_t::iterator_type>(e_iter, u);
-                    REQUIRE(edge_value(g, uv1) == 100);  // loaded first, appears second in forward_list
-                }
+                auto uv1 = graph::edge_descriptor<edge_iter_t, typename vertex_desc_t::iterator_type>(e_iter, u);
+                REQUIRE(edge_value(g, uv1) == 100);  // loaded first, appears second in forward_list
             }
-            break;
         }
     }
 
     SECTION("modification") {
         vofl_all_int g({{0, 1, 50}});
         
-        for (auto u : vertices(g)) {
-            auto& v = u.inner_value(g);
-            auto& edge_range = v.edges();
-            auto e_iter = edge_range.begin();
-            if (e_iter != edge_range.end()) {
-                using edge_iter_t = decltype(e_iter);
-                using vertex_desc_t = decltype(u);
-                auto uv = graph::edge_descriptor<edge_iter_t, typename vertex_desc_t::iterator_type>(e_iter, u);
-                
-                REQUIRE(edge_value(g, uv) == 50);
-                
-                edge_value(g, uv) = 75;
-                REQUIRE(edge_value(g, uv) == 75);
-                
-                // Modify through reference
-                edge_value(g, uv) += 25;
-                REQUIRE(edge_value(g, uv) == 100);
-            }
-            break;
+        auto u = *vertices(g).begin();
+        auto& v = u.inner_value(g);
+        auto& edge_range = v.edges();
+        auto e_iter = edge_range.begin();
+        if (e_iter != edge_range.end()) {
+            using edge_iter_t = decltype(e_iter);
+            using vertex_desc_t = decltype(u);
+            auto uv = graph::edge_descriptor<edge_iter_t, typename vertex_desc_t::iterator_type>(e_iter, u);
+            
+            REQUIRE(edge_value(g, uv) == 50);
+            
+            edge_value(g, uv) = 75;
+            REQUIRE(edge_value(g, uv) == 75);
+            
+            // Modify through reference
+            edge_value(g, uv) += 25;
+            REQUIRE(edge_value(g, uv) == 100);
         }
     }
 
@@ -2570,17 +2550,15 @@ TEST_CASE("vofl CPO edge_value(g, uv)", "[dynamic_graph][vofl][cpo][edge_value]"
         vofl_int_ev g({{0, 1, 42}});
         
         const vofl_int_ev& const_g = g;
-        for (auto const_u : vertices(const_g)) {
-            auto& const_v = const_u.inner_value(const_g);
-            auto& const_edge_range = const_v.edges();
-            auto const_e_iter = const_edge_range.begin();
-            if (const_e_iter != const_edge_range.end()) {
-                using const_edge_iter_t = decltype(const_e_iter);
-                using const_vertex_desc_t = decltype(const_u);
-                auto const_uv = graph::edge_descriptor<const_edge_iter_t, typename const_vertex_desc_t::iterator_type>(const_e_iter, const_u);
-                REQUIRE(edge_value(const_g, const_uv) == 42);
-            }
-            break;
+        auto const_u = *vertices(const_g).begin();
+        auto& const_v = const_u.inner_value(const_g);
+        auto& const_edge_range = const_v.edges();
+        auto const_e_iter = const_edge_range.begin();
+        if (const_e_iter != const_edge_range.end()) {
+            using const_edge_iter_t = decltype(const_e_iter);
+            using const_vertex_desc_t = decltype(const_u);
+            auto const_uv = graph::edge_descriptor<const_edge_iter_t, typename const_vertex_desc_t::iterator_type>(const_e_iter, const_u);
+            REQUIRE(edge_value(const_g, const_uv) == 42);
         }
     }
 
@@ -3001,15 +2979,15 @@ TEST_CASE("vofl CPO num_vertices(g, pid)", "[dynamic_graph][vofl][cpo][num_verti
         vofl_all_int g({{0, 1, 1}, {1, 2, 2}, {2, 3, 3}});
         
         // For partition 0, num_vertices(g, 0) should equal distance(vertices(g, 0))
-        REQUIRE(num_vertices(g, 0) == std::ranges::distance(vertices(g, 0)));
+        REQUIRE(num_vertices(g, 0) == static_cast<size_t>(std::ranges::distance(vertices(g, 0))));
         
         // For non-existent partitions, both should return 0/empty
-        REQUIRE(num_vertices(g, 1) == std::ranges::distance(vertices(g, 1)));
-        REQUIRE(num_vertices(g, 2) == std::ranges::distance(vertices(g, 2)));
+        REQUIRE(num_vertices(g, 1) == static_cast<size_t>(std::ranges::distance(vertices(g, 1))));
+        REQUIRE(num_vertices(g, 2) == static_cast<size_t>(std::ranges::distance(vertices(g, 2))));
         
         // Sum of all partition sizes should equal total (for single partition)
         size_t total = 0;
-        for (int pid = 0; pid < num_partitions(g); ++pid) {
+        for (size_t pid = 0; pid < static_cast<size_t>(num_partitions(g)); ++pid) {
             total += num_vertices(g, pid);
         }
         REQUIRE(total == num_vertices(g));

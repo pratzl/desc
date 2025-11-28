@@ -1921,7 +1921,7 @@ namespace _cpo_impls {
                     // Default: iterate edges(g,u) and find edge with matching target_id
                     auto edge_range = edges(std::forward<G>(g), u);
                     auto it = std::ranges::find_if(edge_range, [&](const auto& e) {
-                        return target_id(std::forward<G>(g), e) == vid;
+                        return target_id(std::forward<G>(g), e) == static_cast<vertex_id_t<_G>>(vid);
                     });
                     // Not found - return end as an edge descriptor
                     return *it;

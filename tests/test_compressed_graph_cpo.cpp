@@ -3727,7 +3727,7 @@ TEST_CASE("num_partitions(g) integration with partition_id", "[num_partitions][a
     // All partition IDs should be in range [0, num_partitions)
     for (auto v : vertices(g)) {
         auto pid = partition_id(g, v);
-        REQUIRE(pid >= 0);
+        //REQUIRE(pid >= 0); // aways true for unsigned types
         REQUIRE(pid < num_parts);
     }
 }

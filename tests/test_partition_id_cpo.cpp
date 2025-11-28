@@ -289,7 +289,7 @@ TEST_CASE("partition_id(g,u) - integration with vertex_id", "[partition_id][cpo]
     auto verts = vertices(graph);
     
     // All vertices have different IDs but same partition
-    std::vector<std::pair<int, int>> id_partition_pairs;
+    std::vector<std::pair<size_t, int>> id_partition_pairs;
     for (auto v : verts) {
         auto vid = vertex_id(graph, v);
         auto pid = partition_id(graph, v);
@@ -299,9 +299,9 @@ TEST_CASE("partition_id(g,u) - integration with vertex_id", "[partition_id][cpo]
     REQUIRE(id_partition_pairs.size() == 3);
     
     // Different vertex IDs
-    REQUIRE(id_partition_pairs[0].first == 0);
-    REQUIRE(id_partition_pairs[1].first == 1);
-    REQUIRE(id_partition_pairs[2].first == 2);
+    REQUIRE(id_partition_pairs[0].first == size_t(0));
+    REQUIRE(id_partition_pairs[1].first == size_t(1));
+    REQUIRE(id_partition_pairs[2].first == size_t(2));
     
     // Same partition for all
     REQUIRE(id_partition_pairs[0].second == 0);

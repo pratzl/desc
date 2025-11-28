@@ -145,10 +145,10 @@ TEST_CASE("adjacency_list concept - vector<vector<int>>", "[adjacency_list][conc
     auto verts = vertices(g);
     REQUIRE(std::ranges::size(verts) == 3);
     
-    // Each vertex should have edges
+    // Each vertex should have edges (or be isolated)
     for (auto v : verts) {
-        auto edge_range = edges(g, v);
-        REQUIRE(std::ranges::size(edge_range) >= size_t(0));
+        [[maybe_unused]] auto edge_range = edges(g, v);
+        // edge_range size is always valid (>= 0 is implicit for size_t)
     }
 }
 

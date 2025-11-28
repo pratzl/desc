@@ -426,12 +426,12 @@ public:
   using edge_type      = dynamic_edge<EV, VV, GV, VId, Sourced, Traits>;
 
 public:
-  constexpr dynamic_edge(vertex_id_type source_id, vertex_id_type target_id)
-        : base_target_type(target_id), base_source_type(source_id) {}
-  constexpr dynamic_edge(vertex_id_type source_id, vertex_id_type target_id, const value_type& val)
-        : base_target_type(target_id), base_source_type(source_id), base_value_type(val) {}
-  constexpr dynamic_edge(vertex_id_type source_id, vertex_id_type target_id, value_type&& val)
-        : base_target_type(target_id), base_source_type(source_id), base_value_type(move(val)) {}
+  constexpr dynamic_edge(vertex_id_type uid, vertex_id_type vid)
+        : base_target_type(vid), base_source_type(uid) {}
+  constexpr dynamic_edge(vertex_id_type uid, vertex_id_type vid, const value_type& val)
+        : base_target_type(vid), base_source_type(uid), base_value_type(val) {}
+  constexpr dynamic_edge(vertex_id_type uid, vertex_id_type vid, value_type&& val)
+        : base_target_type(vid), base_source_type(uid), base_value_type(move(val)) {}
 
   constexpr dynamic_edge()                    = default;
   constexpr dynamic_edge(const dynamic_edge&) = default;
@@ -481,8 +481,8 @@ public:
   using edge_type      = dynamic_edge<void, VV, GV, VId, true, Traits>;
 
 public:
-  constexpr dynamic_edge(vertex_id_type source_id, vertex_id_type target_id)
-        : base_target_type(target_id), base_source_type(source_id) {}
+  constexpr dynamic_edge(vertex_id_type src_id, vertex_id_type tgt_id)
+        : base_target_type(tgt_id), base_source_type(src_id) {}
 
   constexpr dynamic_edge()                    = default;
   constexpr dynamic_edge(const dynamic_edge&) = default;
@@ -586,7 +586,7 @@ public:
   using edge_type      = dynamic_edge<void, VV, GV, VId, false, Traits>;
 
 public:
-  constexpr dynamic_edge(vertex_id_type target_id) : base_target_type(target_id) {}
+  constexpr dynamic_edge(vertex_id_type vid) : base_target_type(vid) {}
 
   constexpr dynamic_edge()                    = default;
   constexpr dynamic_edge(const dynamic_edge&) = default;
@@ -656,30 +656,7 @@ private:
   edges_type edges_;
 
 private: // CPO properties
-  /**
-   * @brief Get the user-defined value associated with an edge (ADL customization)
-   * @tparam G Graph type (deduced, forwarding reference)
-   * @tparam E Edge descriptor type (deduced, forwarding reference)
-   * @param g The graph
-   * @param uv The edge descriptor
-   * @return Reference to the edge value (const if descriptor is const)
-   * @note Complexity: O(1) - direct access through descriptor
-   * @note This is the ADL customization point for the edge_value(g, uv) CPO
-   * @note Only available when EV is not void
-   */
-  template<typename G, typename E>
-    requires edge_descriptor_type<E> &&
-             (!std::is_void_v<EV>)
-  [[nodiscard]] friend constexpr decltype(auto) edge_value(G&& g, E&& uv) noexcept {
-    // Get the source vertex from the descriptor
-    auto&& source_vertex = std::forward<E>(uv).source().inner_value(std::forward<G>(g));
-    // Get the edges container from the vertex
-    auto&& edges_container = std::forward<decltype(source_vertex)>(source_vertex).edges();
-    // Get the edge object from the descriptor
-    auto&& edge_obj = std::forward<E>(uv).inner_value(std::forward<decltype(edges_container)>(edges_container));
-    // Return the value from the edge object
-    return std::forward<decltype(edge_obj)>(edge_obj).value();
-  }
+  // Note: edge_value friend function is defined in dynamic_graph_base
 
   /**
    * @brief Get the edges for a vertex as an edge_descriptor_view (ADL customization)
@@ -1214,14 +1191,14 @@ public: // Load operations
         using edges_container_example = decltype(vertices_[0].edges());
         if constexpr (requires(edges_container_example c) { c.reserve(0); }) {
           // Compute out-degree counts per vertex id
-          std::vector<size_type> degree(vertices_.size(), size_type{0});
+          std::vector<size_type> degrees(vertices_.size(), size_type{0});
           for (auto const& e : projected) {
-            degree[static_cast<size_t>(e.source_id)]++;
+            degrees[static_cast<size_t>(e.source_id)]++;
           }
-          for (size_t vid = 0; vid < degree.size(); ++vid) {
+          for (size_t vid = 0; vid < degrees.size(); ++vid) {
             auto& ec = vertices_[vid].edges();
-            if constexpr (requires { ec.reserve(degree[vid]); }) {
-              if (degree[vid]) ec.reserve(degree[vid]);
+            if constexpr (requires { ec.reserve(degrees[vid]); }) {
+              if (degrees[vid]) ec.reserve(degrees[vid]);
             }
           }
         }
@@ -1376,6 +1353,33 @@ private: // CPO properties
     return std::forward<U>(u).inner_value(std::forward<G>(g).vertices_).value();
   }
 
+  /**
+   * @brief Get the user-defined value associated with an edge
+   * 
+   * Returns a reference to the user-defined value stored for the given edge.
+   * Navigates through the edge descriptor to access the edge's value.
+   * 
+   * @param g The graph (forwarding reference for const preservation)
+   * @param uv The edge descriptor
+   * @return Reference to the edge value (const if g is const)
+   * @note Complexity: O(1) - direct access through descriptor
+   * @note This is the ADL customization point for the edge_value(g, uv) CPO
+   * @note Only available when EV is not void
+  */
+  template<typename G, typename E>
+    requires std::derived_from<std::remove_cvref_t<G>, dynamic_graph_base> && 
+             edge_descriptor_type<E> &&
+             (!std::is_void_v<EV>)
+  [[nodiscard]] friend constexpr decltype(auto) edge_value(G&& g, E&& uv) noexcept {
+    // Get the source vertex from the descriptor
+    auto&& source_vertex = std::forward<E>(uv).source().inner_value(std::forward<G>(g).vertices_);
+    // Get the edges container from the vertex
+    auto&& edges_container = std::forward<decltype(source_vertex)>(source_vertex).edges();
+    // Get the edge object from the descriptor
+    auto&& edge_obj = std::forward<E>(uv).inner_value(std::forward<decltype(edges_container)>(edges_container));
+    // Return the value from the edge object
+    return std::forward<decltype(edge_obj)>(edge_obj).value();
+  }
 
   // friend constexpr vertex_id_type vertex_id(const dynamic_graph_base& g, typename vertices_type::const_iterator ui) {
   //   return static_cast<vertex_id_type>(ui - g.vertices_.begin());

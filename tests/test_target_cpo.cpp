@@ -379,7 +379,7 @@ TEST_CASE("target(g,uv) - full graph traversal using target", "[target][cpo][tra
         {}
     };
     
-    std::vector<std::pair<int, int>> edge_list;
+    std::vector<std::pair<size_t, size_t>> edge_list;
     
     for (auto u : vertices(graph)) {
         for (auto e : edges(graph, u)) {
@@ -389,11 +389,11 @@ TEST_CASE("target(g,uv) - full graph traversal using target", "[target][cpo][tra
     }
     
     REQUIRE(edge_list.size() == 5);
-    REQUIRE(edge_list[0] == std::make_pair(0, 1));
-    REQUIRE(edge_list[1] == std::make_pair(0, 2));
-    REQUIRE(edge_list[2] == std::make_pair(1, 2));
-    REQUIRE(edge_list[3] == std::make_pair(1, 3));
-    REQUIRE(edge_list[4] == std::make_pair(2, 3));
+    REQUIRE(edge_list[0] == std::make_pair(size_t(0), size_t(1)));
+    REQUIRE(edge_list[1] == std::make_pair(size_t(0), size_t(2)));
+    REQUIRE(edge_list[2] == std::make_pair(size_t(1), size_t(2)));
+    REQUIRE(edge_list[3] == std::make_pair(size_t(1), size_t(3)));
+    REQUIRE(edge_list[4] == std::make_pair(size_t(2), size_t(3)));
 }
 
 // =============================================================================
