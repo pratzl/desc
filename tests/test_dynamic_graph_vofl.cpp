@@ -178,14 +178,14 @@ TEST_CASE("vofl properties", "[dynamic_graph][vofl][properties]") {
         using vertex_data = copyable_vertex_t<uint32_t, int>;
         using edge_data = copyable_edge_t<uint32_t, int>;
         G g;
-        std::vector<vertex_data> vertices = {{0, 1}, {1, 2}, {2, 3}, {3, 4}};
-        g.load_vertices(vertices, std::identity{});
+        std::vector<vertex_data> vv = {{0, 1}, {1, 2}, {2, 3}, {3, 4}};
+        g.load_vertices(vv, std::identity{});
 
-        std::vector<edge_data> edges = {
+        std::vector<edge_data> ee = {
             {0, 1, 1}, {0, 2, 2}, {0, 3, 3},
             {1, 2, 4}, {1, 3, 5},
             {2, 3, 6}};
-        g.load_edges(edges, std::identity{});
+        g.load_edges(ee, std::identity{});
 
         size_t total_edges = 0;
         for (auto& v : g) {
@@ -202,11 +202,11 @@ TEST_CASE("vofl properties", "[dynamic_graph][vofl][properties]") {
         using vertex_data = copyable_vertex_t<uint32_t, int>;
         using edge_data = copyable_edge_t<uint32_t, int>;
         G g;
-        std::vector<vertex_data> vertices = {{0, 1}, {1, 2}, {2, 3}, {3, 4}};
-        g.load_vertices(vertices, std::identity{});
+        std::vector<vertex_data> vv = {{0, 1}, {1, 2}, {2, 3}, {3, 4}};
+        g.load_vertices(vv, std::identity{});
 
-        std::vector<edge_data> edges = {{0, 1, 10}, {1, 2, 20}};
-        g.load_edges(edges, std::identity{});
+        std::vector<edge_data> ee = {{0, 1, 10}, {1, 2, 20}};
+        g.load_edges(ee, std::identity{});
 
         std::vector<size_t> sinks;
         for (size_t i = 0; i < g.size(); ++i) {
@@ -230,29 +230,29 @@ TEST_CASE("vofl properties", "[dynamic_graph][vofl][properties]") {
         using vertex_data = copyable_vertex_t<uint32_t, int>;
         using edge_data = copyable_edge_t<uint32_t, int>;
         G g;
-        std::vector<vertex_data> vertices;
+        std::vector<vertex_data> vv;
         for (uint32_t i = 0; i < 5; ++i) {
-          vertices.push_back({i, static_cast<int>(i)});
+          vv.push_back({i, static_cast<int>(i)});
         }
-        g.load_vertices(vertices, std::identity{});
+        g.load_vertices(vv, std::identity{});
 
-        std::vector<edge_data> edges = {
+        std::vector<edge_data> ee = {
             {0, 1, 1}, {0, 2, 2}, {0, 3, 3}, // vertex 0: degree 3
             {1, 2, 4}, {1, 4, 5},             // vertex 1: degree 2
             {2, 4, 6},                         // vertex 2: degree 1
             // vertex 3: degree 0
             {4, 0, 7}};                        // vertex 4: degree 1
 
-        g.load_edges(edges, std::identity{});
+        g.load_edges(ee, std::identity{});
 
         std::vector<size_t> degrees;
         for (auto& v : g) {
-          size_t degree = 0;
+          size_t d = 0;
           for (auto& e : v.edges()) {
-            ++degree;
+            ++d;
             (void)e;
           }
-          degrees.push_back(degree);
+          degrees.push_back(d);
         }
 
         REQUIRE(degrees[0] == 3);
@@ -267,32 +267,32 @@ TEST_CASE("vofl properties", "[dynamic_graph][vofl][properties]") {
         using vertex_data = copyable_vertex_t<uint32_t, int>;
         using edge_data = copyable_edge_t<uint32_t, int>;
         G g;
-        std::vector<vertex_data> vertices;
+        std::vector<vertex_data> vv;
         for (uint32_t i = 0; i < 6; ++i) {
-          vertices.push_back({i, static_cast<int>(i)});
+          vv.push_back({i, static_cast<int>(i)});
         }
-        g.load_vertices(vertices, std::identity{});
+        g.load_vertices(vv, std::identity{});
 
         // Vertex 2 has highest degree
-        std::vector<edge_data> edges = {
+        std::vector<edge_data> ee = {
             {0, 1, 1},
             {1, 2, 2},
             {2, 0, 3}, {2, 1, 4}, {2, 3, 5}, {2, 4, 6}, {2, 5, 7},
             {3, 4, 8},
             {4, 5, 9}};
-        g.load_edges(edges, std::identity{});
+        g.load_edges(ee, std::identity{});
 
         size_t max_degree = 0;
         size_t max_vertex_idx = 0;
         
         for (size_t i = 0; i < g.size(); ++i) {
-          size_t degree = 0;
+          size_t d = 0;
           for (auto& e : g[i].edges()) {
-            ++degree;
+            ++d;
             (void)e;
           }
-          if (degree > max_degree) {
-            max_degree = degree;
+          if (d > max_degree) {
+            max_degree = d;
             max_vertex_idx = i;
           }
         }
@@ -763,9 +763,9 @@ TEST_CASE("vofl construction initializer_list", "[dynamic_graph][vofl][construct
     G g({{0, 1}});
     REQUIRE(g.size() == 2);
     auto& u = g[0];
-    auto edges = u.edges();
-    REQUIRE(std::ranges::distance(edges) == 1);
-    auto it = edges.begin();
+    auto ee = u.edges();
+    REQUIRE(std::ranges::distance(ee) == 1);
+    auto it = ee.begin();
     REQUIRE(it->target_id() == 1);
   }
 
@@ -774,8 +774,8 @@ TEST_CASE("vofl construction initializer_list", "[dynamic_graph][vofl][construct
     G g({{0, 1}, {0, 2}, {0, 3}});
     REQUIRE(g.size() == 4);
     auto& u = g[0];
-    auto edges = u.edges();
-    REQUIRE(std::ranges::distance(edges) == 3);
+    auto ee = u.edges();
+    REQUIRE(std::ranges::distance(ee) == 3);
   }
 
   SECTION("void edge values - triangle graph") {
@@ -801,9 +801,9 @@ TEST_CASE("vofl construction initializer_list", "[dynamic_graph][vofl][construct
     G g({{0, 0}});
     REQUIRE(g.size() == 1);
     auto& u = g[0];
-    auto edges = u.edges();
-    REQUIRE(std::ranges::distance(edges) == 1);
-    REQUIRE(edges.begin()->target_id() == 0);
+    auto ee = u.edges();
+    REQUIRE(std::ranges::distance(ee) == 1);
+    REQUIRE(ee.begin()->target_id() == 0);
   }
 
   SECTION("void edge values - parallel edges") {
@@ -811,9 +811,9 @@ TEST_CASE("vofl construction initializer_list", "[dynamic_graph][vofl][construct
     G g({{0, 1}, {0, 1}, {0, 1}});
     REQUIRE(g.size() == 2);
     auto& u = g[0];
-    auto edges = u.edges();
+    auto ee = u.edges();
     // forward_list preserves all duplicates
-    REQUIRE(std::ranges::distance(edges) == 3);
+    REQUIRE(std::ranges::distance(ee) == 3);
   }
 
   SECTION("void edge values - large vertex IDs") {
@@ -1025,8 +1025,8 @@ TEST_CASE("vofl load_vertices", "[dynamic_graph][vofl][load_vertices]") {
     using G = vofl_int_int_void;
     using vertex_data = copyable_vertex_t<uint32_t, int>;
     G g;
-    std::vector<vertex_data> vertices;
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv;
+    g.load_vertices(vv, std::identity{});
     REQUIRE(g.size() == 0);
   }
 
@@ -1034,8 +1034,8 @@ TEST_CASE("vofl load_vertices", "[dynamic_graph][vofl][load_vertices]") {
     using G = vofl_int_int_void;
     using vertex_data = copyable_vertex_t<uint32_t, int>;
     G g;
-    std::vector<vertex_data> vertices = {{0, 100}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 100}};
+    g.load_vertices(vv, std::identity{});
     REQUIRE(g.size() == 1);
     REQUIRE(g[0].value() == 100);
   }
@@ -1044,8 +1044,8 @@ TEST_CASE("vofl load_vertices", "[dynamic_graph][vofl][load_vertices]") {
     using G = vofl_int_int_void;
     using vertex_data = copyable_vertex_t<uint32_t, int>;
     G g;
-    std::vector<vertex_data> vertices = {{0, 10}, {1, 20}, {2, 30}, {3, 40}, {4, 50}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 10}, {1, 20}, {2, 30}, {3, 40}, {4, 50}};
+    g.load_vertices(vv, std::identity{});
     REQUIRE(g.size() == 5);
     REQUIRE(g[0].value() == 10);
     REQUIRE(g[1].value() == 20);
@@ -1091,11 +1091,11 @@ TEST_CASE("vofl load_edges", "[dynamic_graph][vofl][load_edges]") {
     using vertex_data = copyable_vertex_t<uint32_t, int>;
     using edge_data = copyable_edge_t<uint32_t, int>;
     G g;
-    std::vector<vertex_data> vertices = {{0, 10}, {1, 20}, {2, 30}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 10}, {1, 20}, {2, 30}};
+    g.load_vertices(vv, std::identity{});
 
-    std::vector<edge_data> edges;
-    g.load_edges(edges, std::identity{});
+    std::vector<edge_data> ee;
+    g.load_edges(ee, std::identity{});
 
     REQUIRE(g.size() == 3);
     for (auto& v : g) {
@@ -1113,11 +1113,11 @@ TEST_CASE("vofl load_edges", "[dynamic_graph][vofl][load_edges]") {
     using vertex_data = copyable_vertex_t<uint32_t, int>;
     using edge_data = copyable_edge_t<uint32_t, int>;
     G g;
-    std::vector<vertex_data> vertices = {{0, 10}, {1, 20}, {2, 30}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 10}, {1, 20}, {2, 30}};
+    g.load_vertices(vv, std::identity{});
 
-    std::vector<edge_data> edges = {{0, 1, 100}};
-    g.load_edges(edges, std::identity{});
+    std::vector<edge_data> ee = {{0, 1, 100}};
+    g.load_edges(ee, std::identity{});
 
     // Check vertex 0 has the edge
     size_t count = 0;
@@ -1134,11 +1134,11 @@ TEST_CASE("vofl load_edges", "[dynamic_graph][vofl][load_edges]") {
     using vertex_data = copyable_vertex_t<uint32_t, int>;
     using edge_data = copyable_edge_t<uint32_t, int>;
     G g;
-    std::vector<vertex_data> vertices = {{0, 10}, {1, 20}, {2, 30}, {3, 40}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 10}, {1, 20}, {2, 30}, {3, 40}};
+    g.load_vertices(vv, std::identity{});
 
-    std::vector<edge_data> edges = {{0, 1, 10}, {0, 2, 20}, {0, 3, 30}};
-    g.load_edges(edges, std::identity{});
+    std::vector<edge_data> ee = {{0, 1, 10}, {0, 2, 20}, {0, 3, 30}};
+    g.load_edges(ee, std::identity{});
 
     size_t count = 0;
     for (auto& edge : g[0].edges()) {
@@ -1153,11 +1153,11 @@ TEST_CASE("vofl load_edges", "[dynamic_graph][vofl][load_edges]") {
     using vertex_data = copyable_vertex_t<uint32_t, int>;
     using edge_data = copyable_edge_t<uint32_t, int>;
     G g;
-    std::vector<vertex_data> vertices = {{0, 10}, {1, 20}, {2, 30}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 10}, {1, 20}, {2, 30}};
+    g.load_vertices(vv, std::identity{});
 
-    std::vector<edge_data> edges = {{0, 1, 100}, {1, 2, 200}, {2, 0, 300}};
-    g.load_edges(edges, std::identity{});
+    std::vector<edge_data> ee = {{0, 1, 100}, {1, 2, 200}, {2, 0, 300}};
+    g.load_edges(ee, std::identity{});
 
     // Count edges per vertex
     size_t count0 = 0, count1 = 0, count2 = 0;
@@ -1175,11 +1175,11 @@ TEST_CASE("vofl load_edges", "[dynamic_graph][vofl][load_edges]") {
     using vertex_data = copyable_vertex_t<uint32_t, int>;
     using edge_data = copyable_edge_t<uint32_t, void>;
     G g;
-    std::vector<vertex_data> vertices = {{0, 10}, {1, 20}, {2, 30}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 10}, {1, 20}, {2, 30}};
+    g.load_vertices(vv, std::identity{});
 
-    std::vector<edge_data> edges = {{0, 1}, {1, 2}, {2, 0}};
-    g.load_edges(edges, std::identity{});
+    std::vector<edge_data> ee = {{0, 1}, {1, 2}, {2, 0}};
+    g.load_edges(ee, std::identity{});
 
     // Verify edges exist by counting
     size_t total_edges = 0;
@@ -1203,11 +1203,11 @@ TEST_CASE("vofl load_edges", "[dynamic_graph][vofl][load_edges]") {
     };
 
     G g;
-    std::vector<vertex_data> vertices = {{0, 1}, {1, 2}, {2, 3}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 1}, {1, 2}, {2, 3}};
+    g.load_vertices(vv, std::identity{});
 
-    std::vector<Edge> edges = {{0, 1, "edge01"}, {1, 2, "edge12"}};
-    g.load_edges(edges, [](const Edge& e) -> edge_data {
+    std::vector<Edge> ee = {{0, 1, "edge01"}, {1, 2, "edge12"}};
+    g.load_edges(ee, [](const Edge& e) -> edge_data {
       return {e.from, e.to, e.label};
     });
 
@@ -1227,11 +1227,11 @@ TEST_CASE("vofl load_edges", "[dynamic_graph][vofl][load_edges]") {
     using vertex_data = copyable_vertex_t<uint32_t, int>;
     using edge_data = copyable_edge_t<uint32_t, int>;
     G g;
-    std::vector<vertex_data> vertices = {{0, 10}, {1, 20}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 10}, {1, 20}};
+    g.load_vertices(vv, std::identity{});
 
-    std::vector<edge_data> edges = {{0, 0, 999}};
-    g.load_edges(edges, std::identity{});
+    std::vector<edge_data> ee = {{0, 0, 999}};
+    g.load_edges(ee, std::identity{});
 
     size_t count = 0;
     for (auto& edge : g[0].edges()) {
@@ -1246,11 +1246,11 @@ TEST_CASE("vofl load_edges", "[dynamic_graph][vofl][load_edges]") {
     using vertex_data = copyable_vertex_t<uint32_t, int>;
     using edge_data = copyable_edge_t<uint32_t, int>;
     G g;
-    std::vector<vertex_data> vertices = {{0, 10}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 10}};
+    g.load_vertices(vv, std::identity{});
 
-    std::vector<edge_data> edges = {{0, 0, 1}, {0, 0, 2}, {0, 0, 3}};
-    g.load_edges(edges, std::identity{});
+    std::vector<edge_data> ee = {{0, 0, 1}, {0, 0, 2}, {0, 0, 3}};
+    g.load_edges(ee, std::identity{});
 
     size_t count = 0;
     for (auto& edge : g[0].edges()) {
@@ -1265,11 +1265,11 @@ TEST_CASE("vofl load_edges", "[dynamic_graph][vofl][load_edges]") {
     using vertex_data = copyable_vertex_t<uint32_t, int>;
     using edge_data = copyable_edge_t<uint32_t, int>;
     G g;
-    std::vector<vertex_data> vertices = {{0, 10}, {1, 20}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 10}, {1, 20}};
+    g.load_vertices(vv, std::identity{});
 
-    std::vector<edge_data> edges = {{0, 1, 100}, {0, 1, 200}, {0, 1, 300}};
-    g.load_edges(edges, std::identity{});
+    std::vector<edge_data> ee = {{0, 1, 100}, {0, 1, 200}, {0, 1, 300}};
+    g.load_edges(ee, std::identity{});
 
     size_t count = 0;
     std::vector<int> values;
@@ -1289,19 +1289,19 @@ TEST_CASE("vofl load_edges", "[dynamic_graph][vofl][load_edges]") {
     using vertex_data = copyable_vertex_t<uint32_t, int>;
     using edge_data = copyable_edge_t<uint32_t, int>;
     G g;
-    std::vector<vertex_data> vertices(100);
+    std::vector<vertex_data> vv(100);
     for (uint32_t i = 0; i < 100; ++i) {
-      vertices[i] = {i, static_cast<int>(i)};
+      vv[i] = {i, static_cast<int>(i)};
     }
-    g.load_vertices(vertices, std::identity{});
+    g.load_vertices(vv, std::identity{});
 
-    std::vector<edge_data> edges;
+    std::vector<edge_data> ee;
     for (uint32_t i = 0; i < 100; ++i) {
       for (uint32_t j = 0; j < 10; ++j) {
-        edges.push_back({i, (i + j) % 100, static_cast<int>(i * 1000 + j)});
+        ee.push_back({i, (i + j) % 100, static_cast<int>(i * 1000 + j)});
       }
     }
-    g.load_edges(edges, std::identity{});
+    g.load_edges(ee, std::identity{});
 
     // Verify each vertex has 10 edges
     for (uint32_t i = 0; i < 100; ++i) {
@@ -1350,8 +1350,8 @@ TEST_CASE("vofl vertex access in populated graph", "[dynamic_graph][vofl][vertex
 
   SECTION("access vertices with values") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 100}, {1, 200}, {2, 300}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 100}, {1, 200}, {2, 300}};
+    g.load_vertices(vv, std::identity{});
 
     REQUIRE(g[0].value() == 100);
     REQUIRE(g[1].value() == 200);
@@ -1360,8 +1360,8 @@ TEST_CASE("vofl vertex access in populated graph", "[dynamic_graph][vofl][vertex
 
   SECTION("modify vertex values") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 10}, {1, 20}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 10}, {1, 20}};
+    g.load_vertices(vv, std::identity{});
 
     g[0].value() = 999;
     g[1].value() = 888;
@@ -1372,8 +1372,8 @@ TEST_CASE("vofl vertex access in populated graph", "[dynamic_graph][vofl][vertex
 
   SECTION("iterate all vertices in populated graph") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 1}, {1, 2}, {2, 3}, {3, 4}, {4, 5}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 1}, {1, 2}, {2, 3}, {3, 4}, {4, 5}};
+    g.load_vertices(vv, std::identity{});
 
     int sum = 0;
     for (auto& v : g) {
@@ -1384,11 +1384,11 @@ TEST_CASE("vofl vertex access in populated graph", "[dynamic_graph][vofl][vertex
 
   SECTION("access edges from vertex") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 10}, {1, 20}, {2, 30}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 10}, {1, 20}, {2, 30}};
+    g.load_vertices(vv, std::identity{});
 
-    std::vector<edge_data> edges = {{0, 1, 100}, {0, 2, 200}};
-    g.load_edges(edges, std::identity{});
+    std::vector<edge_data> ee = {{0, 1, 100}, {0, 2, 200}};
+    g.load_edges(ee, std::identity{});
 
     size_t count = 0;
     int sum = 0;
@@ -1408,14 +1408,14 @@ TEST_CASE("vofl edge iteration patterns", "[dynamic_graph][vofl][edge_access]") 
 
   SECTION("iterate edges from multiple vertices") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 10}, {1, 20}, {2, 30}, {3, 40}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 10}, {1, 20}, {2, 30}, {3, 40}};
+    g.load_vertices(vv, std::identity{});
 
-    std::vector<edge_data> edges = {
+    std::vector<edge_data> ee = {
         {0, 1, 1}, {0, 2, 2},
         {1, 2, 3}, {1, 3, 4},
         {2, 3, 5}};
-    g.load_edges(edges, std::identity{});
+    g.load_edges(ee, std::identity{});
 
     // Count edges per vertex
     std::vector<size_t> counts;
@@ -1436,11 +1436,11 @@ TEST_CASE("vofl edge iteration patterns", "[dynamic_graph][vofl][edge_access]") 
 
   SECTION("sum all edge values in graph") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 1}, {1, 2}, {2, 3}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 1}, {1, 2}, {2, 3}};
+    g.load_vertices(vv, std::identity{});
 
-    std::vector<edge_data> edges = {{0, 1, 10}, {0, 2, 20}, {1, 2, 30}};
-    g.load_edges(edges, std::identity{});
+    std::vector<edge_data> ee = {{0, 1, 10}, {0, 2, 20}, {1, 2, 30}};
+    g.load_edges(ee, std::identity{});
 
     int total = 0;
     for (auto& v : g) {
@@ -1453,11 +1453,11 @@ TEST_CASE("vofl edge iteration patterns", "[dynamic_graph][vofl][edge_access]") 
 
   SECTION("modify edge values") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 1}, {1, 2}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 1}, {1, 2}};
+    g.load_vertices(vv, std::identity{});
 
-    std::vector<edge_data> edges = {{0, 1, 100}};
-    g.load_edges(edges, std::identity{});
+    std::vector<edge_data> ee = {{0, 1, 100}};
+    g.load_edges(ee, std::identity{});
 
     // Modify edge value
     for (auto& e : g[0].edges()) {
@@ -1478,12 +1478,12 @@ TEST_CASE("vofl graph with complex structure", "[dynamic_graph][vofl][complex]")
 
   SECTION("triangle graph") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 1}, {1, 2}, {2, 3}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 1}, {1, 2}, {2, 3}};
+    g.load_vertices(vv, std::identity{});
 
     // Create triangle: 0->1, 1->2, 2->0
-    std::vector<edge_data> edges = {{0, 1, 10}, {1, 2, 20}, {2, 0, 30}};
-    g.load_edges(edges, std::identity{});
+    std::vector<edge_data> ee = {{0, 1, 10}, {1, 2, 20}, {2, 0, 30}};
+    g.load_edges(ee, std::identity{});
 
     // Each vertex should have exactly 1 outgoing edge
     for (size_t i = 0; i < 3; ++i) {
@@ -1498,18 +1498,18 @@ TEST_CASE("vofl graph with complex structure", "[dynamic_graph][vofl][complex]")
 
   SECTION("star graph - one hub to many spokes") {
     G g;
-    std::vector<vertex_data> vertices;
+    std::vector<vertex_data> vv;
     for (uint32_t i = 0; i < 11; ++i) {
-      vertices.push_back({i, static_cast<int>(i * 10)});
+      vv.push_back({i, static_cast<int>(i * 10)});
     }
-    g.load_vertices(vertices, std::identity{});
+    g.load_vertices(vv, std::identity{});
 
     // Vertex 0 is hub, connects to all others
-    std::vector<edge_data> edges;
+    std::vector<edge_data> ee;
     for (uint32_t i = 1; i < 11; ++i) {
-      edges.push_back({0, i, static_cast<int>(i)});
+      ee.push_back({0, i, static_cast<int>(i)});
     }
-    g.load_edges(edges, std::identity{});
+    g.load_edges(ee, std::identity{});
 
     // Hub should have 10 edges
     size_t hub_count = 0;
@@ -1532,19 +1532,19 @@ TEST_CASE("vofl graph with complex structure", "[dynamic_graph][vofl][complex]")
 
   SECTION("complete graph K4") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 1}, {1, 2}, {2, 3}, {3, 4}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 1}, {1, 2}, {2, 3}, {3, 4}};
+    g.load_vertices(vv, std::identity{});
 
     // Every vertex connects to every other vertex
-    std::vector<edge_data> edges;
+    std::vector<edge_data> ee;
     for (uint32_t i = 0; i < 4; ++i) {
       for (uint32_t j = 0; j < 4; ++j) {
         if (i != j) {
-          edges.push_back({i, j, static_cast<int>(i * 10 + j)});
+          ee.push_back({i, j, static_cast<int>(i * 10 + j)});
         }
       }
     }
-    g.load_edges(edges, std::identity{});
+    g.load_edges(ee, std::identity{});
 
     // Each vertex should have 3 outgoing edges
     for (uint32_t i = 0; i < 4; ++i) {
@@ -1566,13 +1566,13 @@ TEST_CASE("vofl graph with string values", "[dynamic_graph][vofl][string_values]
   SECTION("vertices and edges with string values") {
     G g("root_graph");
 
-    std::vector<vertex_data> vertices = {
+    std::vector<vertex_data> vv = {
         {0, "Alice"}, {1, "Bob"}, {2, "Charlie"}};
-    g.load_vertices(vertices, std::identity{});
+    g.load_vertices(vv, std::identity{});
 
-    std::vector<edge_data> edges = {
+    std::vector<edge_data> ee = {
         {0, 1, "knows"}, {1, 2, "friend"}, {0, 2, "colleague"}};
-    g.load_edges(edges, std::identity{});
+    g.load_edges(ee, std::identity{});
 
     REQUIRE(g.graph_value() == "root_graph");
     REQUIRE(g[0].value() == "Alice");
@@ -1601,8 +1601,8 @@ TEST_CASE("vofl single vertex graphs", "[dynamic_graph][vofl][single_vertex]") {
 
   SECTION("single vertex no edges") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 42}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 42}};
+    g.load_vertices(vv, std::identity{});
 
     REQUIRE(g.size() == 1);
     REQUIRE(g[0].value() == 42);
@@ -1617,11 +1617,11 @@ TEST_CASE("vofl single vertex graphs", "[dynamic_graph][vofl][single_vertex]") {
 
   SECTION("single vertex with self-loop") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 42}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 42}};
+    g.load_vertices(vv, std::identity{});
 
-    std::vector<edge_data> edges = {{0, 0, 100}};
-    g.load_edges(edges, std::identity{});
+    std::vector<edge_data> ee = {{0, 0, 100}};
+    g.load_edges(ee, std::identity{});
 
     size_t count = 0;
     for (auto& e : g[0].edges()) {
@@ -1633,11 +1633,11 @@ TEST_CASE("vofl single vertex graphs", "[dynamic_graph][vofl][single_vertex]") {
 
   SECTION("single vertex with multiple self-loops") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 42}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 42}};
+    g.load_vertices(vv, std::identity{});
 
-    std::vector<edge_data> edges = {{0, 0, 1}, {0, 0, 2}, {0, 0, 3}, {0, 0, 4}};
-    g.load_edges(edges, std::identity{});
+    std::vector<edge_data> ee = {{0, 0, 1}, {0, 0, 2}, {0, 0, 3}, {0, 0, 4}};
+    g.load_edges(ee, std::identity{});
 
     size_t count = 0;
     int sum = 0;
@@ -1657,11 +1657,11 @@ TEST_CASE("vofl large populated graph", "[dynamic_graph][vofl][large]") {
 
   SECTION("1000 vertices each with value") {
     G g;
-    std::vector<vertex_data> vertices;
+    std::vector<vertex_data> vv;
     for (uint32_t i = 0; i < 1000; ++i) {
-      vertices.push_back({i, static_cast<int>(i * i)});
+      vv.push_back({i, static_cast<int>(i * i)});
     }
-    g.load_vertices(vertices, std::identity{});
+    g.load_vertices(vv, std::identity{});
 
     REQUIRE(g.size() == 1000);
     REQUIRE(g[0].value() == 0);
@@ -1671,18 +1671,18 @@ TEST_CASE("vofl large populated graph", "[dynamic_graph][vofl][large]") {
 
   SECTION("chain graph with 100 vertices") {
     G g;
-    std::vector<vertex_data> vertices;
+    std::vector<vertex_data> vv;
     for (uint32_t i = 0; i < 100; ++i) {
-      vertices.push_back({i, static_cast<int>(i)});
+      vv.push_back({i, static_cast<int>(i)});
     }
-    g.load_vertices(vertices, std::identity{});
+    g.load_vertices(vv, std::identity{});
 
     // Create chain: 0->1->2->...->99
-    std::vector<edge_data> edges;
+    std::vector<edge_data> ee;
     for (uint32_t i = 0; i < 99; ++i) {
-      edges.push_back({i, i + 1, static_cast<int>(i * 100)});
+      ee.push_back({i, i + 1, static_cast<int>(i * 100)});
     }
-    g.load_edges(edges, std::identity{});
+    g.load_edges(ee, std::identity{});
 
     // First 99 vertices have 1 edge, last has 0
     for (uint32_t i = 0; i < 99; ++i) {
@@ -1710,11 +1710,11 @@ TEST_CASE("vofl mixed access patterns", "[dynamic_graph][vofl][mixed]") {
 
   SECTION("interleaved vertex and edge access") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 10}, {1, 20}, {2, 30}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 10}, {1, 20}, {2, 30}};
+    g.load_vertices(vv, std::identity{});
 
-    std::vector<edge_data> edges = {{0, 1, 100}, {1, 2, 200}};
-    g.load_edges(edges, std::identity{});
+    std::vector<edge_data> ee = {{0, 1, 100}, {1, 2, 200}};
+    g.load_edges(ee, std::identity{});
 
     // Access vertex, then edges, then vertex again
     REQUIRE(g[0].value() == 10);
@@ -1740,11 +1740,11 @@ TEST_CASE("vofl mixed access patterns", "[dynamic_graph][vofl][mixed]") {
 
   SECTION("range-based for with structured bindings") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 1}, {1, 2}, {2, 3}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 1}, {1, 2}, {2, 3}};
+    g.load_vertices(vv, std::identity{});
 
-    std::vector<edge_data> edges = {{0, 1, 10}, {1, 2, 20}};
-    g.load_edges(edges, std::identity{});
+    std::vector<edge_data> ee = {{0, 1, 10}, {1, 2, 20}};
+    g.load_edges(ee, std::identity{});
 
     // Iterate all vertices
     int vertex_sum = 0;
@@ -1800,13 +1800,13 @@ TEST_CASE("vofl error handling for out-of-range access", "[dynamic_graph][vofl][
 
   SECTION("load_edges auto-extends for large source ID") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 10}, {1, 20}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 10}, {1, 20}};
+    g.load_vertices(vv, std::identity{});
     REQUIRE(g.size() == 2);
 
     // Edge with source_id=5 - should auto-extend vertices
-    std::vector<edge_data> edges = {{5, 1, 100}};
-    g.load_edges(edges, std::identity{});
+    std::vector<edge_data> ee = {{5, 1, 100}};
+    g.load_edges(ee, std::identity{});
     
     // Graph should auto-extend to accommodate vertex 5
     REQUIRE(g.size() == 6);
@@ -1814,14 +1814,14 @@ TEST_CASE("vofl error handling for out-of-range access", "[dynamic_graph][vofl][
 
   SECTION("load_edges auto-extends for large target ID") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 10}, {1, 20}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 10}, {1, 20}};
+    g.load_vertices(vv, std::identity{});
     REQUIRE(g.size() == 2);
 
     // Edge with target_id=10 - should auto-extend vertices
-    std::vector<edge_data> edges = {{0, 10, 100}};
-    g.load_edges(edges, std::identity{});
-    
+    std::vector<edge_data> ee = {{0, 10, 100}};
+    g.load_edges(ee, std::identity{});
+
     // Graph should auto-extend to accommodate vertex 10
     REQUIRE(g.size() == 11);
   }
@@ -1829,13 +1829,13 @@ TEST_CASE("vofl error handling for out-of-range access", "[dynamic_graph][vofl][
   SECTION("load_vertices with ID exceeding container size") {
     G g;
     // Start with 3 vertices
-    std::vector<vertex_data> vertices1 = {{0, 10}, {1, 20}, {2, 30}};
-    g.load_vertices(vertices1, std::identity{});
+    std::vector<vertex_data> vv = {{0, 10}, {1, 20}, {2, 30}};
+    g.load_vertices(vv, std::identity{});
 
     // Try to load vertex with ID=10 without resizing
-    std::vector<vertex_data> vertices2 = {{10, 100}};
+    std::vector<vertex_data> vv2 = {{10, 100}};
     
-    REQUIRE_THROWS_AS(g.load_vertices(vertices2, std::identity{}), std::out_of_range);
+    REQUIRE_THROWS_AS(g.load_vertices(vv2, std::identity{}), std::out_of_range);
   }
 }
 
@@ -1848,8 +1848,8 @@ TEST_CASE("vofl edge cases with empty containers", "[dynamic_graph][vofl][edge_c
     G g;
     
     // Load edges with no vertices - should infer vertex count
-    std::vector<edge_data> edges = {{0, 1, 100}, {1, 2, 200}};
-    g.load_edges(edges, std::identity{});
+    std::vector<edge_data> ee = {{0, 1, 100}, {1, 2, 200}};
+    g.load_edges(ee, std::identity{});
 
     // Graph should auto-size to accommodate vertices 0,1,2
     REQUIRE(g.size() == 3);
@@ -1873,15 +1873,15 @@ TEST_CASE("vofl edge cases with empty containers", "[dynamic_graph][vofl][edge_c
     g.clear();
     
     // Add actual data
-    std::vector<vertex_data> vertices = {{0, 10}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 10}};
+    g.load_vertices(vv, std::identity{});
     REQUIRE(g.size() == 1);
   }
 
   SECTION("vertices only, no edges") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 10}, {1, 20}, {2, 30}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 10}, {1, 20}, {2, 30}};
+    g.load_vertices(vv, std::identity{});
 
     REQUIRE(g.size() == 3);
     
@@ -1904,8 +1904,8 @@ TEST_CASE("vofl boundary value tests", "[dynamic_graph][vofl][boundary]") {
 
   SECTION("vertex ID at zero") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 999}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 999}};
+    g.load_vertices(vv, std::identity{});
 
     REQUIRE(g.size() == 1);
     REQUIRE(g[0].value() == 999);
@@ -1914,11 +1914,11 @@ TEST_CASE("vofl boundary value tests", "[dynamic_graph][vofl][boundary]") {
   SECTION("large vertex ID values") {
     G g;
     // Create sparse graph with large IDs
-    std::vector<vertex_data> vertices;
+    std::vector<vertex_data> vv;
     for (uint32_t i = 0; i < 1000; ++i) {
-      vertices.push_back({i, static_cast<int>(i)});
+      vv.push_back({i, static_cast<int>(i)});
     }
-    g.load_vertices(vertices, std::identity{});
+    g.load_vertices(vv, std::identity{});
 
     REQUIRE(g.size() == 1000);
     REQUIRE(g[999].value() == 999);
@@ -1926,11 +1926,11 @@ TEST_CASE("vofl boundary value tests", "[dynamic_graph][vofl][boundary]") {
 
   SECTION("zero edge values") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 1}, {1, 2}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 1}, {1, 2}};
+    g.load_vertices(vv, std::identity{});
 
-    std::vector<edge_data> edges = {{0, 1, 0}};
-    g.load_edges(edges, std::identity{});
+    std::vector<edge_data> ee = {{0, 1, 0}};
+    g.load_edges(ee, std::identity{});
 
     for (auto& e : g[0].edges()) {
       REQUIRE(e.value() == 0);
@@ -1939,11 +1939,11 @@ TEST_CASE("vofl boundary value tests", "[dynamic_graph][vofl][boundary]") {
 
   SECTION("negative edge values") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 1}, {1, 2}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 1}, {1, 2}};
+    g.load_vertices(vv, std::identity{});
 
-    std::vector<edge_data> edges = {{0, 1, -100}, {1, 0, -200}};
-    g.load_edges(edges, std::identity{});
+    std::vector<edge_data> ee = {{0, 1, -100}, {1, 0, -200}};
+    g.load_edges(ee, std::identity{});
 
     int sum = 0;
     for (auto& v : g) {
@@ -1978,8 +1978,8 @@ TEST_CASE("vofl incremental graph building", "[dynamic_graph][vofl][incremental]
 
   SECTION("load edges in multiple batches") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 1}, {1, 2}, {2, 3}, {3, 4}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 1}, {1, 2}, {2, 3}, {3, 4}};
+    g.load_vertices(vv, std::identity{});
 
     std::vector<edge_data> batch1 = {{0, 1, 10}, {1, 2, 20}};
     g.load_edges(batch1, std::identity{});
@@ -2000,8 +2000,8 @@ TEST_CASE("vofl incremental graph building", "[dynamic_graph][vofl][incremental]
 
   SECTION("update existing vertex values") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 10}, {1, 20}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 10}, {1, 20}};
+    g.load_vertices(vv, std::identity{});
     
     REQUIRE(g[0].value() == 10);
     REQUIRE(g[1].value() == 20);
@@ -2022,12 +2022,12 @@ TEST_CASE("vofl duplicate and redundant edges", "[dynamic_graph][vofl][duplicate
 
   SECTION("exact duplicate edges") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 1}, {1, 2}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 1}, {1, 2}};
+    g.load_vertices(vv, std::identity{});
 
     // Load same edge multiple times
-    std::vector<edge_data> edges = {{0, 1, 100}, {0, 1, 100}, {0, 1, 100}};
-    g.load_edges(edges, std::identity{});
+    std::vector<edge_data> ee = {{0, 1, 100}, {0, 1, 100}, {0, 1, 100}};
+    g.load_edges(ee, std::identity{});
 
     // forward_list allows duplicates
     size_t count = 0;
@@ -2040,11 +2040,11 @@ TEST_CASE("vofl duplicate and redundant edges", "[dynamic_graph][vofl][duplicate
 
   SECTION("same endpoints different values") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 1}, {1, 2}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 1}, {1, 2}};
+    g.load_vertices(vv, std::identity{});
 
-    std::vector<edge_data> edges = {{0, 1, 100}, {0, 1, 200}, {0, 1, 300}};
-    g.load_edges(edges, std::identity{});
+    std::vector<edge_data> ee = {{0, 1, 100}, {0, 1, 200}, {0, 1, 300}};
+    g.load_edges(ee, std::identity{});
 
     size_t count = 0;
     int sum = 0;
@@ -2058,12 +2058,12 @@ TEST_CASE("vofl duplicate and redundant edges", "[dynamic_graph][vofl][duplicate
 
   SECTION("bidirectional edges") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 1}, {1, 2}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 1}, {1, 2}};
+    g.load_vertices(vv, std::identity{});
 
     // Both directions
-    std::vector<edge_data> edges = {{0, 1, 100}, {1, 0, 200}};
-    g.load_edges(edges, std::identity{});
+    std::vector<edge_data> ee = {{0, 1, 100}, {1, 0, 200}};
+    g.load_edges(ee, std::identity{});
 
     size_t count0 = 0;
     for (auto& e : g[0].edges()) {
@@ -2088,18 +2088,18 @@ TEST_CASE("vofl special graph patterns", "[dynamic_graph][vofl][patterns]") {
 
   SECTION("cycle graph C5") {
     G g;
-    std::vector<vertex_data> vertices;
+    std::vector<vertex_data> vv;
     for (uint32_t i = 0; i < 5; ++i) {
-      vertices.push_back({i, static_cast<int>(i)});
+      vv.push_back({i, static_cast<int>(i)});
     }
-    g.load_vertices(vertices, std::identity{});
+    g.load_vertices(vv, std::identity{});
 
     // Create cycle: 0->1->2->3->4->0
-    std::vector<edge_data> edges;
+    std::vector<edge_data> ee;
     for (uint32_t i = 0; i < 5; ++i) {
-      edges.push_back({i, (i + 1) % 5, static_cast<int>(i)});
+      ee.push_back({i, (i + 1) % 5, static_cast<int>(i)});
     }
-    g.load_edges(edges, std::identity{});
+    g.load_edges(ee, std::identity{});
 
     // Every vertex should have out-degree 1
     for (size_t i = 0; i < 5; ++i) {
@@ -2114,19 +2114,19 @@ TEST_CASE("vofl special graph patterns", "[dynamic_graph][vofl][patterns]") {
 
   SECTION("binary tree structure") {
     G g;
-    std::vector<vertex_data> vertices;
+    std::vector<vertex_data> vv;
     for (uint32_t i = 0; i < 7; ++i) {
-      vertices.push_back({i, static_cast<int>(i)});
+      vv.push_back({i, static_cast<int>(i)});
     }
-    g.load_vertices(vertices, std::identity{});
+    g.load_vertices(vv, std::identity{});
 
     // Binary tree: node i has children 2i+1 and 2i+2
-    std::vector<edge_data> edges;
+    std::vector<edge_data> ee;
     for (uint32_t i = 0; i < 3; ++i) {
-      edges.push_back({i, 2 * i + 1, static_cast<int>(i * 10 + 1)});
-      edges.push_back({i, 2 * i + 2, static_cast<int>(i * 10 + 2)});
+      ee.push_back({i, 2 * i + 1, static_cast<int>(i * 10 + 1)});
+      ee.push_back({i, 2 * i + 2, static_cast<int>(i * 10 + 2)});
     }
-    g.load_edges(edges, std::identity{});
+    g.load_edges(ee, std::identity{});
 
     // Root and internal nodes have degree 2
     for (uint32_t i = 0; i < 3; ++i) {
@@ -2151,19 +2151,19 @@ TEST_CASE("vofl special graph patterns", "[dynamic_graph][vofl][patterns]") {
 
   SECTION("bipartite graph") {
     G g;
-    std::vector<vertex_data> vertices;
+    std::vector<vertex_data> vv;
     for (uint32_t i = 0; i < 6; ++i) {
-      vertices.push_back({i, static_cast<int>(i)});
+      vv.push_back({i, static_cast<int>(i)});
     }
-    g.load_vertices(vertices, std::identity{});
+    g.load_vertices(vv, std::identity{});
 
     // Set A: {0,1,2}, Set B: {3,4,5}
     // Edges only between sets
-    std::vector<edge_data> edges = {
+    std::vector<edge_data> ee = {
         {0, 3, 1}, {0, 4, 2}, {0, 5, 3},
         {1, 3, 4}, {1, 4, 5},
         {2, 4, 6}, {2, 5, 7}};
-    g.load_edges(edges, std::identity{});
+    g.load_edges(ee, std::identity{});
 
     size_t total = 0;
     for (auto& v : g) {
@@ -2219,23 +2219,23 @@ TEST_CASE("vofl iterator stability", "[dynamic_graph][vofl][iterators]") {
 
   SECTION("vertex iterators remain valid after edge operations") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 10}, {1, 20}, {2, 30}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 10}, {1, 20}, {2, 30}};
+    g.load_vertices(vv, std::identity{});
 
     auto it = g.begin();
     REQUIRE(it->value() == 10);
 
     // Load edges - vertex iterators should remain valid
-    std::vector<edge_data> edges = {{0, 1, 100}};
-    g.load_edges(edges, std::identity{});
+    std::vector<edge_data> ee = {{0, 1, 100}};
+    g.load_edges(ee, std::identity{});
 
     REQUIRE(it->value() == 10); // Iterator still valid
   }
 
   SECTION("iterate vertices multiple times") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 1}, {1, 2}, {2, 3}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 1}, {1, 2}, {2, 3}};
+    g.load_vertices(vv, std::identity{});
 
     // First iteration
     int sum1 = 0;
@@ -2255,11 +2255,11 @@ TEST_CASE("vofl iterator stability", "[dynamic_graph][vofl][iterators]") {
 
   SECTION("nested iteration - vertices and edges") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 1}, {1, 2}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 1}, {1, 2}};
+    g.load_vertices(vv, std::identity{});
 
-    std::vector<edge_data> edges = {{0, 1, 10}, {0, 1, 20}};
-    g.load_edges(edges, std::identity{});
+    std::vector<edge_data> ee = {{0, 1, 10}, {0, 1, 20}};
+    g.load_edges(ee, std::identity{});
 
     // Nested iteration should work
     int vertex_sum = 0;
@@ -2282,11 +2282,11 @@ TEST_CASE("vofl std::ranges integration", "[dynamic_graph][vofl][ranges]") {
 
   SECTION("ranges::count_if on vertices") {
     G g;
-    std::vector<vertex_data> vertices;
+    std::vector<vertex_data> vv;
     for (uint32_t i = 0; i < 10; ++i) {
-      vertices.push_back({i, static_cast<int>(i)});
+      vv.push_back({i, static_cast<int>(i)});
     }
-    g.load_vertices(vertices, std::identity{});
+    g.load_vertices(vv, std::identity{});
 
     // Count vertices with even values
     auto count = std::ranges::count_if(g, [](auto& v) {
@@ -2298,8 +2298,8 @@ TEST_CASE("vofl std::ranges integration", "[dynamic_graph][vofl][ranges]") {
 
   SECTION("ranges::find_if on vertices") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 10}, {1, 20}, {2, 30}, {3, 40}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 10}, {1, 20}, {2, 30}, {3, 40}};
+    g.load_vertices(vv, std::identity{});
 
     auto it = std::ranges::find_if(g, [](auto& v) {
       return v.value() == 30;
@@ -2311,8 +2311,8 @@ TEST_CASE("vofl std::ranges integration", "[dynamic_graph][vofl][ranges]") {
 
   SECTION("ranges::transform view") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 1}, {1, 2}, {2, 3}, {3, 4}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 1}, {1, 2}, {2, 3}, {3, 4}};
+    g.load_vertices(vv, std::identity{});
 
     auto squared = g | std::views::transform([](auto& v) {
       return v.value() * v.value();
@@ -2332,11 +2332,11 @@ TEST_CASE("vofl std::ranges integration", "[dynamic_graph][vofl][ranges]") {
 
   SECTION("ranges::filter view") {
     G g;
-    std::vector<vertex_data> vertices;
+    std::vector<vertex_data> vv;
     for (uint32_t i = 0; i < 10; ++i) {
-      vertices.push_back({i, static_cast<int>(i)});
+      vv.push_back({i, static_cast<int>(i)});
     }
-    g.load_vertices(vertices, std::identity{});
+    g.load_vertices(vv, std::identity{});
 
     auto odd_vertices = g | std::views::filter([](auto& v) {
       return v.value() % 2 == 1;
@@ -2357,11 +2357,11 @@ TEST_CASE("vofl algorithm compatibility", "[dynamic_graph][vofl][algorithms]") {
 
   SECTION("std::accumulate on vertex values") {
     G g;
-    std::vector<vertex_data> vertices;
+    std::vector<vertex_data> vv;
     for (uint32_t i = 1; i <= 5; ++i) {
-      vertices.push_back({i - 1, static_cast<int>(i)});
+      vv.push_back({i - 1, static_cast<int>(i)});
     }
-    g.load_vertices(vertices, std::identity{});
+    g.load_vertices(vv, std::identity{});
 
     auto sum = std::accumulate(g.begin(), g.end(), 0, [](int acc, auto& v) {
       return acc + v.value();
@@ -2372,8 +2372,8 @@ TEST_CASE("vofl algorithm compatibility", "[dynamic_graph][vofl][algorithms]") {
 
   SECTION("std::all_of on vertices") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 2}, {1, 4}, {2, 6}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 2}, {1, 4}, {2, 6}};
+    g.load_vertices(vv, std::identity{});
 
     bool all_even = std::all_of(g.begin(), g.end(), [](auto& v) {
       return v.value() % 2 == 0;
@@ -2384,8 +2384,8 @@ TEST_CASE("vofl algorithm compatibility", "[dynamic_graph][vofl][algorithms]") {
 
   SECTION("std::any_of on vertices") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 1}, {1, 2}, {2, 3}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 1}, {1, 2}, {2, 3}};
+    g.load_vertices(vv, std::identity{});
 
     bool has_even = std::any_of(g.begin(), g.end(), [](auto& v) {
       return v.value() % 2 == 0;
@@ -2396,8 +2396,8 @@ TEST_CASE("vofl algorithm compatibility", "[dynamic_graph][vofl][algorithms]") {
 
   SECTION("std::none_of on vertices") {
     G g;
-    std::vector<vertex_data> vertices = {{0, 1}, {1, 3}, {2, 5}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 1}, {1, 3}, {2, 5}};
+    g.load_vertices(vv, std::identity{});
 
     bool none_even = std::none_of(g.begin(), g.end(), [](auto& v) {
       return v.value() % 2 == 0;
@@ -2419,20 +2419,20 @@ TEST_CASE("vofl performance characteristics", "[dynamic_graph][vofl][performance
   SECTION("dense graph - many edges per vertex") {
     G g;
     const size_t n = 50;
-    std::vector<vertex_data> vertices;
+    std::vector<vertex_data> vv;
     for (uint32_t i = 0; i < n; ++i) {
-      vertices.push_back({i, static_cast<int>(i)});
+      vv.push_back({i, static_cast<int>(i)});
     }
-    g.load_vertices(vertices, std::identity{});
+    g.load_vertices(vv, std::identity{});
 
     // Each vertex connects to 10 others
-    std::vector<edge_data> edges;
+    std::vector<edge_data> ee;
     for (uint32_t i = 0; i < n; ++i) {
       for (uint32_t j = 0; j < 10; ++j) {
-        edges.push_back({i, static_cast<uint32_t>((i + j + 1) % n), static_cast<int>(i * 100 + j)});
+        ee.push_back({i, static_cast<uint32_t>((i + j + 1) % n), static_cast<int>(i * 100 + j)});
       }
     }
-    g.load_edges(edges, std::identity{});
+    g.load_edges(ee, std::identity{});
 
     REQUIRE(g.size() == n);
 
@@ -2450,18 +2450,18 @@ TEST_CASE("vofl performance characteristics", "[dynamic_graph][vofl][performance
   SECTION("sparse graph - few edges") {
     G g;
     const size_t n = 100;
-    std::vector<vertex_data> vertices;
+    std::vector<vertex_data> vv;
     for (uint32_t i = 0; i < n; ++i) {
-      vertices.push_back({i, static_cast<int>(i)});
+      vv.push_back({i, static_cast<int>(i)});
     }
-    g.load_vertices(vertices, std::identity{});
+    g.load_vertices(vv, std::identity{});
 
     // Only 20 edges total in graph of 100 vertices
-    std::vector<edge_data> edges;
+    std::vector<edge_data> ee;
     for (uint32_t i = 0; i < 20; ++i) {
-      edges.push_back({i, i + 1, static_cast<int>(i)});
+      ee.push_back({i, i + 1, static_cast<int>(i)});
     }
-    g.load_edges(edges, std::identity{});
+    g.load_edges(ee, std::identity{});
 
     size_t vertices_with_edges = 0;
     for (auto& v : g) {
@@ -2481,11 +2481,11 @@ TEST_CASE("vofl performance characteristics", "[dynamic_graph][vofl][performance
   SECTION("large vertex values - 10k vertices") {
     G g;
     const size_t n = 10000;
-    std::vector<vertex_data> vertices;
+    std::vector<vertex_data> vv;
     for (uint32_t i = 0; i < n; ++i) {
-      vertices.push_back({i, static_cast<int>(i * i)});
+      vv.push_back({i, static_cast<int>(i * i)});
     }
-    g.load_vertices(vertices, std::identity{});
+    g.load_vertices(vv, std::identity{});
 
     REQUIRE(g.size() == n);
     REQUIRE(g[0].value() == 0);
@@ -2506,11 +2506,11 @@ TEST_CASE("vofl complete workflow scenarios", "[dynamic_graph][vofl][workflow]")
   SECTION("build graph, query, modify workflow") {
     // Step 1: Build initial graph
     G g;
-    std::vector<vertex_data> vertices = {{0, 100}, {1, 200}, {2, 300}};
-    g.load_vertices(vertices, std::identity{});
+    std::vector<vertex_data> vv = {{0, 100}, {1, 200}, {2, 300}};
+    g.load_vertices(vv, std::identity{});
 
-    std::vector<edge_data> edges = {{0, 1, 10}, {1, 2, 20}};
-    g.load_edges(edges, std::identity{});
+    std::vector<edge_data> ee = {{0, 1, 10}, {1, 2, 20}};
+    g.load_edges(ee, std::identity{});
 
     // Step 2: Query graph properties
     REQUIRE(g.size() == 3);

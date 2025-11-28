@@ -348,9 +348,11 @@ public:
 private:
   value_type value_ = value_type();
 
+#if 0
 private: // CPO properties
   friend constexpr value_type&       edge_value(graph_type& g, edge_type& uv) noexcept { return uv.value_; }
   friend constexpr const value_type& edge_value(const graph_type& g, const edge_type& uv) noexcept { return uv.value_; }
+#endif
 };
 
 /**

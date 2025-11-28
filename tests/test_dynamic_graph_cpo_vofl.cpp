@@ -310,10 +310,10 @@ TEST_CASE("vofl CPO num_edges(g)", "[dynamic_graph][vofl][cpo][num_edges]") {
         vofl_void g;
         g.resize_vertices(4);
         
-        std::vector<copyable_edge_t<uint32_t, void>> edges = {
+        std::vector<copyable_edge_t<uint32_t, void>> ee = {
             {0, 1}, {1, 2}, {2, 3}, {3, 0}, {0, 2}
         };
-        g.load_edges(edges, std::identity{}, 4, 0);
+        g.load_edges(ee, std::identity{}, 4, 0);
         
         REQUIRE(num_edges(g) == 5);
     }
