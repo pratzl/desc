@@ -37,540 +37,561 @@ using vol_sourced = dynamic_graph<void, void, void, uint32_t, true, vol_graph_tr
 using vol_int_sourced = dynamic_graph<int, void, void, uint32_t, true, vol_graph_traits<int, void, void, uint32_t, true>>;
 
 //==================================================================================================
-// 1. Construction Tests (40 tests)
+// 1. Construction Tests
 //==================================================================================================
 
-TEST_CASE("vol default constructor creates empty graph", "[vol][construction]") {
-    vol_void_void_void g;
-    REQUIRE(g.size() == 0);
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vol default constructor with void types", "[vol][construction]") {
-    vol_void_void_void g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vol default constructor with int edge values", "[vol][construction]") {
-    vol_int_void_void g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vol default constructor with int vertex values", "[vol][construction]") {
-    vol_void_int_void g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vol default constructor with int graph value", "[vol][construction]") {
-    vol_void_void_int g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vol default constructor with all int values", "[vol][construction]") {
-    vol_int_int_int g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vol default constructor with string values", "[vol][construction]") {
-    vol_string_string_string g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vol constructor with graph value - void GV", "[vol][construction]") {
-    // For void GV, no graph value can be passed
-    vol_void_void_void g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vol constructor with graph value - int GV", "[vol][construction]") {
-    vol_void_void_int g(42);
-    REQUIRE(g.size() == 0);
-    REQUIRE(g.graph_value() == 42);
-}
-
-TEST_CASE("vol constructor with graph value - string GV", "[vol][construction]") {
-    vol_string_string_string g(std::string("test"));
-    REQUIRE(g.size() == 0);
-    REQUIRE(g.graph_value() == "test");
-}
-
-TEST_CASE("vol copy constructor", "[vol][construction]") {
-    vol_int_int_int g1;
-    // TODO: Add vertices and edges once load functions are available
-    vol_int_int_int g2(g1);
-    REQUIRE(g2.size() == g1.size());
-}
-
-TEST_CASE("vol move constructor", "[vol][construction]") {
-    vol_int_int_int g1;
-    // TODO: Add vertices and edges
-    vol_int_int_int g2(std::move(g1));
-    REQUIRE(g2.size() == 0); // g1 was empty
-}
-
-TEST_CASE("vol copy assignment", "[vol][construction]") {
-    vol_int_int_int g1, g2;
-    g2 = g1;
-    REQUIRE(g2.size() == g1.size());
-}
-
-TEST_CASE("vol move assignment", "[vol][construction]") {
-    vol_int_int_int g1, g2;
-    g2 = std::move(g1);
-    REQUIRE(g2.size() == 0);
-}
-
-TEST_CASE("vol sourced edge construction", "[vol][construction][sourced]") {
-    vol_sourced g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vol sourced with edge value construction", "[vol][construction][sourced]") {
-    vol_int_sourced g;
-    REQUIRE(g.size() == 0);
-}
-
-//==================================================================================================
-// 2. Basic Properties Tests (20 tests)
-//==================================================================================================
-
-TEST_CASE("vol size() on empty graph", "[vol][properties]") {
-    vol_void_void_void g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vol size() == 0 for empty graph", "[vol][properties]") {
-    vol_void_void_void g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vol size() != 0 for non-empty graph", "[vol][properties]") {
-    // TODO: This test requires load_vertices or similar functionality
-    vol_void_void_void g;
-    REQUIRE(g.size() == 0); // Will change once we can add vertices
-}
-
-TEST_CASE("vol const graph methods", "[vol][properties]") {
-    const vol_void_void_void g;
-    REQUIRE(g.size() == 0);
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vol begin() == end() for empty graph", "[vol][properties]") {
-    vol_void_void_void g;
-    REQUIRE(g.begin() == g.end());
-}
-
-TEST_CASE("vol const begin() == const end() for empty graph", "[vol][properties]") {
-    const vol_void_void_void g;
-    REQUIRE(g.begin() == g.end());
-}
-
-TEST_CASE("vol cbegin() == cend() for empty graph", "[vol][properties]") {
-    vol_void_void_void g;
-    REQUIRE(g.cbegin() == g.cend());
-}
-
-//==================================================================================================
-// 3. Graph Value Tests (15 tests)
-//==================================================================================================
-
-TEST_CASE("vol graph_value() with int GV", "[vol][graph_value]") {
-    vol_void_void_int g(100);
-    REQUIRE(g.graph_value() == 100);
-}
-
-TEST_CASE("vol graph_value() modification", "[vol][graph_value]") {
-    vol_void_void_int g(100);
-    g.graph_value() = 200;
-    REQUIRE(g.graph_value() == 200);
-}
-
-TEST_CASE("vol graph_value() const correctness", "[vol][graph_value]") {
-    const vol_void_void_int g(100);
-    REQUIRE(g.graph_value() == 100);
-}
-
-TEST_CASE("vol graph_value() with string GV", "[vol][graph_value]") {
-    vol_string_string_string g(std::string("initial"));
-    REQUIRE(g.graph_value() == "initial");
-    g.graph_value() = "modified";
-    REQUIRE(g.graph_value() == "modified");
-}
-
-TEST_CASE("vol graph_value() move semantics", "[vol][graph_value]") {
-    vol_string_string_string g(std::string("test"));
-    std::string val = std::move(g.graph_value());
-    REQUIRE(val == "test");
-}
-
-TEST_CASE("vol graph_value() with copy", "[vol][graph_value]") {
-    vol_void_void_int g1(42);
-    vol_void_void_int g2 = g1;
-    REQUIRE(g2.graph_value() == 42);
-    g2.graph_value() = 100;
-    REQUIRE(g1.graph_value() == 42); // g1 unchanged
-    REQUIRE(g2.graph_value() == 100);
-}
-
-//==================================================================================================
-// 4. Iterator Tests (15 tests)
-//==================================================================================================
-
-TEST_CASE("vol iterator on empty graph", "[vol][iterator]") {
-    vol_void_void_void g;
-    auto it = g.begin();
-    REQUIRE(it == g.end());
-}
-
-TEST_CASE("vol const iterator on empty graph", "[vol][iterator]") {
-    const vol_void_void_void g;
-    auto it = g.begin();
-    REQUIRE(it == g.end());
-}
-
-TEST_CASE("vol range-based for on empty graph", "[vol][iterator]") {
-    vol_void_void_void g;
-    int count = 0;
-    for ([[maybe_unused]] auto& v : g) {
-        ++count;
+TEST_CASE("vol default construction", "[vol][construction]") {
+    SECTION("creates empty graph") {
+        vol_void_void_void g;
+        REQUIRE(g.size() == 0);
     }
-    REQUIRE(count == 0);
-}
 
-TEST_CASE("vol const range-based for on empty graph", "[vol][iterator]") {
-    const vol_void_void_void g;
-    int count = 0;
-    for ([[maybe_unused]] const auto& v : g) {
-        ++count;
+    SECTION("with void types") {
+        vol_void_void_void g;
+        REQUIRE(g.size() == 0);
     }
-    REQUIRE(count == 0);
-}
 
-TEST_CASE("vol std::ranges compatibility", "[vol][iterator]") {
-    vol_void_void_void g;
-    auto count = std::ranges::distance(g.begin(), g.end());
-    REQUIRE(count == 0);
-}
-
-//==================================================================================================
-// 5. Type Trait Tests (15 tests)
-//==================================================================================================
-
-TEST_CASE("vol_graph_traits types", "[vol][traits]") {
-    using traits = vol_graph_traits<int, std::string, void, uint32_t, false>;
-    
-    STATIC_REQUIRE(std::is_same_v<traits::edge_value_type, int>);
-    STATIC_REQUIRE(std::is_same_v<traits::vertex_value_type, std::string>);
-    STATIC_REQUIRE(std::is_same_v<traits::graph_value_type, void>);
-    STATIC_REQUIRE(std::is_same_v<traits::vertex_id_type, uint32_t>);
-    STATIC_REQUIRE(traits::sourced == false);
-}
-
-TEST_CASE("vol_graph_traits sourced = true", "[vol][traits]") {
-    using traits = vol_graph_traits<int, std::string, void, uint32_t, true>;
-    STATIC_REQUIRE(traits::sourced == true);
-}
-
-TEST_CASE("vol vertex_id_type variations", "[vol][traits]") {
-    using traits_u64 = vol_graph_traits<void, void, void, uint64_t, false>;
-    using traits_i32 = vol_graph_traits<void, void, void, int32_t, false>;
-    using traits_i8 = vol_graph_traits<void, void, void, int8_t, false>;
-    
-    STATIC_REQUIRE(std::is_same_v<traits_u64::vertex_id_type, uint64_t>);
-    STATIC_REQUIRE(std::is_same_v<traits_i32::vertex_id_type, int32_t>);
-    STATIC_REQUIRE(std::is_same_v<traits_i8::vertex_id_type, int8_t>);
-}
-
-TEST_CASE("vol vertices_type is vector", "[vol][traits]") {
-    using traits = vol_graph_traits<void, void, void, uint32_t, false>;
-    using vertex_t = traits::vertex_type;
-    using vertices_t = traits::vertices_type;
-    
-    STATIC_REQUIRE(std::is_same_v<vertices_t, std::vector<vertex_t>>);
-}
-
-TEST_CASE("vol edges_type is list", "[vol][traits]") {
-    using traits = vol_graph_traits<void, void, void, uint32_t, false>;
-    using edge_t = traits::edge_type;
-    using edges_t = traits::edges_type;
-    
-    STATIC_REQUIRE(std::is_same_v<edges_t, std::list<edge_t>>);
-}
-
-//==================================================================================================
-// 6. Empty Graph Edge Cases (15 tests)
-//==================================================================================================
-
-TEST_CASE("vol multiple empty graphs independent", "[vol][edge_cases]") {
-    vol_void_void_void g1, g2, g3;
-    REQUIRE(g1.size() == 0);
-    REQUIRE(g2.size() == 0);
-    REQUIRE(g3.size() == 0);
-}
-
-TEST_CASE("vol copy of empty graph", "[vol][edge_cases]") {
-    vol_int_int_int g1;
-    vol_int_int_int g2 = g1;
-    REQUIRE(g1.size() == 0);
-    REQUIRE(g2.size() == 0);
-}
-
-TEST_CASE("vol move of empty graph", "[vol][edge_cases]") {
-    vol_int_int_int g1;
-    vol_int_int_int g2 = std::move(g1);
-    REQUIRE(g2.size() == 0);
-}
-
-TEST_CASE("vol swap empty graphs", "[vol][edge_cases]") {
-    vol_int_int_int g1, g2;
-    std::swap(g1, g2);
-    REQUIRE(g1.size() == 0);
-    REQUIRE(g2.size() == 0);
-}
-
-TEST_CASE("vol clear on empty graph", "[vol][edge_cases]") {
-    vol_void_void_void g;
-    g.clear();
-    REQUIRE(g.size() == 0);
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vol multiple clears", "[vol][edge_cases]") {
-    vol_void_void_void g;
-    g.clear();
-    g.clear();
-    g.clear();
-    REQUIRE(g.size() == 0);
-}
-
-//==================================================================================================
-// 7. Value Type Tests (20 tests)
-//==================================================================================================
-
-TEST_CASE("vol with void edge value", "[vol][value_types]") {
-    using graph_t = dynamic_graph<void, int, int, uint32_t, false, vol_graph_traits<void, int, int, uint32_t, false>>;
-    graph_t g(100);
-    REQUIRE(g.graph_value() == 100);
-}
-
-TEST_CASE("vol with void vertex value", "[vol][value_types]") {
-    using graph_t = dynamic_graph<int, void, int, uint32_t, false, vol_graph_traits<int, void, int, uint32_t, false>>;
-    graph_t g(100);
-    REQUIRE(g.graph_value() == 100);
-}
-
-TEST_CASE("vol with void graph value", "[vol][value_types]") {
-    using graph_t = dynamic_graph<int, int, void, uint32_t, false, vol_graph_traits<int, int, void, uint32_t, false>>;
-    graph_t g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vol with all void values", "[vol][value_types]") {
-    vol_void_void_void g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vol with int edge value type", "[vol][value_types]") {
-    vol_int_void_void g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vol with int vertex value type", "[vol][value_types]") {
-    vol_void_int_void g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vol with int graph value type", "[vol][value_types]") {
-    vol_void_void_int g(42);
-    REQUIRE(g.graph_value() == 42);
-}
-
-TEST_CASE("vol with all int values", "[vol][value_types]") {
-    vol_int_int_int g(42);
-    REQUIRE(g.graph_value() == 42);
-}
-
-TEST_CASE("vol with string edge value type", "[vol][value_types]") {
-    using graph_t = dynamic_graph<std::string, void, void, uint32_t, false, 
-                                   vol_graph_traits<std::string, void, void, uint32_t, false>>;
-    graph_t g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vol with string vertex value type", "[vol][value_types]") {
-    using graph_t = dynamic_graph<void, std::string, void, uint32_t, false, 
-                                   vol_graph_traits<void, std::string, void, uint32_t, false>>;
-    graph_t g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vol with string graph value type", "[vol][value_types]") {
-    using graph_t = dynamic_graph<void, void, std::string, uint32_t, false, 
-                                   vol_graph_traits<void, void, std::string, uint32_t, false>>;
-    graph_t g(std::string("test"));
-    REQUIRE(g.graph_value() == "test");
-}
-
-TEST_CASE("vol with all string values", "[vol][value_types]") {
-    vol_string_string_string g(std::string("graph"));
-    REQUIRE(g.graph_value() == "graph");
-}
-
-//==================================================================================================
-// 8. Vertex ID Type Tests (10 tests)
-//==================================================================================================
-
-TEST_CASE("vol with uint32_t vertex id", "[vol][vertex_id]") {
-    using graph_t = dynamic_graph<void, void, void, uint32_t, false, 
-                                   vol_graph_traits<void, void, void, uint32_t, false>>;
-    graph_t g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vol with uint64_t vertex id", "[vol][vertex_id]") {
-    using graph_t = dynamic_graph<void, void, void, uint64_t, false, 
-                                   vol_graph_traits<void, void, void, uint64_t, false>>;
-    graph_t g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vol with int32_t vertex id", "[vol][vertex_id]") {
-    using graph_t = dynamic_graph<void, void, void, int32_t, false, 
-                                   vol_graph_traits<void, void, void, int32_t, false>>;
-    graph_t g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vol with int8_t vertex id", "[vol][vertex_id]") {
-    using graph_t = dynamic_graph<void, void, void, int8_t, false, 
-                                   vol_graph_traits<void, void, void, int8_t, false>>;
-    graph_t g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vol with int vertex id", "[vol][vertex_id]") {
-    using graph_t = dynamic_graph<void, void, void, int, false, 
-                                   vol_graph_traits<void, void, void, int, false>>;
-    graph_t g;
-    REQUIRE(g.size() == 0);
-}
-
-//==================================================================================================
-// 9. Sourced Edge Tests (15 tests)
-//==================================================================================================
-
-TEST_CASE("vol sourced=false by default", "[vol][sourced]") {
-    vol_void_void_void g;
-    using traits = vol_graph_traits<void, void, void, uint32_t, false>;
-    STATIC_REQUIRE(traits::sourced == false);
-}
-
-TEST_CASE("vol sourced=true explicit", "[vol][sourced]") {
-    vol_sourced g;
-    using traits = vol_graph_traits<void, void, void, uint32_t, true>;
-    STATIC_REQUIRE(traits::sourced == true);
-}
-
-TEST_CASE("vol sourced with void values", "[vol][sourced]") {
-    vol_sourced g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vol sourced with int edge value", "[vol][sourced]") {
-    vol_int_sourced g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vol sourced copy construction", "[vol][sourced]") {
-    vol_sourced g1;
-    vol_sourced g2 = g1;
-    REQUIRE(g2.size() == 0);
-}
-
-TEST_CASE("vol sourced move construction", "[vol][sourced]") {
-    vol_sourced g1;
-    vol_sourced g2 = std::move(g1);
-    REQUIRE(g2.size() == 0);
-}
-
-//==================================================================================================
-// 10. Const Correctness Tests (15 tests)
-//==================================================================================================
-
-TEST_CASE("vol const graph size()", "[vol][const]") {
-    const vol_void_void_void g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vol const graph empty()", "[vol][const]") {
-    const vol_void_void_void g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vol const graph begin/end", "[vol][const]") {
-    const vol_void_void_void g;
-    REQUIRE(g.begin() == g.end());
-}
-
-TEST_CASE("vol const graph iteration", "[vol][const]") {
-    const vol_void_void_void g;
-    int count = 0;
-    for ([[maybe_unused]] const auto& v : g) {
-        ++count;
+    SECTION("with int edge values") {
+        vol_int_void_void g;
+        REQUIRE(g.size() == 0);
     }
-    REQUIRE(count == 0);
+
+    SECTION("with int vertex values") {
+        vol_void_int_void g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("with int graph value") {
+        vol_void_void_int g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("with all int values") {
+        vol_int_int_int g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("with string values") {
+        vol_string_string_string g;
+        REQUIRE(g.size() == 0);
+    }
 }
 
-TEST_CASE("vol const graph with graph value", "[vol][const]") {
-    const vol_void_void_int g(42);
-    REQUIRE(g.graph_value() == 42);
+TEST_CASE("vol constructor with graph value", "[vol][construction]") {
+    SECTION("void GV - no graph value can be passed") {
+        vol_void_void_void g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("int GV") {
+        vol_void_void_int g(42);
+        REQUIRE(g.size() == 0);
+        REQUIRE(g.graph_value() == 42);
+    }
+
+    SECTION("string GV") {
+        vol_string_string_string g(std::string("test"));
+        REQUIRE(g.size() == 0);
+        REQUIRE(g.graph_value() == "test");
+    }
 }
 
-TEST_CASE("vol const graph cbegin/cend", "[vol][const]") {
-    const vol_void_void_void g;
-    REQUIRE(g.cbegin() == g.cend());
+TEST_CASE("vol copy and move construction", "[vol][construction]") {
+    SECTION("copy constructor") {
+        vol_int_int_int g1;
+        vol_int_int_int g2(g1);
+        REQUIRE(g2.size() == g1.size());
+    }
+
+    SECTION("move constructor") {
+        vol_int_int_int g1;
+        vol_int_int_int g2(std::move(g1));
+        REQUIRE(g2.size() == 0);
+    }
+
+    SECTION("copy assignment") {
+        vol_int_int_int g1, g2;
+        g2 = g1;
+        REQUIRE(g2.size() == g1.size());
+    }
+
+    SECTION("move assignment") {
+        vol_int_int_int g1, g2;
+        g2 = std::move(g1);
+        REQUIRE(g2.size() == 0);
+    }
+}
+
+TEST_CASE("vol sourced construction", "[vol][construction][sourced]") {
+    SECTION("sourced edge construction") {
+        vol_sourced g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("sourced with edge value construction") {
+        vol_int_sourced g;
+        REQUIRE(g.size() == 0);
+    }
 }
 
 //==================================================================================================
-// 11. Memory and Resource Tests (10 tests)
+// 2. Basic Properties Tests
 //==================================================================================================
 
-TEST_CASE("vol multiple graphs do not interfere", "[vol][memory]") {
-    vol_int_int_int g1(100);
-    vol_int_int_int g2(200);
-    vol_int_int_int g3(300);
-    
-    REQUIRE(g1.graph_value() == 100);
-    REQUIRE(g2.graph_value() == 200);
-    REQUIRE(g3.graph_value() == 300);
+TEST_CASE("vol basic properties", "[vol][properties]") {
+    SECTION("size() on empty graph") {
+        vol_void_void_void g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("size() == 0 for empty graph") {
+        vol_void_void_void g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("size() != 0 for non-empty graph") {
+        vol_void_void_void g;
+        REQUIRE(g.size() == 0); // Will change once we can add vertices
+    }
+
+    SECTION("const graph methods") {
+        const vol_void_void_void g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("begin() == end() for empty graph") {
+        vol_void_void_void g;
+        REQUIRE(g.begin() == g.end());
+    }
+
+    SECTION("const begin() == const end() for empty graph") {
+        const vol_void_void_void g;
+        REQUIRE(g.begin() == g.end());
+    }
+
+    SECTION("cbegin() == cend() for empty graph") {
+        vol_void_void_void g;
+        REQUIRE(g.cbegin() == g.cend());
+    }
 }
 
-TEST_CASE("vol copy does not alias", "[vol][memory]") {
-    vol_int_int_int g1(100);
-    vol_int_int_int g2 = g1;
-    
-    g2.graph_value() = 200;
-    REQUIRE(g1.graph_value() == 100);
-    REQUIRE(g2.graph_value() == 200);
+//==================================================================================================
+// 3. Graph Value Tests
+//==================================================================================================
+
+TEST_CASE("vol graph_value()", "[vol][graph_value]") {
+    SECTION("with int GV") {
+        vol_void_void_int g(100);
+        REQUIRE(g.graph_value() == 100);
+    }
+
+    SECTION("modification") {
+        vol_void_void_int g(100);
+        g.graph_value() = 200;
+        REQUIRE(g.graph_value() == 200);
+    }
+
+    SECTION("const correctness") {
+        const vol_void_void_int g(100);
+        REQUIRE(g.graph_value() == 100);
+    }
+
+    SECTION("with string GV") {
+        vol_string_string_string g(std::string("initial"));
+        REQUIRE(g.graph_value() == "initial");
+        g.graph_value() = "modified";
+        REQUIRE(g.graph_value() == "modified");
+    }
+
+    SECTION("move semantics") {
+        vol_string_string_string g(std::string("test"));
+        std::string val = std::move(g.graph_value());
+        REQUIRE(val == "test");
+    }
+
+    SECTION("with copy") {
+        vol_void_void_int g1(42);
+        vol_void_void_int g2 = g1;
+        REQUIRE(g2.graph_value() == 42);
+        g2.graph_value() = 100;
+        REQUIRE(g1.graph_value() == 42); // g1 unchanged
+        REQUIRE(g2.graph_value() == 100);
+    }
 }
 
-TEST_CASE("vol clear preserves type", "[vol][memory]") {
-    vol_int_int_int g(42);
-    g.clear();
-    REQUIRE(g.size() == 0);
-    // Type is still int, we can set a new value
-    g.graph_value() = 100;
-    REQUIRE(g.graph_value() == 100);
+//==================================================================================================
+// 4. Iterator Tests
+//==================================================================================================
+
+TEST_CASE("vol iterators", "[vol][iterator]") {
+    SECTION("iterator on empty graph") {
+        vol_void_void_void g;
+        auto it = g.begin();
+        REQUIRE(it == g.end());
+    }
+
+    SECTION("const iterator on empty graph") {
+        const vol_void_void_void g;
+        auto it = g.begin();
+        REQUIRE(it == g.end());
+    }
+
+    SECTION("range-based for on empty graph") {
+        vol_void_void_void g;
+        int count = 0;
+        for ([[maybe_unused]] auto& v : g) {
+            ++count;
+        }
+        REQUIRE(count == 0);
+    }
+
+    SECTION("const range-based for on empty graph") {
+        const vol_void_void_void g;
+        int count = 0;
+        for ([[maybe_unused]] const auto& v : g) {
+            ++count;
+        }
+        REQUIRE(count == 0);
+    }
+
+    SECTION("std::ranges compatibility") {
+        vol_void_void_void g;
+        auto count = std::ranges::distance(g.begin(), g.end());
+        REQUIRE(count == 0);
+    }
 }
 
-TEST_CASE("vol move leaves source valid but unspecified", "[vol][memory]") {
-    vol_int_int_int g1(100);
-    vol_int_int_int g2 = std::move(g1);
-    
-    // g1 is valid but unspecified, we can still use it safely
-    g1.clear();
-    REQUIRE(g1.size() == 0);
+//==================================================================================================
+// 5. Type Trait Tests
+//==================================================================================================
+
+TEST_CASE("vol_graph_traits", "[vol][traits]") {
+    SECTION("types") {
+        using traits = vol_graph_traits<int, std::string, void, uint32_t, false>;
+        
+        STATIC_REQUIRE(std::is_same_v<traits::edge_value_type, int>);
+        STATIC_REQUIRE(std::is_same_v<traits::vertex_value_type, std::string>);
+        STATIC_REQUIRE(std::is_same_v<traits::graph_value_type, void>);
+        STATIC_REQUIRE(std::is_same_v<traits::vertex_id_type, uint32_t>);
+        STATIC_REQUIRE(traits::sourced == false);
+    }
+
+    SECTION("sourced = true") {
+        using traits = vol_graph_traits<int, std::string, void, uint32_t, true>;
+        STATIC_REQUIRE(traits::sourced == true);
+    }
+
+    SECTION("vertex_id_type variations") {
+        using traits_u64 = vol_graph_traits<void, void, void, uint64_t, false>;
+        using traits_i32 = vol_graph_traits<void, void, void, int32_t, false>;
+        using traits_i8 = vol_graph_traits<void, void, void, int8_t, false>;
+        
+        STATIC_REQUIRE(std::is_same_v<traits_u64::vertex_id_type, uint64_t>);
+        STATIC_REQUIRE(std::is_same_v<traits_i32::vertex_id_type, int32_t>);
+        STATIC_REQUIRE(std::is_same_v<traits_i8::vertex_id_type, int8_t>);
+    }
+
+    SECTION("vertices_type is vector") {
+        using traits = vol_graph_traits<void, void, void, uint32_t, false>;
+        using vertex_t = traits::vertex_type;
+        using vertices_t = traits::vertices_type;
+        
+        STATIC_REQUIRE(std::is_same_v<vertices_t, std::vector<vertex_t>>);
+    }
+
+    SECTION("edges_type is list") {
+        using traits = vol_graph_traits<void, void, void, uint32_t, false>;
+        using edge_t = traits::edge_type;
+        using edges_t = traits::edges_type;
+        
+        STATIC_REQUIRE(std::is_same_v<edges_t, std::list<edge_t>>);
+    }
+}
+
+//==================================================================================================
+// 6. Empty Graph Edge Cases
+//==================================================================================================
+
+TEST_CASE("vol empty graph edge cases", "[vol][edge_cases]") {
+    SECTION("multiple empty graphs independent") {
+        vol_void_void_void g1, g2, g3;
+        REQUIRE(g1.size() == 0);
+        REQUIRE(g2.size() == 0);
+        REQUIRE(g3.size() == 0);
+    }
+
+    SECTION("copy of empty graph") {
+        vol_int_int_int g1;
+        vol_int_int_int g2 = g1;
+        REQUIRE(g1.size() == 0);
+        REQUIRE(g2.size() == 0);
+    }
+
+    SECTION("move of empty graph") {
+        vol_int_int_int g1;
+        vol_int_int_int g2 = std::move(g1);
+        REQUIRE(g2.size() == 0);
+    }
+
+    SECTION("swap empty graphs") {
+        vol_int_int_int g1, g2;
+        std::swap(g1, g2);
+        REQUIRE(g1.size() == 0);
+        REQUIRE(g2.size() == 0);
+    }
+
+    SECTION("clear on empty graph") {
+        vol_void_void_void g;
+        g.clear();
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("multiple clears") {
+        vol_void_void_void g;
+        g.clear();
+        g.clear();
+        g.clear();
+        REQUIRE(g.size() == 0);
+    }
+}
+
+//==================================================================================================
+// 7. Value Type Tests
+//==================================================================================================
+
+TEST_CASE("vol value types", "[vol][value_types]") {
+    SECTION("with void edge value") {
+        using graph_t = dynamic_graph<void, int, int, uint32_t, false, vol_graph_traits<void, int, int, uint32_t, false>>;
+        graph_t g(100);
+        REQUIRE(g.graph_value() == 100);
+    }
+
+    SECTION("with void vertex value") {
+        using graph_t = dynamic_graph<int, void, int, uint32_t, false, vol_graph_traits<int, void, int, uint32_t, false>>;
+        graph_t g(100);
+        REQUIRE(g.graph_value() == 100);
+    }
+
+    SECTION("with void graph value") {
+        using graph_t = dynamic_graph<int, int, void, uint32_t, false, vol_graph_traits<int, int, void, uint32_t, false>>;
+        graph_t g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("with all void values") {
+        vol_void_void_void g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("with int edge value type") {
+        vol_int_void_void g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("with int vertex value type") {
+        vol_void_int_void g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("with int graph value type") {
+        vol_void_void_int g(42);
+        REQUIRE(g.graph_value() == 42);
+    }
+
+    SECTION("with all int values") {
+        vol_int_int_int g(42);
+        REQUIRE(g.graph_value() == 42);
+    }
+
+    SECTION("with string edge value type") {
+        using graph_t = dynamic_graph<std::string, void, void, uint32_t, false, 
+                                       vol_graph_traits<std::string, void, void, uint32_t, false>>;
+        graph_t g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("with string vertex value type") {
+        using graph_t = dynamic_graph<void, std::string, void, uint32_t, false, 
+                                       vol_graph_traits<void, std::string, void, uint32_t, false>>;
+        graph_t g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("with string graph value type") {
+        using graph_t = dynamic_graph<void, void, std::string, uint32_t, false, 
+                                       vol_graph_traits<void, void, std::string, uint32_t, false>>;
+        graph_t g(std::string("test"));
+        REQUIRE(g.graph_value() == "test");
+    }
+
+    SECTION("with all string values") {
+        vol_string_string_string g(std::string("graph"));
+        REQUIRE(g.graph_value() == "graph");
+    }
+}
+
+//==================================================================================================
+// 8. Vertex ID Type Tests
+//==================================================================================================
+
+TEST_CASE("vol vertex ID types", "[vol][vertex_id]") {
+    SECTION("with uint32_t vertex id") {
+        using graph_t = dynamic_graph<void, void, void, uint32_t, false, 
+                                       vol_graph_traits<void, void, void, uint32_t, false>>;
+        graph_t g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("with uint64_t vertex id") {
+        using graph_t = dynamic_graph<void, void, void, uint64_t, false, 
+                                       vol_graph_traits<void, void, void, uint64_t, false>>;
+        graph_t g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("with int32_t vertex id") {
+        using graph_t = dynamic_graph<void, void, void, int32_t, false, 
+                                       vol_graph_traits<void, void, void, int32_t, false>>;
+        graph_t g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("with int8_t vertex id") {
+        using graph_t = dynamic_graph<void, void, void, int8_t, false, 
+                                       vol_graph_traits<void, void, void, int8_t, false>>;
+        graph_t g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("with int vertex id") {
+        using graph_t = dynamic_graph<void, void, void, int, false, 
+                                       vol_graph_traits<void, void, void, int, false>>;
+        graph_t g;
+        REQUIRE(g.size() == 0);
+    }
+}
+
+//==================================================================================================
+// 9. Sourced Edge Tests
+//==================================================================================================
+
+TEST_CASE("vol sourced edges", "[vol][sourced]") {
+    SECTION("sourced=false by default") {
+        vol_void_void_void g;
+        using traits = vol_graph_traits<void, void, void, uint32_t, false>;
+        STATIC_REQUIRE(traits::sourced == false);
+    }
+
+    SECTION("sourced=true explicit") {
+        vol_sourced g;
+        using traits = vol_graph_traits<void, void, void, uint32_t, true>;
+        STATIC_REQUIRE(traits::sourced == true);
+    }
+
+    SECTION("sourced with void values") {
+        vol_sourced g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("sourced with int edge value") {
+        vol_int_sourced g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("sourced copy construction") {
+        vol_sourced g1;
+        vol_sourced g2 = g1;
+        REQUIRE(g2.size() == 0);
+    }
+
+    SECTION("sourced move construction") {
+        vol_sourced g1;
+        vol_sourced g2 = std::move(g1);
+        REQUIRE(g2.size() == 0);
+    }
+}
+
+//==================================================================================================
+// 10. Const Correctness Tests
+//==================================================================================================
+
+TEST_CASE("vol const correctness", "[vol][const]") {
+    SECTION("const graph size()") {
+        const vol_void_void_void g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("const graph empty()") {
+        const vol_void_void_void g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("const graph begin/end") {
+        const vol_void_void_void g;
+        REQUIRE(g.begin() == g.end());
+    }
+
+    SECTION("const graph iteration") {
+        const vol_void_void_void g;
+        int count = 0;
+        for ([[maybe_unused]] const auto& v : g) {
+            ++count;
+        }
+        REQUIRE(count == 0);
+    }
+
+    SECTION("const graph with graph value") {
+        const vol_void_void_int g(42);
+        REQUIRE(g.graph_value() == 42);
+    }
+
+    SECTION("const graph cbegin/cend") {
+        const vol_void_void_void g;
+        REQUIRE(g.cbegin() == g.cend());
+    }
+}
+
+//==================================================================================================
+// 11. Memory and Resource Tests
+//==================================================================================================
+
+TEST_CASE("vol memory and resources", "[vol][memory]") {
+    SECTION("multiple graphs do not interfere") {
+        vol_int_int_int g1(100);
+        vol_int_int_int g2(200);
+        vol_int_int_int g3(300);
+        
+        REQUIRE(g1.graph_value() == 100);
+        REQUIRE(g2.graph_value() == 200);
+        REQUIRE(g3.graph_value() == 300);
+    }
+
+    SECTION("copy does not alias") {
+        vol_int_int_int g1(100);
+        vol_int_int_int g2 = g1;
+        
+        g2.graph_value() = 200;
+        REQUIRE(g1.graph_value() == 100);
+        REQUIRE(g2.graph_value() == 200);
+    }
+
+    SECTION("clear preserves type") {
+        vol_int_int_int g(42);
+        g.clear();
+        REQUIRE(g.size() == 0);
+        // Type is still int, we can set a new value
+        g.graph_value() = 100;
+        REQUIRE(g.graph_value() == 100);
+    }
+
+    SECTION("move leaves source valid but unspecified") {
+        vol_int_int_int g1(100);
+        vol_int_int_int g2 = std::move(g1);
+        
+        // g1 is valid but unspecified, we can still use it safely
+        g1.clear();
+        REQUIRE(g1.size() == 0);
+    }
 }
 
 //==================================================================================================
@@ -873,11 +894,10 @@ TEST_CASE("vol initializer_list complex graph patterns", "[vol][construction][in
 }
 
 //==================================================================================================
-//==================================================================================================
-// Load Operations Tests
+// 13. Load Operations Tests
 //==================================================================================================
 
-TEST_CASE("vol load_vertices with identity projection", "[dynamic_graph][vol][load_vertices]") {
+TEST_CASE("vol load_vertices", "[dynamic_graph][vol][load_vertices]") {
   using G = vol_int_int_void;
   using vertex_data = copyable_vertex_t<uint32_t, int>;
 
@@ -907,22 +927,20 @@ TEST_CASE("vol load_vertices with identity projection", "[dynamic_graph][vol][lo
     REQUIRE(g[3].value() == 40);
     REQUIRE(g[4].value() == 50);
   }
-}
 
-TEST_CASE("vol load_vertices with custom projection", "[dynamic_graph][vol][load_vertices]") {
-  using G = dynamic_graph<int, std::string, void, uint32_t, false, vol_graph_traits<int, std::string, void, uint32_t, false>>;
-  using vertex_data = copyable_vertex_t<uint32_t, std::string>;
+  SECTION("load with custom projection from struct") {
+    using G2 = dynamic_graph<int, std::string, void, uint32_t, false, vol_graph_traits<int, std::string, void, uint32_t, false>>;
+    using vertex_data2 = copyable_vertex_t<uint32_t, std::string>;
 
-  SECTION("load with projection from struct") {
     struct Person {
       uint32_t id;
       std::string name;
       int age;
     };
 
-    G g;
+    G2 g;
     std::vector<Person> people = {{0, "Alice", 30}, {1, "Bob", 25}, {2, "Charlie", 35}};
-    g.load_vertices(people, [](const Person& p) -> vertex_data {
+    g.load_vertices(people, [](const Person& p) -> vertex_data2 {
       return {p.id, p.name};
     });
 
@@ -931,21 +949,17 @@ TEST_CASE("vol load_vertices with custom projection", "[dynamic_graph][vol][load
     REQUIRE(g[1].value() == "Bob");
     REQUIRE(g[2].value() == "Charlie");
   }
-}
 
-TEST_CASE("vol load_vertices with void vertex values", "[dynamic_graph][vol][load_vertices]") {
-  using G = vol_int_void_void;
-
-  SECTION("load creates vertices without values - using default constructor") {
-    G g;
+  SECTION("with void vertex values - using default constructor") {
+    using G3 = vol_int_void_void;
+    G3 g;
     // With void vertex values, we can't use load_vertices because copyable_vertex_t<VId, void>
     // only has {id} but load_vertices expects {id, value}. Instead, test construction.
-    // This will be tested more thoroughly when load_edges with vertex inference is implemented.
     REQUIRE(g.size() == 0);
   }
 }
 
-TEST_CASE("vol load_edges with identity projection", "[dynamic_graph][vol][load_edges]") {
+TEST_CASE("vol load_edges", "[dynamic_graph][vol][load_edges]") {
   using G = vol_int_int_void;
   using vertex_data = copyable_vertex_t<uint32_t, int>;
   using edge_data = copyable_edge_t<uint32_t, int>;
@@ -977,11 +991,9 @@ TEST_CASE("vol load_edges with identity projection", "[dynamic_graph][vol][load_
     std::vector<edge_data> ee = {{0, 1, 100}};
     g.load_edges(ee, std::identity{});
 
-    // Check vertex 0 has the edge
     size_t count = 0;
     for (auto& edge : g[0].edges()) {
       ++count;
-      // Note: target_id() method may not be public, check via iteration
       REQUIRE(edge.value() == 100);
     }
     REQUIRE(count == 1);
@@ -1011,7 +1023,6 @@ TEST_CASE("vol load_edges with identity projection", "[dynamic_graph][vol][load_
     std::vector<edge_data> ee = {{0, 1, 100}, {1, 2, 200}, {2, 0, 300}};
     g.load_edges(ee, std::identity{});
 
-    // Count edges per vertex
     size_t count0 = 0, count1 = 0, count2 = 0;
     for (auto& e : g[0].edges()) { ++count0; (void)e; }
     for (auto& e : g[1].edges()) { ++count1; (void)e; }
@@ -1021,22 +1032,19 @@ TEST_CASE("vol load_edges with identity projection", "[dynamic_graph][vol][load_
     REQUIRE(count1 == 1);
     REQUIRE(count2 == 1);
   }
-}
 
-TEST_CASE("vol load_edges with void edge values", "[dynamic_graph][vol][load_edges]") {
-  using G = vol_void_int_void;
-  using vertex_data = copyable_vertex_t<uint32_t, int>;
-  using edge_data = copyable_edge_t<uint32_t, void>;
+  SECTION("load edges with void edge values") {
+    using G2 = vol_void_int_void;
+    using vertex_data2 = copyable_vertex_t<uint32_t, int>;
+    using edge_data2 = copyable_edge_t<uint32_t, void>;
 
-  SECTION("load edges without values") {
-    G g;
-    std::vector<vertex_data> vv = {{0, 10}, {1, 20}, {2, 30}};
+    G2 g;
+    std::vector<vertex_data2> vv = {{0, 10}, {1, 20}, {2, 30}};
     g.load_vertices(vv, std::identity{});
 
-    std::vector<edge_data> ee = {{0, 1}, {1, 2}, {2, 0}};
+    std::vector<edge_data2> ee = {{0, 1}, {1, 2}, {2, 0}};
     g.load_edges(ee, std::identity{});
 
-    // Verify edges exist by counting
     size_t total_edges = 0;
     for (auto& v : g) {
       for (auto& edge : v.edges()) {
@@ -1046,30 +1054,27 @@ TEST_CASE("vol load_edges with void edge values", "[dynamic_graph][vol][load_edg
     }
     REQUIRE(total_edges == 3);
   }
-}
 
-TEST_CASE("vol load_edges with custom projection", "[dynamic_graph][vol][load_edges]") {
-  using G = dynamic_graph<std::string, int, void, uint32_t, false, vol_graph_traits<std::string, int, void, uint32_t, false>>;
-  using vertex_data = copyable_vertex_t<uint32_t, int>;
-  using edge_data = copyable_edge_t<uint32_t, std::string>;
+  SECTION("load with custom projection from struct") {
+    using G3 = dynamic_graph<std::string, int, void, uint32_t, false, vol_graph_traits<std::string, int, void, uint32_t, false>>;
+    using vertex_data3 = copyable_vertex_t<uint32_t, int>;
+    using edge_data3 = copyable_edge_t<uint32_t, std::string>;
 
-  SECTION("load with projection from custom struct") {
     struct Edge {
       uint32_t from;
       uint32_t to;
       std::string label;
     };
 
-    G g;
-    std::vector<vertex_data> vv = {{0, 1}, {1, 2}, {2, 3}};
+    G3 g;
+    std::vector<vertex_data3> vv = {{0, 1}, {1, 2}, {2, 3}};
     g.load_vertices(vv, std::identity{});
 
     std::vector<Edge> ee = {{0, 1, "edge01"}, {1, 2, "edge12"}};
-    g.load_edges(ee, [](const Edge& e) -> edge_data {
+    g.load_edges(ee, [](const Edge& e) -> edge_data3 {
       return {e.from, e.to, e.label};
     });
 
-    // Verify edges exist
     size_t total = 0;
     for (auto& v : g) {
       for (auto& e : v.edges()) {
@@ -1079,12 +1084,6 @@ TEST_CASE("vol load_edges with custom projection", "[dynamic_graph][vol][load_ed
     }
     REQUIRE(total == 2);
   }
-}
-
-TEST_CASE("vol load_edges with self-loops", "[dynamic_graph][vol][load_edges]") {
-  using G = vol_int_int_void;
-  using vertex_data = copyable_vertex_t<uint32_t, int>;
-  using edge_data = copyable_edge_t<uint32_t, int>;
 
   SECTION("load single self-loop") {
     G g;
@@ -1117,14 +1116,8 @@ TEST_CASE("vol load_edges with self-loops", "[dynamic_graph][vol][load_edges]") 
     }
     REQUIRE(count == 3);
   }
-}
 
-TEST_CASE("vol load_edges with parallel edges", "[dynamic_graph][vol][load_edges]") {
-  using G = vol_int_int_void;
-  using vertex_data = copyable_vertex_t<uint32_t, int>;
-  using edge_data = copyable_edge_t<uint32_t, int>;
-
-  SECTION("load multiple edges between same vertices") {
+  SECTION("load parallel edges between same vertices") {
     G g;
     std::vector<vertex_data> vv = {{0, 10}, {1, 20}};
     g.load_vertices(vv, std::identity{});
@@ -1139,17 +1132,10 @@ TEST_CASE("vol load_edges with parallel edges", "[dynamic_graph][vol][load_edges
       values.push_back(edge.value());
     }
     REQUIRE(count == 3);
-    REQUIRE(values.size() == 3);
     REQUIRE(std::find(values.begin(), values.end(), 100) != values.end());
     REQUIRE(std::find(values.begin(), values.end(), 200) != values.end());
     REQUIRE(std::find(values.begin(), values.end(), 300) != values.end());
   }
-}
-
-TEST_CASE("vol load_edges with large edge sets", "[dynamic_graph][vol][load_edges]") {
-  using G = vol_int_int_void;
-  using vertex_data = copyable_vertex_t<uint32_t, int>;
-  using edge_data = copyable_edge_t<uint32_t, int>;
 
   SECTION("load 1000 edges") {
     G g;
@@ -1167,7 +1153,6 @@ TEST_CASE("vol load_edges with large edge sets", "[dynamic_graph][vol][load_edge
     }
     g.load_edges(ee, std::identity{});
 
-    // Verify each vertex has 10 edges
     for (uint32_t i = 0; i < 100; ++i) {
       size_t count = 0;
       for (auto& edge : g[i].edges()) {

@@ -37,540 +37,561 @@ using vov_sourced = dynamic_graph<void, void, void, uint32_t, true, vov_graph_tr
 using vov_int_sourced = dynamic_graph<int, void, void, uint32_t, true, vov_graph_traits<int, void, void, uint32_t, true>>;
 
 //==================================================================================================
-// 1. Construction Tests (40 tests)
+// 1. Construction Tests
 //==================================================================================================
 
-TEST_CASE("vov default constructor creates empty graph", "[vov][construction]") {
-    vov_void_void_void g;
-    REQUIRE(g.size() == 0);
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vov default constructor with void types", "[vov][construction]") {
-    vov_void_void_void g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vov default constructor with int edge values", "[vov][construction]") {
-    vov_int_void_void g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vov default constructor with int vertex values", "[vov][construction]") {
-    vov_void_int_void g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vov default constructor with int graph value", "[vov][construction]") {
-    vov_void_void_int g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vov default constructor with all int values", "[vov][construction]") {
-    vov_int_int_int g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vov default constructor with string values", "[vov][construction]") {
-    vov_string_string_string g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vov constructor with graph value - void GV", "[vov][construction]") {
-    // For void GV, no graph value can be passed
-    vov_void_void_void g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vov constructor with graph value - int GV", "[vov][construction]") {
-    vov_void_void_int g(42);
-    REQUIRE(g.size() == 0);
-    REQUIRE(g.graph_value() == 42);
-}
-
-TEST_CASE("vov constructor with graph value - string GV", "[vov][construction]") {
-    vov_string_string_string g(std::string("test"));
-    REQUIRE(g.size() == 0);
-    REQUIRE(g.graph_value() == "test");
-}
-
-TEST_CASE("vov copy constructor", "[vov][construction]") {
-    vov_int_int_int g1;
-    // TODO: Add vertices and edges once load functions are available
-    vov_int_int_int g2(g1);
-    REQUIRE(g2.size() == g1.size());
-}
-
-TEST_CASE("vov move constructor", "[vov][construction]") {
-    vov_int_int_int g1;
-    // TODO: Add vertices and edges
-    vov_int_int_int g2(std::move(g1));
-    REQUIRE(g2.size() == 0); // g1 was empty
-}
-
-TEST_CASE("vov copy assignment", "[vov][construction]") {
-    vov_int_int_int g1, g2;
-    g2 = g1;
-    REQUIRE(g2.size() == g1.size());
-}
-
-TEST_CASE("vov move assignment", "[vov][construction]") {
-    vov_int_int_int g1, g2;
-    g2 = std::move(g1);
-    REQUIRE(g2.size() == 0);
-}
-
-TEST_CASE("vov sourced edge construction", "[vov][construction][sourced]") {
-    vov_sourced g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vov sourced with edge value construction", "[vov][construction][sourced]") {
-    vov_int_sourced g;
-    REQUIRE(g.size() == 0);
-}
-
-//==================================================================================================
-// 2. Basic Properties Tests (20 tests)
-//==================================================================================================
-
-TEST_CASE("vov size() on empty graph", "[vov][properties]") {
-    vov_void_void_void g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vov size() == 0 for empty graph", "[vov][properties]") {
-    vov_void_void_void g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vov size() != 0 for non-empty graph", "[vov][properties]") {
-    // TODO: This test requires load_vertices or similar functionality
-    vov_void_void_void g;
-    REQUIRE(g.size() == 0); // Will change once we can add vertices
-}
-
-TEST_CASE("vov const graph methods", "[vov][properties]") {
-    const vov_void_void_void g;
-    REQUIRE(g.size() == 0);
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vov begin() == end() for empty graph", "[vov][properties]") {
-    vov_void_void_void g;
-    REQUIRE(g.begin() == g.end());
-}
-
-TEST_CASE("vov const begin() == const end() for empty graph", "[vov][properties]") {
-    const vov_void_void_void g;
-    REQUIRE(g.begin() == g.end());
-}
-
-TEST_CASE("vov cbegin() == cend() for empty graph", "[vov][properties]") {
-    vov_void_void_void g;
-    REQUIRE(g.cbegin() == g.cend());
-}
-
-//==================================================================================================
-// 3. Graph Value Tests (15 tests)
-//==================================================================================================
-
-TEST_CASE("vov graph_value() with int GV", "[vov][graph_value]") {
-    vov_void_void_int g(100);
-    REQUIRE(g.graph_value() == 100);
-}
-
-TEST_CASE("vov graph_value() modification", "[vov][graph_value]") {
-    vov_void_void_int g(100);
-    g.graph_value() = 200;
-    REQUIRE(g.graph_value() == 200);
-}
-
-TEST_CASE("vov graph_value() const correctness", "[vov][graph_value]") {
-    const vov_void_void_int g(100);
-    REQUIRE(g.graph_value() == 100);
-}
-
-TEST_CASE("vov graph_value() with string GV", "[vov][graph_value]") {
-    vov_string_string_string g(std::string("initial"));
-    REQUIRE(g.graph_value() == "initial");
-    g.graph_value() = "modified";
-    REQUIRE(g.graph_value() == "modified");
-}
-
-TEST_CASE("vov graph_value() move semantics", "[vov][graph_value]") {
-    vov_string_string_string g(std::string("test"));
-    std::string val = std::move(g.graph_value());
-    REQUIRE(val == "test");
-}
-
-TEST_CASE("vov graph_value() with copy", "[vov][graph_value]") {
-    vov_void_void_int g1(42);
-    vov_void_void_int g2 = g1;
-    REQUIRE(g2.graph_value() == 42);
-    g2.graph_value() = 100;
-    REQUIRE(g1.graph_value() == 42); // g1 unchanged
-    REQUIRE(g2.graph_value() == 100);
-}
-
-//==================================================================================================
-// 4. Iterator Tests (15 tests)
-//==================================================================================================
-
-TEST_CASE("vov iterator on empty graph", "[vov][iterator]") {
-    vov_void_void_void g;
-    auto it = g.begin();
-    REQUIRE(it == g.end());
-}
-
-TEST_CASE("vov const iterator on empty graph", "[vov][iterator]") {
-    const vov_void_void_void g;
-    auto it = g.begin();
-    REQUIRE(it == g.end());
-}
-
-TEST_CASE("vov range-based for on empty graph", "[vov][iterator]") {
-    vov_void_void_void g;
-    int count = 0;
-    for ([[maybe_unused]] auto& v : g) {
-        ++count;
+TEST_CASE("vov default construction", "[vov][construction]") {
+    SECTION("creates empty graph") {
+        vov_void_void_void g;
+        REQUIRE(g.size() == 0);
     }
-    REQUIRE(count == 0);
-}
 
-TEST_CASE("vov const range-based for on empty graph", "[vov][iterator]") {
-    const vov_void_void_void g;
-    int count = 0;
-    for ([[maybe_unused]] const auto& v : g) {
-        ++count;
+    SECTION("with void types") {
+        vov_void_void_void g;
+        REQUIRE(g.size() == 0);
     }
-    REQUIRE(count == 0);
-}
 
-TEST_CASE("vov std::ranges compatibility", "[vov][iterator]") {
-    vov_void_void_void g;
-    auto count = std::ranges::distance(g.begin(), g.end());
-    REQUIRE(count == 0);
-}
-
-//==================================================================================================
-// 5. Type Trait Tests (15 tests)
-//==================================================================================================
-
-TEST_CASE("vov_graph_traits types", "[vov][traits]") {
-    using traits = vov_graph_traits<int, std::string, void, uint32_t, false>;
-    
-    STATIC_REQUIRE(std::is_same_v<traits::edge_value_type, int>);
-    STATIC_REQUIRE(std::is_same_v<traits::vertex_value_type, std::string>);
-    STATIC_REQUIRE(std::is_same_v<traits::graph_value_type, void>);
-    STATIC_REQUIRE(std::is_same_v<traits::vertex_id_type, uint32_t>);
-    STATIC_REQUIRE(traits::sourced == false);
-}
-
-TEST_CASE("vov_graph_traits sourced = true", "[vov][traits]") {
-    using traits = vov_graph_traits<int, std::string, void, uint32_t, true>;
-    STATIC_REQUIRE(traits::sourced == true);
-}
-
-TEST_CASE("vov vertex_id_type variations", "[vov][traits]") {
-    using traits_u64 = vov_graph_traits<void, void, void, uint64_t, false>;
-    using traits_i32 = vov_graph_traits<void, void, void, int32_t, false>;
-    using traits_i8 = vov_graph_traits<void, void, void, int8_t, false>;
-    
-    STATIC_REQUIRE(std::is_same_v<traits_u64::vertex_id_type, uint64_t>);
-    STATIC_REQUIRE(std::is_same_v<traits_i32::vertex_id_type, int32_t>);
-    STATIC_REQUIRE(std::is_same_v<traits_i8::vertex_id_type, int8_t>);
-}
-
-TEST_CASE("vov vertices_type is vector", "[vov][traits]") {
-    using traits = vov_graph_traits<void, void, void, uint32_t, false>;
-    using vertex_t = traits::vertex_type;
-    using vertices_t = traits::vertices_type;
-    
-    STATIC_REQUIRE(std::is_same_v<vertices_t, std::vector<vertex_t>>);
-}
-
-TEST_CASE("vov edges_type is list", "[vov][traits]") {
-    using traits = vov_graph_traits<void, void, void, uint32_t, false>;
-    using edge_t = traits::edge_type;
-    using edges_t = traits::edges_type;
-    
-    STATIC_REQUIRE(std::is_same_v<edges_t, std::vector<edge_t>>);
-}
-
-//==================================================================================================
-// 6. Empty Graph Edge Cases (15 tests)
-//==================================================================================================
-
-TEST_CASE("vov multiple empty graphs independent", "[vov][edge_cases]") {
-    vov_void_void_void g1, g2, g3;
-    REQUIRE(g1.size() == 0);
-    REQUIRE(g2.size() == 0);
-    REQUIRE(g3.size() == 0);
-}
-
-TEST_CASE("vov copy of empty graph", "[vov][edge_cases]") {
-    vov_int_int_int g1;
-    vov_int_int_int g2 = g1;
-    REQUIRE(g1.size() == 0);
-    REQUIRE(g2.size() == 0);
-}
-
-TEST_CASE("vov move of empty graph", "[vov][edge_cases]") {
-    vov_int_int_int g1;
-    vov_int_int_int g2 = std::move(g1);
-    REQUIRE(g2.size() == 0);
-}
-
-TEST_CASE("vov swap empty graphs", "[vov][edge_cases]") {
-    vov_int_int_int g1, g2;
-    std::swap(g1, g2);
-    REQUIRE(g1.size() == 0);
-    REQUIRE(g2.size() == 0);
-}
-
-TEST_CASE("vov clear on empty graph", "[vov][edge_cases]") {
-    vov_void_void_void g;
-    g.clear();
-    REQUIRE(g.size() == 0);
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vov multiple clears", "[vov][edge_cases]") {
-    vov_void_void_void g;
-    g.clear();
-    g.clear();
-    g.clear();
-    REQUIRE(g.size() == 0);
-}
-
-//==================================================================================================
-// 7. Value Type Tests (20 tests)
-//==================================================================================================
-
-TEST_CASE("vov with void edge value", "[vov][value_types]") {
-    using graph_t = dynamic_graph<void, int, int, uint32_t, false, vov_graph_traits<void, int, int, uint32_t, false>>;
-    graph_t g(100);
-    REQUIRE(g.graph_value() == 100);
-}
-
-TEST_CASE("vov with void vertex value", "[vov][value_types]") {
-    using graph_t = dynamic_graph<int, void, int, uint32_t, false, vov_graph_traits<int, void, int, uint32_t, false>>;
-    graph_t g(100);
-    REQUIRE(g.graph_value() == 100);
-}
-
-TEST_CASE("vov with void graph value", "[vov][value_types]") {
-    using graph_t = dynamic_graph<int, int, void, uint32_t, false, vov_graph_traits<int, int, void, uint32_t, false>>;
-    graph_t g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vov with all void values", "[vov][value_types]") {
-    vov_void_void_void g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vov with int edge value type", "[vov][value_types]") {
-    vov_int_void_void g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vov with int vertex value type", "[vov][value_types]") {
-    vov_void_int_void g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vov with int graph value type", "[vov][value_types]") {
-    vov_void_void_int g(42);
-    REQUIRE(g.graph_value() == 42);
-}
-
-TEST_CASE("vov with all int values", "[vov][value_types]") {
-    vov_int_int_int g(42);
-    REQUIRE(g.graph_value() == 42);
-}
-
-TEST_CASE("vov with string edge value type", "[vov][value_types]") {
-    using graph_t = dynamic_graph<std::string, void, void, uint32_t, false, 
-                                   vov_graph_traits<std::string, void, void, uint32_t, false>>;
-    graph_t g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vov with string vertex value type", "[vov][value_types]") {
-    using graph_t = dynamic_graph<void, std::string, void, uint32_t, false, 
-                                   vov_graph_traits<void, std::string, void, uint32_t, false>>;
-    graph_t g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vov with string graph value type", "[vov][value_types]") {
-    using graph_t = dynamic_graph<void, void, std::string, uint32_t, false, 
-                                   vov_graph_traits<void, void, std::string, uint32_t, false>>;
-    graph_t g(std::string("test"));
-    REQUIRE(g.graph_value() == "test");
-}
-
-TEST_CASE("vov with all string values", "[vov][value_types]") {
-    vov_string_string_string g(std::string("graph"));
-    REQUIRE(g.graph_value() == "graph");
-}
-
-//==================================================================================================
-// 8. Vertex ID Type Tests (10 tests)
-//==================================================================================================
-
-TEST_CASE("vov with uint32_t vertex id", "[vov][vertex_id]") {
-    using graph_t = dynamic_graph<void, void, void, uint32_t, false, 
-                                   vov_graph_traits<void, void, void, uint32_t, false>>;
-    graph_t g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vov with uint64_t vertex id", "[vov][vertex_id]") {
-    using graph_t = dynamic_graph<void, void, void, uint64_t, false, 
-                                   vov_graph_traits<void, void, void, uint64_t, false>>;
-    graph_t g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vov with int32_t vertex id", "[vov][vertex_id]") {
-    using graph_t = dynamic_graph<void, void, void, int32_t, false, 
-                                   vov_graph_traits<void, void, void, int32_t, false>>;
-    graph_t g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vov with int8_t vertex id", "[vov][vertex_id]") {
-    using graph_t = dynamic_graph<void, void, void, int8_t, false, 
-                                   vov_graph_traits<void, void, void, int8_t, false>>;
-    graph_t g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vov with int vertex id", "[vov][vertex_id]") {
-    using graph_t = dynamic_graph<void, void, void, int, false, 
-                                   vov_graph_traits<void, void, void, int, false>>;
-    graph_t g;
-    REQUIRE(g.size() == 0);
-}
-
-//==================================================================================================
-// 9. Sourced Edge Tests (15 tests)
-//==================================================================================================
-
-TEST_CASE("vov sourced=false by default", "[vov][sourced]") {
-    vov_void_void_void g;
-    using traits = vov_graph_traits<void, void, void, uint32_t, false>;
-    STATIC_REQUIRE(traits::sourced == false);
-}
-
-TEST_CASE("vov sourced=true explicit", "[vov][sourced]") {
-    vov_sourced g;
-    using traits = vov_graph_traits<void, void, void, uint32_t, true>;
-    STATIC_REQUIRE(traits::sourced == true);
-}
-
-TEST_CASE("vov sourced with void values", "[vov][sourced]") {
-    vov_sourced g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vov sourced with int edge value", "[vov][sourced]") {
-    vov_int_sourced g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vov sourced copy construction", "[vov][sourced]") {
-    vov_sourced g1;
-    vov_sourced g2 = g1;
-    REQUIRE(g2.size() == 0);
-}
-
-TEST_CASE("vov sourced move construction", "[vov][sourced]") {
-    vov_sourced g1;
-    vov_sourced g2 = std::move(g1);
-    REQUIRE(g2.size() == 0);
-}
-
-//==================================================================================================
-// 10. Const Correctness Tests (15 tests)
-//==================================================================================================
-
-TEST_CASE("vov const graph size()", "[vov][const]") {
-    const vov_void_void_void g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vov const graph empty()", "[vov][const]") {
-    const vov_void_void_void g;
-    REQUIRE(g.size() == 0);
-}
-
-TEST_CASE("vov const graph begin/end", "[vov][const]") {
-    const vov_void_void_void g;
-    REQUIRE(g.begin() == g.end());
-}
-
-TEST_CASE("vov const graph iteration", "[vov][const]") {
-    const vov_void_void_void g;
-    int count = 0;
-    for ([[maybe_unused]] const auto& v : g) {
-        ++count;
+    SECTION("with int edge values") {
+        vov_int_void_void g;
+        REQUIRE(g.size() == 0);
     }
-    REQUIRE(count == 0);
+
+    SECTION("with int vertex values") {
+        vov_void_int_void g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("with int graph value") {
+        vov_void_void_int g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("with all int values") {
+        vov_int_int_int g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("with string values") {
+        vov_string_string_string g;
+        REQUIRE(g.size() == 0);
+    }
 }
 
-TEST_CASE("vov const graph with graph value", "[vov][const]") {
-    const vov_void_void_int g(42);
-    REQUIRE(g.graph_value() == 42);
+TEST_CASE("vov constructor with graph value", "[vov][construction]") {
+    SECTION("void GV - no graph value can be passed") {
+        vov_void_void_void g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("int GV") {
+        vov_void_void_int g(42);
+        REQUIRE(g.size() == 0);
+        REQUIRE(g.graph_value() == 42);
+    }
+
+    SECTION("string GV") {
+        vov_string_string_string g(std::string("test"));
+        REQUIRE(g.size() == 0);
+        REQUIRE(g.graph_value() == "test");
+    }
 }
 
-TEST_CASE("vov const graph cbegin/cend", "[vov][const]") {
-    const vov_void_void_void g;
-    REQUIRE(g.cbegin() == g.cend());
+TEST_CASE("vov copy and move construction", "[vov][construction]") {
+    SECTION("copy constructor") {
+        vov_int_int_int g1;
+        vov_int_int_int g2(g1);
+        REQUIRE(g2.size() == g1.size());
+    }
+
+    SECTION("move constructor") {
+        vov_int_int_int g1;
+        vov_int_int_int g2(std::move(g1));
+        REQUIRE(g2.size() == 0);
+    }
+
+    SECTION("copy assignment") {
+        vov_int_int_int g1, g2;
+        g2 = g1;
+        REQUIRE(g2.size() == g1.size());
+    }
+
+    SECTION("move assignment") {
+        vov_int_int_int g1, g2;
+        g2 = std::move(g1);
+        REQUIRE(g2.size() == 0);
+    }
+}
+
+TEST_CASE("vov sourced construction", "[vov][construction][sourced]") {
+    SECTION("sourced edge construction") {
+        vov_sourced g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("sourced with edge value construction") {
+        vov_int_sourced g;
+        REQUIRE(g.size() == 0);
+    }
 }
 
 //==================================================================================================
-// 11. Memory and Resource Tests (10 tests)
+// 2. Basic Properties Tests
 //==================================================================================================
 
-TEST_CASE("vov multiple graphs do not interfere", "[vov][memory]") {
-    vov_int_int_int g1(100);
-    vov_int_int_int g2(200);
-    vov_int_int_int g3(300);
-    
-    REQUIRE(g1.graph_value() == 100);
-    REQUIRE(g2.graph_value() == 200);
-    REQUIRE(g3.graph_value() == 300);
+TEST_CASE("vov basic properties", "[vov][properties]") {
+    SECTION("size() on empty graph") {
+        vov_void_void_void g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("size() == 0 for empty graph") {
+        vov_void_void_void g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("size() != 0 for non-empty graph") {
+        vov_void_void_void g;
+        REQUIRE(g.size() == 0); // Will change once we can add vertices
+    }
+
+    SECTION("const graph methods") {
+        const vov_void_void_void g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("begin() == end() for empty graph") {
+        vov_void_void_void g;
+        REQUIRE(g.begin() == g.end());
+    }
+
+    SECTION("const begin() == const end() for empty graph") {
+        const vov_void_void_void g;
+        REQUIRE(g.begin() == g.end());
+    }
+
+    SECTION("cbegin() == cend() for empty graph") {
+        vov_void_void_void g;
+        REQUIRE(g.cbegin() == g.cend());
+    }
 }
 
-TEST_CASE("vov copy does not alias", "[vov][memory]") {
-    vov_int_int_int g1(100);
-    vov_int_int_int g2 = g1;
-    
-    g2.graph_value() = 200;
-    REQUIRE(g1.graph_value() == 100);
-    REQUIRE(g2.graph_value() == 200);
+//==================================================================================================
+// 3. Graph Value Tests
+//==================================================================================================
+
+TEST_CASE("vov graph_value()", "[vov][graph_value]") {
+    SECTION("with int GV") {
+        vov_void_void_int g(100);
+        REQUIRE(g.graph_value() == 100);
+    }
+
+    SECTION("modification") {
+        vov_void_void_int g(100);
+        g.graph_value() = 200;
+        REQUIRE(g.graph_value() == 200);
+    }
+
+    SECTION("const correctness") {
+        const vov_void_void_int g(100);
+        REQUIRE(g.graph_value() == 100);
+    }
+
+    SECTION("with string GV") {
+        vov_string_string_string g(std::string("initial"));
+        REQUIRE(g.graph_value() == "initial");
+        g.graph_value() = "modified";
+        REQUIRE(g.graph_value() == "modified");
+    }
+
+    SECTION("move semantics") {
+        vov_string_string_string g(std::string("test"));
+        std::string val = std::move(g.graph_value());
+        REQUIRE(val == "test");
+    }
+
+    SECTION("with copy") {
+        vov_void_void_int g1(42);
+        vov_void_void_int g2 = g1;
+        REQUIRE(g2.graph_value() == 42);
+        g2.graph_value() = 100;
+        REQUIRE(g1.graph_value() == 42); // g1 unchanged
+        REQUIRE(g2.graph_value() == 100);
+    }
 }
 
-TEST_CASE("vov clear preserves type", "[vov][memory]") {
-    vov_int_int_int g(42);
-    g.clear();
-    REQUIRE(g.size() == 0);
-    // Type is still int, we can set a new value
-    g.graph_value() = 100;
-    REQUIRE(g.graph_value() == 100);
+//==================================================================================================
+// 4. Iterator Tests
+//==================================================================================================
+
+TEST_CASE("vov iterators", "[vov][iterator]") {
+    SECTION("iterator on empty graph") {
+        vov_void_void_void g;
+        auto it = g.begin();
+        REQUIRE(it == g.end());
+    }
+
+    SECTION("const iterator on empty graph") {
+        const vov_void_void_void g;
+        auto it = g.begin();
+        REQUIRE(it == g.end());
+    }
+
+    SECTION("range-based for on empty graph") {
+        vov_void_void_void g;
+        int count = 0;
+        for ([[maybe_unused]] auto& v : g) {
+            ++count;
+        }
+        REQUIRE(count == 0);
+    }
+
+    SECTION("const range-based for on empty graph") {
+        const vov_void_void_void g;
+        int count = 0;
+        for ([[maybe_unused]] const auto& v : g) {
+            ++count;
+        }
+        REQUIRE(count == 0);
+    }
+
+    SECTION("std::ranges compatibility") {
+        vov_void_void_void g;
+        auto count = std::ranges::distance(g.begin(), g.end());
+        REQUIRE(count == 0);
+    }
 }
 
-TEST_CASE("vov move leaves source valid but unspecified", "[vov][memory]") {
-    vov_int_int_int g1(100);
-    vov_int_int_int g2 = std::move(g1);
-    
-    // g1 is valid but unspecified, we can still use it safely
-    g1.clear();
-    REQUIRE(g1.size() == 0);
+//==================================================================================================
+// 5. Type Trait Tests
+//==================================================================================================
+
+TEST_CASE("vov_graph_traits", "[vov][traits]") {
+    SECTION("types") {
+        using traits = vov_graph_traits<int, std::string, void, uint32_t, false>;
+        
+        STATIC_REQUIRE(std::is_same_v<traits::edge_value_type, int>);
+        STATIC_REQUIRE(std::is_same_v<traits::vertex_value_type, std::string>);
+        STATIC_REQUIRE(std::is_same_v<traits::graph_value_type, void>);
+        STATIC_REQUIRE(std::is_same_v<traits::vertex_id_type, uint32_t>);
+        STATIC_REQUIRE(traits::sourced == false);
+    }
+
+    SECTION("sourced = true") {
+        using traits = vov_graph_traits<int, std::string, void, uint32_t, true>;
+        STATIC_REQUIRE(traits::sourced == true);
+    }
+
+    SECTION("vertex_id_type variations") {
+        using traits_u64 = vov_graph_traits<void, void, void, uint64_t, false>;
+        using traits_i32 = vov_graph_traits<void, void, void, int32_t, false>;
+        using traits_i8 = vov_graph_traits<void, void, void, int8_t, false>;
+        
+        STATIC_REQUIRE(std::is_same_v<traits_u64::vertex_id_type, uint64_t>);
+        STATIC_REQUIRE(std::is_same_v<traits_i32::vertex_id_type, int32_t>);
+        STATIC_REQUIRE(std::is_same_v<traits_i8::vertex_id_type, int8_t>);
+    }
+
+    SECTION("vertices_type is vector") {
+        using traits = vov_graph_traits<void, void, void, uint32_t, false>;
+        using vertex_t = traits::vertex_type;
+        using vertices_t = traits::vertices_type;
+        
+        STATIC_REQUIRE(std::is_same_v<vertices_t, std::vector<vertex_t>>);
+    }
+
+    SECTION("edges_type is vector") {
+        using traits = vov_graph_traits<void, void, void, uint32_t, false>;
+        using edge_t = traits::edge_type;
+        using edges_t = traits::edges_type;
+        
+        STATIC_REQUIRE(std::is_same_v<edges_t, std::vector<edge_t>>);
+    }
+}
+
+//==================================================================================================
+// 6. Empty Graph Edge Cases
+//==================================================================================================
+
+TEST_CASE("vov empty graph edge cases", "[vov][edge_cases]") {
+    SECTION("multiple empty graphs independent") {
+        vov_void_void_void g1, g2, g3;
+        REQUIRE(g1.size() == 0);
+        REQUIRE(g2.size() == 0);
+        REQUIRE(g3.size() == 0);
+    }
+
+    SECTION("copy of empty graph") {
+        vov_int_int_int g1;
+        vov_int_int_int g2 = g1;
+        REQUIRE(g1.size() == 0);
+        REQUIRE(g2.size() == 0);
+    }
+
+    SECTION("move of empty graph") {
+        vov_int_int_int g1;
+        vov_int_int_int g2 = std::move(g1);
+        REQUIRE(g2.size() == 0);
+    }
+
+    SECTION("swap empty graphs") {
+        vov_int_int_int g1, g2;
+        std::swap(g1, g2);
+        REQUIRE(g1.size() == 0);
+        REQUIRE(g2.size() == 0);
+    }
+
+    SECTION("clear on empty graph") {
+        vov_void_void_void g;
+        g.clear();
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("multiple clears") {
+        vov_void_void_void g;
+        g.clear();
+        g.clear();
+        g.clear();
+        REQUIRE(g.size() == 0);
+    }
+}
+
+//==================================================================================================
+// 7. Value Type Tests
+//==================================================================================================
+
+TEST_CASE("vov value types", "[vov][value_types]") {
+    SECTION("with void edge value") {
+        using graph_t = dynamic_graph<void, int, int, uint32_t, false, vov_graph_traits<void, int, int, uint32_t, false>>;
+        graph_t g(100);
+        REQUIRE(g.graph_value() == 100);
+    }
+
+    SECTION("with void vertex value") {
+        using graph_t = dynamic_graph<int, void, int, uint32_t, false, vov_graph_traits<int, void, int, uint32_t, false>>;
+        graph_t g(100);
+        REQUIRE(g.graph_value() == 100);
+    }
+
+    SECTION("with void graph value") {
+        using graph_t = dynamic_graph<int, int, void, uint32_t, false, vov_graph_traits<int, int, void, uint32_t, false>>;
+        graph_t g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("with all void values") {
+        vov_void_void_void g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("with int edge value type") {
+        vov_int_void_void g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("with int vertex value type") {
+        vov_void_int_void g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("with int graph value type") {
+        vov_void_void_int g(42);
+        REQUIRE(g.graph_value() == 42);
+    }
+
+    SECTION("with all int values") {
+        vov_int_int_int g(42);
+        REQUIRE(g.graph_value() == 42);
+    }
+
+    SECTION("with string edge value type") {
+        using graph_t = dynamic_graph<std::string, void, void, uint32_t, false, 
+                                       vov_graph_traits<std::string, void, void, uint32_t, false>>;
+        graph_t g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("with string vertex value type") {
+        using graph_t = dynamic_graph<void, std::string, void, uint32_t, false, 
+                                       vov_graph_traits<void, std::string, void, uint32_t, false>>;
+        graph_t g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("with string graph value type") {
+        using graph_t = dynamic_graph<void, void, std::string, uint32_t, false, 
+                                       vov_graph_traits<void, void, std::string, uint32_t, false>>;
+        graph_t g(std::string("test"));
+        REQUIRE(g.graph_value() == "test");
+    }
+
+    SECTION("with all string values") {
+        vov_string_string_string g(std::string("graph"));
+        REQUIRE(g.graph_value() == "graph");
+    }
+}
+
+//==================================================================================================
+// 8. Vertex ID Type Tests
+//==================================================================================================
+
+TEST_CASE("vov vertex ID types", "[vov][vertex_id]") {
+    SECTION("with uint32_t vertex id") {
+        using graph_t = dynamic_graph<void, void, void, uint32_t, false, 
+                                       vov_graph_traits<void, void, void, uint32_t, false>>;
+        graph_t g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("with uint64_t vertex id") {
+        using graph_t = dynamic_graph<void, void, void, uint64_t, false, 
+                                       vov_graph_traits<void, void, void, uint64_t, false>>;
+        graph_t g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("with int32_t vertex id") {
+        using graph_t = dynamic_graph<void, void, void, int32_t, false, 
+                                       vov_graph_traits<void, void, void, int32_t, false>>;
+        graph_t g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("with int8_t vertex id") {
+        using graph_t = dynamic_graph<void, void, void, int8_t, false, 
+                                       vov_graph_traits<void, void, void, int8_t, false>>;
+        graph_t g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("with int vertex id") {
+        using graph_t = dynamic_graph<void, void, void, int, false, 
+                                       vov_graph_traits<void, void, void, int, false>>;
+        graph_t g;
+        REQUIRE(g.size() == 0);
+    }
+}
+
+//==================================================================================================
+// 9. Sourced Edge Tests
+//==================================================================================================
+
+TEST_CASE("vov sourced edges", "[vov][sourced]") {
+    SECTION("sourced=false by default") {
+        vov_void_void_void g;
+        using traits = vov_graph_traits<void, void, void, uint32_t, false>;
+        STATIC_REQUIRE(traits::sourced == false);
+    }
+
+    SECTION("sourced=true explicit") {
+        vov_sourced g;
+        using traits = vov_graph_traits<void, void, void, uint32_t, true>;
+        STATIC_REQUIRE(traits::sourced == true);
+    }
+
+    SECTION("sourced with void values") {
+        vov_sourced g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("sourced with int edge value") {
+        vov_int_sourced g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("sourced copy construction") {
+        vov_sourced g1;
+        vov_sourced g2 = g1;
+        REQUIRE(g2.size() == 0);
+    }
+
+    SECTION("sourced move construction") {
+        vov_sourced g1;
+        vov_sourced g2 = std::move(g1);
+        REQUIRE(g2.size() == 0);
+    }
+}
+
+//==================================================================================================
+// 10. Const Correctness Tests
+//==================================================================================================
+
+TEST_CASE("vov const correctness", "[vov][const]") {
+    SECTION("const graph size()") {
+        const vov_void_void_void g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("const graph empty()") {
+        const vov_void_void_void g;
+        REQUIRE(g.size() == 0);
+    }
+
+    SECTION("const graph begin/end") {
+        const vov_void_void_void g;
+        REQUIRE(g.begin() == g.end());
+    }
+
+    SECTION("const graph iteration") {
+        const vov_void_void_void g;
+        int count = 0;
+        for ([[maybe_unused]] const auto& v : g) {
+            ++count;
+        }
+        REQUIRE(count == 0);
+    }
+
+    SECTION("const graph with graph value") {
+        const vov_void_void_int g(42);
+        REQUIRE(g.graph_value() == 42);
+    }
+
+    SECTION("const graph cbegin/cend") {
+        const vov_void_void_void g;
+        REQUIRE(g.cbegin() == g.cend());
+    }
+}
+
+//==================================================================================================
+// 11. Memory and Resource Tests
+//==================================================================================================
+
+TEST_CASE("vov memory and resources", "[vov][memory]") {
+    SECTION("multiple graphs do not interfere") {
+        vov_int_int_int g1(100);
+        vov_int_int_int g2(200);
+        vov_int_int_int g3(300);
+        
+        REQUIRE(g1.graph_value() == 100);
+        REQUIRE(g2.graph_value() == 200);
+        REQUIRE(g3.graph_value() == 300);
+    }
+
+    SECTION("copy does not alias") {
+        vov_int_int_int g1(100);
+        vov_int_int_int g2 = g1;
+        
+        g2.graph_value() = 200;
+        REQUIRE(g1.graph_value() == 100);
+        REQUIRE(g2.graph_value() == 200);
+    }
+
+    SECTION("clear preserves type") {
+        vov_int_int_int g(42);
+        g.clear();
+        REQUIRE(g.size() == 0);
+        // Type is still int, we can set a new value
+        g.graph_value() = 100;
+        REQUIRE(g.graph_value() == 100);
+    }
+
+    SECTION("move leaves source valid but unspecified") {
+        vov_int_int_int g1(100);
+        vov_int_int_int g2 = std::move(g1);
+        
+        // g1 is valid but unspecified, we can still use it safely
+        g1.clear();
+        REQUIRE(g1.size() == 0);
+    }
 }
 
 //==================================================================================================
@@ -873,11 +894,10 @@ TEST_CASE("vov initializer_list complex graph patterns", "[vov][construction][in
 }
 
 //==================================================================================================
-//==================================================================================================
-// Load Operations Tests
+// 13. Load Operations Tests
 //==================================================================================================
 
-TEST_CASE("vov load_vertices with identity projection", "[dynamic_graph][vov][load_vertices]") {
+TEST_CASE("vov load_vertices", "[dynamic_graph][vov][load_vertices]") {
   using G = vov_int_int_void;
   using vertex_data = copyable_vertex_t<uint32_t, int>;
 
@@ -907,22 +927,20 @@ TEST_CASE("vov load_vertices with identity projection", "[dynamic_graph][vov][lo
     REQUIRE(g[3].value() == 40);
     REQUIRE(g[4].value() == 50);
   }
-}
 
-TEST_CASE("vov load_vertices with custom projection", "[dynamic_graph][vov][load_vertices]") {
-  using G = dynamic_graph<int, std::string, void, uint32_t, false, vov_graph_traits<int, std::string, void, uint32_t, false>>;
-  using vertex_data = copyable_vertex_t<uint32_t, std::string>;
+  SECTION("with custom projection from struct") {
+    using G2 = dynamic_graph<int, std::string, void, uint32_t, false, vov_graph_traits<int, std::string, void, uint32_t, false>>;
+    using vertex_data2 = copyable_vertex_t<uint32_t, std::string>;
 
-  SECTION("load with projection from struct") {
     struct Person {
       uint32_t id;
       std::string name;
       int age;
     };
 
-    G g;
+    G2 g;
     std::vector<Person> people = {{0, "Alice", 30}, {1, "Bob", 25}, {2, "Charlie", 35}};
-    g.load_vertices(people, [](const Person& p) -> vertex_data {
+    g.load_vertices(people, [](const Person& p) -> vertex_data2 {
       return {p.id, p.name};
     });
 
@@ -931,21 +949,17 @@ TEST_CASE("vov load_vertices with custom projection", "[dynamic_graph][vov][load
     REQUIRE(g[1].value() == "Bob");
     REQUIRE(g[2].value() == "Charlie");
   }
-}
 
-TEST_CASE("vov load_vertices with void vertex values", "[dynamic_graph][vov][load_vertices]") {
-  using G = vov_int_void_void;
-
-  SECTION("load creates vertices without values - using default constructor") {
-    G g;
+  SECTION("with void vertex values - using default constructor") {
+    using G3 = vov_int_void_void;
+    G3 g;
     // With void vertex values, we can't use load_vertices because copyable_vertex_t<VId, void>
     // only has {id} but load_vertices expects {id, value}. Instead, test construction.
-    // This will be tested more thoroughly when load_edges with vertex inference is implemented.
     REQUIRE(g.size() == 0);
   }
 }
 
-TEST_CASE("vov load_edges with identity projection", "[dynamic_graph][vov][load_edges]") {
+TEST_CASE("vov load_edges", "[dynamic_graph][vov][load_edges]") {
   using G = vov_int_int_void;
   using vertex_data = copyable_vertex_t<uint32_t, int>;
   using edge_data = copyable_edge_t<uint32_t, int>;
@@ -981,7 +995,6 @@ TEST_CASE("vov load_edges with identity projection", "[dynamic_graph][vov][load_
     size_t count = 0;
     for (auto& edge : g[0].edges()) {
       ++count;
-      // Note: target_id() method may not be public, check via iteration
       REQUIRE(edge.value() == 100);
     }
     REQUIRE(count == 1);
@@ -1021,19 +1034,17 @@ TEST_CASE("vov load_edges with identity projection", "[dynamic_graph][vov][load_
     REQUIRE(count1 == 1);
     REQUIRE(count2 == 1);
   }
-}
 
-TEST_CASE("vov load_edges with void edge values", "[dynamic_graph][vov][load_edges]") {
-  using G = vov_void_int_void;
-  using vertex_data = copyable_vertex_t<uint32_t, int>;
-  using edge_data = copyable_edge_t<uint32_t, void>;
+  SECTION("with void edge values") {
+    using G2 = vov_void_int_void;
+    using vertex_data2 = copyable_vertex_t<uint32_t, int>;
+    using edge_data2 = copyable_edge_t<uint32_t, void>;
 
-  SECTION("load edges without values") {
-    G g;
-    std::vector<vertex_data> vv = {{0, 10}, {1, 20}, {2, 30}};
+    G2 g;
+    std::vector<vertex_data2> vv = {{0, 10}, {1, 20}, {2, 30}};
     g.load_vertices(vv, std::identity{});
 
-    std::vector<edge_data> ee = {{0, 1}, {1, 2}, {2, 0}};
+    std::vector<edge_data2> ee = {{0, 1}, {1, 2}, {2, 0}};
     g.load_edges(ee, std::identity{});
 
     // Verify edges exist by counting
@@ -1046,26 +1057,24 @@ TEST_CASE("vov load_edges with void edge values", "[dynamic_graph][vov][load_edg
     }
     REQUIRE(total_edges == 3);
   }
-}
 
-TEST_CASE("vov load_edges with custom projection", "[dynamic_graph][vov][load_edges]") {
-  using G = dynamic_graph<std::string, int, void, uint32_t, false, vov_graph_traits<std::string, int, void, uint32_t, false>>;
-  using vertex_data = copyable_vertex_t<uint32_t, int>;
-  using edge_data = copyable_edge_t<uint32_t, std::string>;
+  SECTION("with custom projection") {
+    using G2 = dynamic_graph<std::string, int, void, uint32_t, false, vov_graph_traits<std::string, int, void, uint32_t, false>>;
+    using vertex_data2 = copyable_vertex_t<uint32_t, int>;
+    using edge_data2 = copyable_edge_t<uint32_t, std::string>;
 
-  SECTION("load with projection from custom struct") {
     struct Edge {
       uint32_t from;
       uint32_t to;
       std::string label;
     };
 
-    G g;
-    std::vector<vertex_data> vv = {{0, 1}, {1, 2}, {2, 3}};
+    G2 g;
+    std::vector<vertex_data2> vv = {{0, 1}, {1, 2}, {2, 3}};
     g.load_vertices(vv, std::identity{});
 
     std::vector<Edge> ee = {{0, 1, "edge01"}, {1, 2, "edge12"}};
-    g.load_edges(ee, [](const Edge& e) -> edge_data {
+    g.load_edges(ee, [](const Edge& e) -> edge_data2 {
       return {e.from, e.to, e.label};
     });
 
@@ -1079,14 +1088,8 @@ TEST_CASE("vov load_edges with custom projection", "[dynamic_graph][vov][load_ed
     }
     REQUIRE(total == 2);
   }
-}
 
-TEST_CASE("vov load_edges with self-loops", "[dynamic_graph][vov][load_edges]") {
-  using G = vov_int_int_void;
-  using vertex_data = copyable_vertex_t<uint32_t, int>;
-  using edge_data = copyable_edge_t<uint32_t, int>;
-
-  SECTION("load single self-loop") {
+  SECTION("single self-loop") {
     G g;
     std::vector<vertex_data> vv = {{0, 10}, {1, 20}};
     g.load_vertices(vv, std::identity{});
@@ -1102,7 +1105,7 @@ TEST_CASE("vov load_edges with self-loops", "[dynamic_graph][vov][load_edges]") 
     REQUIRE(count == 1);
   }
 
-  SECTION("load multiple self-loops") {
+  SECTION("multiple self-loops") {
     G g;
     std::vector<vertex_data> vv = {{0, 10}};
     g.load_vertices(vv, std::identity{});
@@ -1117,14 +1120,8 @@ TEST_CASE("vov load_edges with self-loops", "[dynamic_graph][vov][load_edges]") 
     }
     REQUIRE(count == 3);
   }
-}
 
-TEST_CASE("vov load_edges with parallel edges", "[dynamic_graph][vov][load_edges]") {
-  using G = vov_int_int_void;
-  using vertex_data = copyable_vertex_t<uint32_t, int>;
-  using edge_data = copyable_edge_t<uint32_t, int>;
-
-  SECTION("load multiple edges between same vertices") {
+  SECTION("parallel edges") {
     G g;
     std::vector<vertex_data> vv = {{0, 10}, {1, 20}};
     g.load_vertices(vv, std::identity{});
@@ -1144,14 +1141,8 @@ TEST_CASE("vov load_edges with parallel edges", "[dynamic_graph][vov][load_edges
     REQUIRE(std::find(values.begin(), values.end(), 200) != values.end());
     REQUIRE(std::find(values.begin(), values.end(), 300) != values.end());
   }
-}
 
-TEST_CASE("vov load_edges with large edge sets", "[dynamic_graph][vov][load_edges]") {
-  using G = vov_int_int_void;
-  using vertex_data = copyable_vertex_t<uint32_t, int>;
-  using edge_data = copyable_edge_t<uint32_t, int>;
-
-  SECTION("load 1000 edges") {
+  SECTION("large edge sets (1000 edges)") {
     G g;
     std::vector<vertex_data> vv(100);
     for (uint32_t i = 0; i < 100; ++i) {
@@ -1178,30 +1169,6 @@ TEST_CASE("vov load_edges with large edge sets", "[dynamic_graph][vov][load_edge
     }
   }
 }
-
-//==================================================================================================
-// Summary: Phase 1.1 Tests Progress
-// - Construction: 17 tests (TEST_CASE entries)
-// - Basic Properties: 7 tests  
-// - Graph Value: 6 tests
-// - Iterator: 5 tests
-// - Type Traits: 5 tests
-// - Empty Graph Edge Cases: 6 tests
-// - Value Types: 12 tests
-// - Vertex ID Types: 5 tests
-// - Sourced Edges: 6 tests
-// - Const Correctness: 6 tests
-// - Memory/Resources: 4 tests
-// - Compilation: 1 test
-// - Load Vertices: 3 tests (9 SECTION entries)
-// - Load Edges: 5 tests (6 SECTION entries)
-// 
-// Total: 88 TEST_CASE entries with 15 SECTION entries = 933 ctests
-// (845 existing tests + 88 new dynamic_graph tests)
-//
-// Note: Additional tests for vertex/edge access with populated graphs, partitions,
-// and advanced operations will be added next.
-//==================================================================================================
 
 //==================================================================================================
 // Vertex/Edge Access with Populated Graphs

@@ -320,7 +320,7 @@ TEST_CASE("vofl CPO num_edges(g)", "[dynamic_graph][vofl][cpo][num_edges]") {
 }
 
 //==================================================================================================
-// 7. edges(g, u) CPO Tests
+// 6. edges(g, u) CPO Tests
 //==================================================================================================
 
 TEST_CASE("vofl CPO edges(g, u)", "[dynamic_graph][vofl][cpo][edges]") {
@@ -731,7 +731,7 @@ TEST_CASE("vofl CPO edges(g, uid)", "[dynamic_graph][vofl][cpo][edges]") {
 }
 
 //==================================================================================================
-// 8. degree(g, u) CPO Tests
+// 7. degree(g, u) CPO Tests
 //==================================================================================================
 
 TEST_CASE("vofl CPO degree(g, u)", "[dynamic_graph][vofl][cpo][degree]") {
@@ -900,7 +900,7 @@ TEST_CASE("vofl CPO degree(g, u)", "[dynamic_graph][vofl][cpo][degree]") {
 }
 
 //==================================================================================================
-// 9. target_id(g, uv) CPO Tests
+// 8. target_id(g, uv) CPO Tests
 //==================================================================================================
 
 TEST_CASE("vofl CPO target_id(g, uv)", "[dynamic_graph][vofl][cpo][target_id]") {
@@ -1083,7 +1083,7 @@ TEST_CASE("vofl CPO target_id(g, uv)", "[dynamic_graph][vofl][cpo][target_id]") 
 }
 
 //==================================================================================================
-// 10. target(g, uv) CPO Tests
+// 9. target(g, uv) CPO Tests
 //==================================================================================================
 
 TEST_CASE("vofl CPO target(g, uv)", "[dynamic_graph][vofl][cpo][target]") {
@@ -1316,7 +1316,7 @@ TEST_CASE("vofl CPO target(g, uv)", "[dynamic_graph][vofl][cpo][target]") {
 }
 
 //==================================================================================================
-// 11. find_vertex_edge(g, u, v) CPO Tests
+// 10. find_vertex_edge(g, u, v) CPO Tests
 //==================================================================================================
 
 TEST_CASE("vofl CPO find_vertex_edge(g, u, v)", "[dynamic_graph][vofl][cpo][find_vertex_edge]") {
@@ -1550,7 +1550,7 @@ TEST_CASE("vofl CPO find_vertex_edge(g, u, v)", "[dynamic_graph][vofl][cpo][find
 }
 
 //--------------------------------------------------------------------------------------------------
-// 11b. find_vertex_edge(g, uid, vid) CPO Tests - uid_vid overload
+// 11. find_vertex_edge(g, uid, vid) CPO Tests - uid_vid overload
 //--------------------------------------------------------------------------------------------------
 
 TEST_CASE("vofl CPO find_vertex_edge(g, uid, vid)", "[dynamic_graph][vofl][cpo][find_vertex_edge][uid_vid]") {
@@ -2367,7 +2367,7 @@ TEST_CASE("vofl CPO integration", "[dynamic_graph][vofl][cpo][integration]") {
 }
 
 //==================================================================================================
-// 6. has_edge(g) CPO Tests
+// 14. has_edge(g) CPO Tests
 //==================================================================================================
 
 TEST_CASE("vofl CPO has_edge(g)", "[dynamic_graph][vofl][cpo][has_edge]") {
@@ -2393,7 +2393,7 @@ TEST_CASE("vofl CPO has_edge(g)", "[dynamic_graph][vofl][cpo][has_edge]") {
 }
 
 //==================================================================================================
-// 9. vertex_value(g, u) CPO Tests
+// 15. vertex_value(g, u) CPO Tests
 //==================================================================================================
 
 TEST_CASE("vofl CPO vertex_value(g, u)", "[dynamic_graph][vofl][cpo][vertex_value]") {
@@ -2475,7 +2475,7 @@ TEST_CASE("vofl CPO vertex_value(g, u)", "[dynamic_graph][vofl][cpo][vertex_valu
 }
 
 //==================================================================================================
-// 10. edge_value(g, uv) CPO Tests
+// 16. edge_value(g, uv) CPO Tests
 //==================================================================================================
 
 TEST_CASE("vofl CPO edge_value(g, uv)", "[dynamic_graph][vofl][cpo][edge_value]") {
@@ -2618,7 +2618,7 @@ TEST_CASE("vofl CPO edge_value(g, uv)", "[dynamic_graph][vofl][cpo][edge_value]"
 }
 
 //==================================================================================================
-// 11. Integration Tests - vertex_value and edge_value Together
+// 17. Integration Tests - vertex_value and edge_value Together
 //==================================================================================================
 
 TEST_CASE("vofl CPO integration: values", "[dynamic_graph][vofl][cpo][integration]") {
@@ -2680,6 +2680,10 @@ TEST_CASE("vofl CPO integration: values", "[dynamic_graph][vofl][cpo][integratio
         }
     }
 }
+
+//==================================================================================================
+// 18. graph_value(g) CPO Tests
+//==================================================================================================
 
 TEST_CASE("vofl CPO graph_value(g)", "[dynamic_graph][vofl][cpo][graph_value]") {
     SECTION("basic access") {
@@ -2771,7 +2775,7 @@ TEST_CASE("vofl CPO graph_value(g)", "[dynamic_graph][vofl][cpo][graph_value]") 
 }
 
 //==================================================================================================
-// 12. partition_id(g, u) CPO Tests - Default Single Partition Behavior
+// 19. partition_id(g, u) CPO Tests - Default Single Partition Behavior
 //==================================================================================================
 
 TEST_CASE("vofl CPO partition_id(g, u)", "[dynamic_graph][vofl][cpo][partition_id]") {
@@ -2833,7 +2837,7 @@ TEST_CASE("vofl CPO partition_id(g, u)", "[dynamic_graph][vofl][cpo][partition_i
 }
 
 //==================================================================================================
-// 13. num_partitions(g) CPO Tests - Default Single Partition
+// 20. num_partitions(g) CPO Tests - Default Single Partition
 //==================================================================================================
 
 TEST_CASE("vofl CPO num_partitions(g)", "[dynamic_graph][vofl][cpo][num_partitions]") {
@@ -2882,7 +2886,7 @@ TEST_CASE("vofl CPO num_partitions(g)", "[dynamic_graph][vofl][cpo][num_partitio
 }
 
 //==================================================================================================
-// 14. vertices(g, pid) CPO Tests - Default Single Partition Behavior
+// 21. vertices(g, pid) CPO Tests - Default Single Partition Behavior
 //==================================================================================================
 
 TEST_CASE("vofl CPO vertices(g, pid)", "[dynamic_graph][vofl][cpo][vertices][partition]") {
@@ -2947,7 +2951,7 @@ TEST_CASE("vofl CPO vertices(g, pid)", "[dynamic_graph][vofl][cpo][vertices][par
 }
 
 //==================================================================================================
-// 15. num_vertices(g, pid) CPO Tests - Default Single Partition Behavior
+// 22. num_vertices(g, pid) CPO Tests - Default Single Partition Behavior
 //==================================================================================================
 
 TEST_CASE("vofl CPO num_vertices(g, pid)", "[dynamic_graph][vofl][cpo][num_vertices][partition]") {
@@ -2995,7 +2999,7 @@ TEST_CASE("vofl CPO num_vertices(g, pid)", "[dynamic_graph][vofl][cpo][num_verti
 }
 
 //==================================================================================================
-// 17. source_id(g, uv) CPO Tests - Sourced Edge Descriptor
+// 23. source_id(g, uv) CPO Tests - Sourced Edge Descriptor
 //==================================================================================================
 
 TEST_CASE("vofl CPO source_id(g, uv)", "[dynamic_graph][vofl][cpo][source_id]") {
@@ -3182,7 +3186,7 @@ TEST_CASE("vofl CPO source_id(g, uv)", "[dynamic_graph][vofl][cpo][source_id]") 
 }
 
 //==================================================================================================
-// 18. source(g, uv) CPO Tests - Get Source Vertex Descriptor
+// 24. source(g, uv) CPO Tests - Get Source Vertex Descriptor
 //==================================================================================================
 
 TEST_CASE("vofl CPO source(g, uv)", "[dynamic_graph][vofl][cpo][source]") {
@@ -3376,7 +3380,7 @@ TEST_CASE("vofl CPO source(g, uv)", "[dynamic_graph][vofl][cpo][source]") {
 }
 
 //==================================================================================================
-// 19. Integration Tests - Multiple CPOs Working Together
+// 25. Integration Tests - Multiple CPOs Working Together
 //==================================================================================================
 
 TEST_CASE("vofl CPO integration: modify vertex and edge values", "[dynamic_graph][vofl][cpo][integration]") {
