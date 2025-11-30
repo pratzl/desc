@@ -2689,7 +2689,7 @@ namespace _cpo_impls {
     // =========================================================================
     
     namespace _source {
-        enum class _St { _none, _member, _adl, _default };
+        enum class _St { _none, _member, _adl, _descriptor, _default };
         
         // Use the public CPO instances (already declared above)
         using graph::find_vertex;
@@ -2711,6 +2711,13 @@ namespace _cpo_impls {
                 { source(g, uv) };
             };
         
+        // Check if edge descriptor has source() member
+        template<typename E>
+        concept _has_descriptor = is_edge_descriptor_v<std::remove_cvref_t<E>> &&
+            requires(const E& uv) {
+                { uv.source() };
+            };
+        
         // Check if default implementation is available
         // Requires source_id(g, uv) and find_vertex(g, id) to work
         template<typename G, typename E>
@@ -2728,6 +2735,9 @@ namespace _cpo_impls {
             } else if constexpr (_has_adl<G, E>) {
                 return {_St::_adl, 
                         noexcept(source(std::declval<G&>(), std::declval<const E&>()))};
+            } else if constexpr (_has_descriptor<E>) {
+                return {_St::_descriptor,
+                        noexcept(std::declval<const E&>().source())};
             } else if constexpr (_has_default<G, E>) {
                 return {_St::_default,
                         noexcept(find_vertex(std::declval<G&>(), source_id(std::declval<G&>(), std::declval<const E&>())))};
@@ -2771,17 +2781,19 @@ namespace _cpo_impls {
              * Resolution order:
              * 1. g.source(uv) - Member function (highest priority)
              *    - May return either vertex_descriptor or vertex_iterator (auto-converted)
-             * 2. source(g, uv) - ADL (medium priority)
+             * 2. source(g, uv) - ADL (high priority)
              *    - May return either vertex_descriptor or vertex_iterator (auto-converted)
-             * 3. *find_vertex(g, source_id(g, uv)) - Default (lowest priority)
+             * 3. uv.source() - Edge descriptor's source() member (medium priority)
+             *    - Returns the stored source vertex descriptor directly
+             * 4. *find_vertex(g, source_id(g, uv)) - Default (lowest priority)
              *    - Uses source_id to get ID, then find_vertex to locate vertex
              * 
-             * The default implementation (tier 3) works for any graph that supports:
+             * The descriptor implementation (tier 3) works for any edge_descriptor that
+             * stores its source vertex descriptor, returning it directly without lookup.
+             * 
+             * The default implementation (tier 4) works for any graph that supports:
              * - source_id(g, uv) to get the source vertex ID
              * - find_vertex(g, id) to find a vertex by ID
-             * 
-             * This makes source() universally available for edge_descriptors that
-             * maintain their source vertex information.
              * 
              * Custom implementations (member/ADL) can return:
              * - vertex_descriptor directly (vertex_t<G>) - used as-is
@@ -2808,6 +2820,9 @@ namespace _cpo_impls {
                 } else if constexpr (_Choice<_G, _E>._Strategy == _St::_adl) {
                     // ADL may return vertex_descriptor or iterator
                     return _to_vertex_descriptor(g, source(g, uv));
+                } else if constexpr (_Choice<_G, _E>._Strategy == _St::_descriptor) {
+                    // Edge descriptor's source() returns vertex_descriptor directly
+                    return uv.source();
                 } else if constexpr (_Choice<_G, _E>._Strategy == _St::_default) {
                     // Default: use source_id + find_vertex
                     return *find_vertex(std::forward<G>(g), source_id(std::forward<G>(g), uv));

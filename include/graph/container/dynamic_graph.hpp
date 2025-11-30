@@ -195,15 +195,17 @@ public:
 
 public:
   constexpr vertex_id_type target_id() const { return target_id_; }
-  //constexpr vertex_id_type source_id() const { return source_id_; }
 
 private:
   vertex_id_type target_id_ = vertex_id_type();
 
 private:
-  // target_id(g,uv), target(g,uv)
-  // friend constexpr vertex_id_type target_id(const graph_type& g, const edge_type& uv) noexcept { return uv.target_id_; }
+  // target_id(g,uv) - ADL customization point for CPO
+  friend constexpr vertex_id_type target_id(const graph_type& g, const edge_type& uv) noexcept { 
+    return uv.target_id_; 
+  }
 
+  // target(g,uv) - returns the target vertex
   // friend constexpr vertex_type& target(graph_type& g, edge_type& uv) noexcept {
   //   return begin(vertices(g))[uv.target_id_];
   // }
