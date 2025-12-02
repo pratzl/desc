@@ -868,13 +868,22 @@ namespace _cpo_impls {
         
         // Check if descriptor has target_id() member (default lowest priority)
         // Note: edge_descriptor.target_id() requires the edge container, not the graph
-        // So we check for target_id(edges) where edges is obtained from the vertex
+        // Random-access descriptors (vov) need .edges() to get container from vertex
+        // Iterator-based descriptors (vofl/vol) use vertex directly as container
         template<typename G, typename E>
         concept _has_descriptor = is_edge_descriptor_v<std::remove_cvref_t<E>> &&
             requires(G& g, const E& uv) {
                 { uv.source().inner_value(g) };
+            } &&
+            (requires(G& g, const E& uv) {
+                requires random_access_descriptor<E>;
+                { uv.source().inner_value(g).edges() };
+                { uv.target_id(uv.source().inner_value(g).edges()) };
+            } ||
+            requires(G& g, const E& uv) {
+                requires iterator_based_descriptor<E>;
                 { uv.target_id(uv.source().inner_value(g)) };
-            };
+            });
         
         template<typename G, typename E>
         [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
@@ -882,8 +891,8 @@ namespace _cpo_impls {
                 return {_St::_adl_descriptor, 
                         noexcept(target_id(std::declval<const G&>(), std::declval<const E&>()))};
             } else if constexpr (_has_descriptor<G, E>) {
-                return {_St::_descriptor, 
-                        noexcept(std::declval<const E&>().target_id(std::declval<const E&>().source().inner_value(std::declval<G&>())))};
+                // Default to false (safe) since we have conditional logic
+                return {_St::_descriptor, false};
             } else {
                 return {_St::_none, false};
             }
@@ -931,7 +940,13 @@ namespace _cpo_impls {
                     return target_id(g, uv);
                 } else if constexpr (_Choice<_G, _E>._Strategy == _St::_descriptor) {
                     // Default: use edge_descriptor.target_id() with the edge container from source vertex
-                    return uv.target_id(uv.source().inner_value(g));
+                    // Random-access descriptors (vov) store index and need edges container
+                    // Iterator-based descriptors (vofl/vol) store iterator and use vertex directly
+                    if constexpr (random_access_descriptor<_E>) {
+                        return uv.target_id(uv.source().inner_value(g).edges());
+                    } else {
+                        return uv.target_id(uv.source().inner_value(g));
+                    }
                 }
             }
         };
@@ -2380,13 +2395,23 @@ namespace _cpo_impls {
         
         // Check if we can use default: uv.inner_value(edges) where edges = uv.source().inner_value(g)
         // Note: Uses G (not G&) to preserve const qualification
+        // Random-access descriptors (vov) need .edges() to get container from vertex
+        // Iterator-based descriptors (vofl/vol) use vertex directly as container
         template<typename G, typename E>
         concept _has_default = 
             is_edge_descriptor_v<std::remove_cvref_t<E>> &&
             requires(G g, const E& uv) {
                 { uv.source().inner_value(g) };
+            } &&
+            (requires(G g, const E& uv) {
+                requires random_access_descriptor<E>;
+                { uv.source().inner_value(g).edges() };
+                { uv.inner_value(uv.source().inner_value(g).edges()) };
+            } ||
+            requires(G g, const E& uv) {
+                requires iterator_based_descriptor<E>;
                 { uv.inner_value(uv.source().inner_value(g)) };
-            };
+            });
         
         template<typename G, typename E>
         [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
@@ -2397,9 +2422,8 @@ namespace _cpo_impls {
                 return {_St::_adl, 
                         noexcept(edge_value(std::declval<G>(), std::declval<const E&>()))};
             } else if constexpr (_has_default<G, E>) {
-                return {_St::_default, 
-                        noexcept(std::declval<const E&>().inner_value(
-                            std::declval<const E&>().source().inner_value(std::declval<G>())))};
+                // Default to false (safe) since we have conditional logic
+                return {_St::_default, false};
             } else {
                 return {_St::_none, false};
             }
@@ -2448,10 +2472,14 @@ namespace _cpo_impls {
                     return edge_value(g, std::forward<E>(uv));
                 } else if constexpr (_Choice<_G, _E>._Strategy == _St::_default) {
                     // Get the edge container from the source vertex
-                    auto&& ee = std::forward<E>(uv).source().inner_value(std::forward<G>(g));
-                    // Get the edge property value using the edge descriptor's inner_value
-                    // Forward the descriptor to call the correct (const/non-const) overload
-                    return std::forward<E>(uv).inner_value(std::forward<decltype(ee)>(ee));
+                    // Random-access descriptors (vov) store index and need edges container
+                    // Iterator-based descriptors (vofl/vol) store iterator and use vertex directly
+                    auto&& vertex = std::forward<E>(uv).source().inner_value(std::forward<G>(g));
+                    if constexpr (random_access_descriptor<_E>) {
+                        return std::forward<E>(uv).inner_value(vertex.edges());
+                    } else {
+                        return std::forward<E>(uv).inner_value(std::forward<decltype(vertex)>(vertex));
+                    }
                 }
             }
         };
