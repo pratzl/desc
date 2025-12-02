@@ -143,7 +143,7 @@ public:
     [[nodiscard]] constexpr decltype(auto) underlying_value(EdgeContainer& edges) const noexcept {
         // If parameter has .edges() method, extract the edge container first (for vov)
         // If parameter is pair-like, extract .second (for maps)
-        auto& edge_container = [&]() -> decltype(auto) {
+        auto&& edge_container = [&]() -> decltype(auto) {
             if constexpr (requires { edges.edges(); }) {
                 return edges.edges();
             } else if constexpr (requires { edges.first; edges.second; }) {
@@ -205,7 +205,7 @@ public:
         
         // If parameter has .edges() method, extract the edge container first (for vov)
         // If parameter is pair-like, extract .second (for maps)
-        auto& edge_container = [&]() -> decltype(auto) {
+        auto&& edge_container = [&]() -> decltype(auto) {
             if constexpr (requires { edges.edges(); }) {
                 return edges.edges();
             } else if constexpr (requires { edges.first; edges.second; }) {

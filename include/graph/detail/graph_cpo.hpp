@@ -934,7 +934,7 @@ namespace _cpo_impls {
                     // Default: use edge_descriptor.target_id() with vertex from underlying_value
                     // For vov: underlying_value gives vertex, edge_descriptor extracts from it
                     // For raw adjacency lists: underlying_value gives edge container directly
-                    auto& v = uv.source().underlying_value(g);
+                    auto&& v = uv.source().underlying_value(g);
                     return uv.target_id(v);
                 }
             }
