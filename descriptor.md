@@ -461,7 +461,91 @@ return (container[index].member);
 
 **Why**: `decltype(expr)` gives the declared type of members (strips references), while `decltype((expr))` treats it as an expression and preserves value category (lvalue → `T&`).
 
-### 2. Forgetting Const Overloads
+### 2. Lambda Reference Binding Issues with decltype(auto)
+**Problem**: Using immediately-invoked lambdas that extract container members (like `.second` from map pairs) and binding the result to `auto&&` with `decltype(auto)` return type causes reference binding issues and dangling references.
+
+**Symptoms**:
+- Methods return references to wrong memory locations
+- Values read through methods are garbage data
+- Tests fail specifically for map-based containers while working for vectors
+- Debug shows memory addresses of returned values differ from actual container elements
+
+**Incorrect Pattern** (causes bugs with map graphs):
+```cpp
+template<typename EdgeContainer>
+[[nodiscard]] constexpr decltype(auto) inner_value(EdgeContainer& edges) const noexcept {
+    // ❌ WRONG - lambda creates reference binding issues
+    auto&& edge_container = [&]() -> decltype(auto) {
+        if constexpr (requires { edges.edges(); }) {
+            return edges.edges();
+        } else if constexpr (requires { edges.first; edges.second; }) {
+            return edges.second;  // Extracting .second from map pair
+        } else {
+            return edges;
+        }
+    }();  // Immediately invoked
+    
+    // Using edge_container here may reference wrong memory
+    return (edge_container[edge_storage_]);
+}
+```
+
+**Correct Pattern** (direct conditional logic):
+```cpp
+template<typename EdgeContainer>
+[[nodiscard]] constexpr decltype(auto) inner_value(EdgeContainer& edges) const noexcept {
+    // ✅ CORRECT - direct if constexpr eliminates lambda lifetime issues
+    if constexpr (requires { edges.edges(); }) {
+        auto& edge_container = edges.edges();
+        return (edge_container[edge_storage_]);
+    } else if constexpr (requires { edges.first; edges.second; }) {
+        auto& edge_container = edges.second;
+        return (edge_container[edge_storage_]);
+    } else {
+        return (edges[edge_storage_]);
+    }
+}
+```
+
+**Why This Happens**: When a lambda extracts a member (like `.second`) from a parameter and returns it via `decltype(auto)`, the binding to `auto&&` can create subtle issues:
+- The lambda captures by reference `[&]` and accesses the parameter
+- It returns `decltype(auto)` which should preserve references
+- But the binding of the lambda result to `auto&&` causes the reference to point to unexpected memory
+- This specifically manifests with map iterators whose `.second` extraction through lambdas breaks
+
+**Solution**: 
+1. **Always use direct `if constexpr` branches** instead of lambdas for extracting container members
+2. Use simple reference bindings: `auto& edge_container = edges.second;` not lambda-based extraction
+3. Apply this pattern consistently to ALL methods that extract container members: `underlying_value()`, `inner_value()`, etc.
+4. Test with map-based containers to verify correct memory addresses
+
+**Important Exception**: This bug ONLY affects methods that return references (using `decltype(auto)`). Methods that return by value (like `target_id()`, `vertex_id()`, and `source_id()` which return `auto`) can safely use lambdas for extraction because no reference binding issues occur. The distinction:
+- `vertex_id()`: Returns `auto` (by value) → lambdas are safe **for now** (see note below)
+- `source_id()`: Returns `auto` (by value) → lambdas are safe **for now** (see note below)
+- `target_id()`: Returns `auto` (by value) → lambdas are safe **for now** (see note below)
+- `underlying_value()`: Returns `decltype(auto)` (reference) → lambdas cause bugs, use direct `if constexpr`
+- `inner_value()`: Returns `decltype(auto)` (reference) → lambdas cause bugs, use direct `if constexpr`
+
+**Future Consideration for ID Accessor Methods**: Currently `vertex_id()`, `source_id()`, and `target_id()` return `auto` (by value), which is acceptable for integral vertex IDs (int, uint32_t, etc.). However, when support for non-trivial vertex ID types is added (e.g., `std::string`, custom types), these methods will need to be updated to:
+1. Change return type from `auto` to `decltype(auto)` to return by reference for non-trivial types
+2. Replace any lambda-based extraction patterns with direct `if constexpr` branches (same fix applied to `underlying_value()` and `inner_value()`)
+3. Wrap return expressions in parentheses: `return (storage_);` or `return (edge_val.first);`
+4. Consider using `std::conditional_t` or type traits to decide between value/reference return based on whether the vertex ID type is trivially copyable
+5. Update tests to cover non-trivial vertex ID types with reference semantics
+
+The current implementations in these ID accessors will exhibit the same reference binding bugs once changed to return `decltype(auto)` for non-trivial types. Specifically:
+- `vertex_descriptor::vertex_id()` - extracts ID from storage or map pair
+- `edge_descriptor::source_id()` - calls `vertex_descriptor::vertex_id()` on source
+- `edge_descriptor::target_id()` - uses lambdas to extract edge container, then accesses target ID
+
+**Critical Testing**: When implementing value extraction methods:
+- Test with `std::vector` (random access)
+- Test with `std::map` (bidirectional, pair-like value_type) 
+- Verify returned references point to correct memory addresses
+- Test both const and non-const overloads
+- Include modification tests to ensure references work correctly
+
+### 3. Forgetting Const Overloads
 **Problem**: Only implementing non-const versions of value access functions.
 
 **Solution**: Always provide both:
@@ -473,22 +557,43 @@ template<typename Container>
 decltype(auto) inner_value(const Container& container) const noexcept;
 ```
 
-### 3. Incorrect Edge Type Detection
+**Note**: Both overloads must use the same implementation pattern (direct `if constexpr`, not lambdas).
+
+### 4. Incorrect Edge Type Detection
 **Problem**: Using simple type checks that don't account for `std::pair` also satisfying tuple requirements.
 
 **Solution**: Check pair-like BEFORE tuple-like using `else if` chains, since pairs satisfy both concepts.
 
-### 4. Not Testing Modification
+### 5. Not Testing Modification
 **Problem**: Only testing reads through value access functions, missing reference semantics bugs.
 
 **Solution**: Always include tests that MODIFY values through returned references and verify the container was updated.
+
+### 6. Insufficient Container Type Coverage in Tests
+**Problem**: Only testing with vector-based containers, missing bugs that only appear with map-based or other container types.
+
+**Solution**: Test value access methods with multiple container types:
+- Random access: `std::vector`, `std::deque`
+- Map-based: `std::map<int, std::vector<Edge>>`
+- Forward/bidirectional: `std::list`, custom containers
+- Include both mutable and const container references
 
 ## Notes for the Agent
 
 - Agent MUST run tests after making changes
 - Agent MUST wrap ALL return expressions with parentheses when using `decltype(auto)`
+- Agent MUST NEVER use immediately-invoked lambdas to extract container members (like `.second` from maps) - always use direct `if constexpr` branches instead
 - Agent MUST provide both const and non-const overloads for container access functions
 - Agent MUST test both reading AND writing through returned references
+- Agent MUST test with multiple container types including `std::vector` AND `std::map<int, Container>`
+- Agent MUST verify returned references point to correct memory addresses (especially for map-based containers)
+- Agent SHOULD consider return-by-reference for non-trivial types (strings, custom types) instead of return-by-value
+- Agent MUST update ID accessor implementations when adding non-trivial vertex ID support:
+  - `vertex_descriptor::vertex_id()` - change return type from `auto` to `decltype(auto)`
+  - `edge_descriptor::source_id()` - change return type from `auto` to `decltype(auto)` 
+  - `edge_descriptor::target_id()` - change return type from `auto` to `decltype(auto)` and replace lambda extraction with direct `if constexpr` pattern
+  - Wrap all return expressions in parentheses for proper reference semantics
+  - Add tests for non-trivial vertex ID types (strings, custom types)
 - Agent SHOULD keep the implementation header-only unless there's a compelling reason not to
 - Agent SHOULD prioritize simplicity and clarity over premature optimization
 - Agent MUST favor stronger type safety when in doubt
@@ -523,7 +628,7 @@ decltype(auto) inner_value(const Container& container) const noexcept;
 
 ---
 
-**Last Updated**: October 17, 2025
-**Version**: 0.2.0
-**Status**: Core implementation complete; value access functions fully implemented and tested
+**Last Updated**: December 1, 2025
+**Version**: 0.2.1
+**Status**: Core implementation complete; value access functions fully implemented and tested; lambda lifetime bug documented
  

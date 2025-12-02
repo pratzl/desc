@@ -65,6 +65,13 @@ public:
      * @return The vertex ID of the source vertex
      * 
      * Extracts the ID from the stored source vertex descriptor.
+     * 
+     * @note Current implementation returns by value (auto) which is suitable for
+     * integral vertex IDs. When non-trivial vertex ID types (e.g., std::string)
+     * are supported, this method should:
+     * 1. Change return type to decltype(auto) for reference semantics
+     * 2. This delegates to vertex_descriptor::vertex_id() which will also need updating
+     * See descriptor.md "Lambda Reference Binding Issues" section for details.
      */
     [[nodiscard]] constexpr auto source_id() const noexcept {
         return source_.vertex_id();
@@ -82,6 +89,14 @@ public:
      * - Simple integral types: returns the value directly as target ID
      * - Pair-like types: returns .first as target ID
      * - Tuple-like types: returns std::get<0> as target ID
+     * 
+     * @note Current implementation returns by value (auto) which is suitable for
+     * integral vertex IDs. When non-trivial vertex ID types (e.g., std::string)
+     * are supported, this method should:
+     * 1. Change return type to decltype(auto) for reference semantics
+     * 2. Replace lambda-based extraction with direct if constexpr branches
+     * 3. Wrap return expressions in parentheses: return (edge_val.first);
+     * See descriptor.md "Lambda Reference Binding Issues" section for details.
      */
     template<typename EdgeContainer>
     [[nodiscard]] constexpr auto target_id(const EdgeContainer& edges) const noexcept {

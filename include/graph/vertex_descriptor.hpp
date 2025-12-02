@@ -53,6 +53,13 @@ public:
     /**
      * @brief Get the vertex ID
      * @return For random access: the index. For bidirectional: the key from the pair
+     * 
+     * @note Current implementation returns by value (auto) which is suitable for
+     * integral vertex IDs. When non-trivial vertex ID types (e.g., std::string)
+     * are supported, this method should:
+     * 1. Change return type to decltype(auto) for reference semantics
+     * 2. Wrap return expressions in parentheses: return (storage_);
+     * See descriptor.md "Lambda Reference Binding Issues" section for details.
      */
     [[nodiscard]] constexpr auto vertex_id() const noexcept {
         if constexpr (std::random_access_iterator<VertexIter>) {
