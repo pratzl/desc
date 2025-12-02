@@ -362,6 +362,69 @@ TEST_CASE("edge_value - default implementation const correctness", "[edge_value]
     REQUIRE(graph::edge_value(g_const, e_const) == 77.7);
 }
 
+TEST_CASE("edge_value - const map graph with pair edges", "[edge_value][const][map]") {
+    MapWeightedGraph g_mutable;
+    g_mutable[0] = {{1, 10.5}, {2, 20.5}};
+    g_mutable[1] = {{2, 30.5}};
+    
+    const MapWeightedGraph& g = g_mutable;
+    
+    auto verts = vertices(g);
+    auto v0 = *verts.begin();
+    auto edge_range = edges(g, v0);
+    auto it = edge_range.begin();
+    auto e01 = *it++;
+    auto e02 = *it;
+    
+    // Should be able to read from const map graph
+    REQUIRE(edge_value(g, e01) == 10.5);
+    REQUIRE(edge_value(g, e02) == 20.5);
+    
+    // Return type should be const reference
+    static_assert(std::is_const_v<std::remove_reference_t<decltype(edge_value(g, e01))>>);
+    static_assert(std::is_reference_v<decltype(edge_value(g, e01))>);
+}
+
+TEST_CASE("edge_value - const simple graph", "[edge_value][const][simple]") {
+    SimpleGraph g_mutable(3);
+    g_mutable[0] = {1, 2};
+    g_mutable[1] = {2};
+    
+    const SimpleGraph& g = g_mutable;
+    
+    auto v0 = *vertices(g).begin();
+    auto edge_range = edges(g, v0);
+    auto it = edge_range.begin();
+    auto e01 = *it++;
+    auto e02 = *it;
+    
+    // For simple int edges, edge_value returns the int itself
+    REQUIRE(edge_value(g, e01) == 1);
+    REQUIRE(edge_value(g, e02) == 2);
+    
+    // Should be const reference
+    static_assert(std::is_const_v<std::remove_reference_t<decltype(edge_value(g, e01))>>);
+}
+
+TEST_CASE("edge_value - const tuple graph", "[edge_value][const][tuple]") {
+    MultiPropertyGraph g_mutable(2);
+    g_mutable[0] = {{1, 10.5, "fast"}};
+    
+    const MultiPropertyGraph& g = g_mutable;
+    
+    auto v0 = *vertices(g).begin();
+    auto e = *edges(g, v0).begin();
+    
+    // For 3-element tuple, edge_value returns tuple of last 2 elements
+    auto props = edge_value(g, e);
+    REQUIRE(std::get<0>(props) == 10.5);
+    REQUIRE(std::get<1>(props) == "fast");
+    
+    // The tuple elements should be const references
+    static_assert(std::is_const_v<std::remove_reference_t<decltype(std::get<0>(props))>>);
+    static_assert(std::is_const_v<std::remove_reference_t<decltype(std::get<1>(props))>>);
+}
+
 // =============================================================================
 // Test with Deque
 // =============================================================================
