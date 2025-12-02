@@ -282,16 +282,20 @@ TEST_CASE("edge_value - by-value return from member", "[edge_value][by-value][me
 struct GraphWithConstEdgeOverloads {
     std::vector<std::vector<std::pair<int, double>>> data;
     
+    // Make this a proper graph container with operator[]
+    auto& operator[](size_t idx) { return data[idx]; }
+    const auto& operator[](size_t idx) const { return data[idx]; }
+    
     // Non-const version returns mutable reference
     template<typename EdgeDesc>
-    double& edge_val(EdgeDesc&& uv) {
+    double& edge_value(EdgeDesc&& uv) {
         auto& ee = data[uv.source().value()];
-        return edges[uv.value()].second;
+        return ee[uv.value()].second;
     }
     
     // Const version returns const reference
     template<typename EdgeDesc>
-    const double& edge_val(EdgeDesc&& uv) const {
+    const double& edge_value(EdgeDesc&& uv) const {
         const auto& ee = data[uv.source().value()];
         return ee[uv.value()].second;
     }
