@@ -868,22 +868,14 @@ namespace _cpo_impls {
         
         // Check if descriptor has target_id() member (default lowest priority)
         // Note: edge_descriptor.target_id() requires the edge container, not the graph
-        // Random-access descriptors (vov) need .edges() to get container from vertex
-        // Iterator-based descriptors (vofl/vol) use vertex directly as container
+        // underlying_value() gives us the vertex for vov or the edge container for raw adjacency lists
+        // The edge_descriptor.target_id() handles extracting the target ID correctly in both cases
         template<typename G, typename E>
         concept _has_descriptor = is_edge_descriptor_v<std::remove_cvref_t<E>> &&
             requires(G& g, const E& uv) {
-                { uv.source().inner_value(g) };
-            } &&
-            (requires(G& g, const E& uv) {
-                requires random_access_descriptor<E>;
-                { uv.source().inner_value(g).edges() };
-                { uv.target_id(uv.source().inner_value(g).edges()) };
-            } ||
-            requires(G& g, const E& uv) {
-                requires iterator_based_descriptor<E>;
-                { uv.target_id(uv.source().inner_value(g)) };
-            });
+                { uv.source().underlying_value(g) };
+                { uv.target_id(uv.source().underlying_value(g)) };
+            };
         
         template<typename G, typename E>
         [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
@@ -939,14 +931,11 @@ namespace _cpo_impls {
                 if constexpr (_Choice<_G, _E>._Strategy == _St::_adl_descriptor) {
                     return target_id(g, uv);
                 } else if constexpr (_Choice<_G, _E>._Strategy == _St::_descriptor) {
-                    // Default: use edge_descriptor.target_id() with the edge container from source vertex
-                    // Random-access descriptors (vov) store index and need edges container
-                    // Iterator-based descriptors (vofl/vol) store iterator and use vertex directly
-                    if constexpr (random_access_descriptor<_E>) {
-                        return uv.target_id(uv.source().inner_value(g).edges());
-                    } else {
-                        return uv.target_id(uv.source().inner_value(g));
-                    }
+                    // Default: use edge_descriptor.target_id() with vertex from underlying_value
+                    // For vov: underlying_value gives vertex, edge_descriptor extracts from it
+                    // For raw adjacency lists: underlying_value gives edge container directly
+                    auto& v = uv.source().underlying_value(g);
+                    return uv.target_id(v);
                 }
             }
         };
@@ -2393,25 +2382,17 @@ namespace _cpo_impls {
             { edge_value(g, uv) };
         };
         
-        // Check if we can use default: uv.inner_value(edges) where edges = uv.source().inner_value(g)
+        // Check if we can use default: uv.inner_value(v) where v = uv.source().underlying_value(g)
         // Note: Uses G (not G&) to preserve const qualification
-        // Random-access descriptors (vov) need .edges() to get container from vertex
-        // Iterator-based descriptors (vofl/vol) use vertex directly as container
+        // underlying_value() gives us the vertex for vov or the edge container for raw adjacency lists
+        // The edge_descriptor.inner_value() handles extracting properties correctly in both cases
         template<typename G, typename E>
         concept _has_default = 
             is_edge_descriptor_v<std::remove_cvref_t<E>> &&
             requires(G g, const E& uv) {
-                { uv.source().inner_value(g) };
-            } &&
-            (requires(G g, const E& uv) {
-                requires random_access_descriptor<E>;
-                { uv.source().inner_value(g).edges() };
-                { uv.inner_value(uv.source().inner_value(g).edges()) };
-            } ||
-            requires(G g, const E& uv) {
-                requires iterator_based_descriptor<E>;
-                { uv.inner_value(uv.source().inner_value(g)) };
-            });
+                { uv.source().underlying_value(g) };
+                { uv.inner_value(uv.source().underlying_value(g)) };
+            };
         
         template<typename G, typename E>
         [[nodiscard]] consteval _Choice_t<_St> _Choose() noexcept {
@@ -2471,15 +2452,11 @@ namespace _cpo_impls {
                 } else if constexpr (_Choice<_G, _E>._Strategy == _St::_adl) {
                     return edge_value(g, std::forward<E>(uv));
                 } else if constexpr (_Choice<_G, _E>._Strategy == _St::_default) {
-                    // Get the edge container from the source vertex
-                    // Random-access descriptors (vov) store index and need edges container
-                    // Iterator-based descriptors (vofl/vol) store iterator and use vertex directly
-                    auto&& vertex = std::forward<E>(uv).source().inner_value(std::forward<G>(g));
-                    if constexpr (random_access_descriptor<_E>) {
-                        return std::forward<E>(uv).inner_value(vertex.edges());
-                    } else {
-                        return std::forward<E>(uv).inner_value(std::forward<decltype(vertex)>(vertex));
-                    }
+                    // Get vertex from underlying_value - works for both vov and raw adjacency lists
+                    // For vov: gives vertex, edge_descriptor extracts properties from it
+                    // For raw adjacency lists: gives edge container directly
+                    auto&& v = std::forward<E>(uv).source().underlying_value(std::forward<G>(g));
+                    return std::forward<E>(uv).inner_value(std::forward<decltype(v)>(v));
                 }
             }
         };

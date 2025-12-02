@@ -87,10 +87,22 @@ public:
     [[nodiscard]] constexpr auto target_id(const EdgeContainer& edges) const noexcept {
         using edge_value_type = typename std::iterator_traits<EdgeIter>::value_type;
         
+        // If parameter has .edges() method, extract the edge container first (for vov)
+        // If parameter is pair-like, extract .second (for maps)
+        const auto& edge_container = [&]() -> decltype(auto) {
+            if constexpr (requires { edges.edges(); }) {
+                return edges.edges();
+            } else if constexpr (requires { edges.first; edges.second; }) {
+                return edges.second;
+            } else {
+                return edges;
+            }
+        }();
+        
         // Get the edge value from container (for random access) or iterator (for forward)
         const auto& edge_val = [&]() -> decltype(auto) {
             if constexpr (std::random_access_iterator<EdgeIter>) {
-                return edges[edge_storage_];
+                return edge_container[edge_storage_];
             } else {
                 return *edge_storage_;
             }
@@ -129,8 +141,20 @@ public:
      */
     template<typename EdgeContainer>
     [[nodiscard]] constexpr decltype(auto) underlying_value(EdgeContainer& edges) const noexcept {
+        // If parameter has .edges() method, extract the edge container first (for vov)
+        // If parameter is pair-like, extract .second (for maps)
+        auto& edge_container = [&]() -> decltype(auto) {
+            if constexpr (requires { edges.edges(); }) {
+                return edges.edges();
+            } else if constexpr (requires { edges.first; edges.second; }) {
+                return edges.second;
+            } else {
+                return edges;
+            }
+        }();
+        
         if constexpr (std::random_access_iterator<EdgeIter>) {
-            return (edges[edge_storage_]);
+            return (edge_container[edge_storage_]);
         } else {
             return (*edge_storage_);
         }
@@ -143,8 +167,20 @@ public:
      */
     template<typename EdgeContainer>
     [[nodiscard]] constexpr decltype(auto) underlying_value(const EdgeContainer& edges) const noexcept {
+        // If parameter has .edges() method, extract the edge container first (for vov)
+        // If parameter is pair-like, extract .second (for maps)
+        const auto& edge_container = [&]() -> decltype(auto) {
+            if constexpr (requires { edges.edges(); }) {
+                return edges.edges();
+            } else if constexpr (requires { edges.first; edges.second; }) {
+                return edges.second;
+            } else {
+                return edges;
+            }
+        }();
+        
         if constexpr (std::random_access_iterator<EdgeIter>) {
-            return (edges[edge_storage_]);
+            return (edge_container[edge_storage_]);
         } else {
             return (*edge_storage_);
         }
@@ -167,10 +203,22 @@ public:
     [[nodiscard]] constexpr decltype(auto) inner_value(EdgeContainer& edges) const noexcept {
         using edge_value_type = typename std::iterator_traits<EdgeIter>::value_type;
         
+        // If parameter has .edges() method, extract the edge container first (for vov)
+        // If parameter is pair-like, extract .second (for maps)
+        auto& edge_container = [&]() -> decltype(auto) {
+            if constexpr (requires { edges.edges(); }) {
+                return edges.edges();
+            } else if constexpr (requires { edges.first; edges.second; }) {
+                return edges.second;
+            } else {
+                return edges;
+            }
+        }();
+        
         // Simple type: just the target ID, return it (no separate property)
         if constexpr (std::integral<edge_value_type>) {
             if constexpr (std::random_access_iterator<EdgeIter>) {
-                return (edges[edge_storage_]);
+                return (edge_container[edge_storage_]);
             } else {
                 return (*edge_storage_);
             }
@@ -178,7 +226,7 @@ public:
         // Pair-like: return .second (the property part)
         else if constexpr (requires { std::declval<edge_value_type>().first; std::declval<edge_value_type>().second; }) {
             if constexpr (std::random_access_iterator<EdgeIter>) {
-                return (edges[edge_storage_].second);
+                return (edge_container[edge_storage_].second);
             } else {
                 return ((*edge_storage_).second);
             }
@@ -188,7 +236,7 @@ public:
             constexpr size_t tuple_size = std::tuple_size<edge_value_type>::value;
             
             if constexpr (std::random_access_iterator<EdgeIter>) {
-                auto& edge_val = edges[edge_storage_];
+                auto& edge_val = edge_container[edge_storage_];
                 if constexpr (tuple_size == 1) {
                     return (std::get<0>(edge_val));
                 }
@@ -220,7 +268,7 @@ public:
         // Custom struct/type: return the whole value
         else {
             if constexpr (std::random_access_iterator<EdgeIter>) {
-                return (edges[edge_storage_]);
+                return (edge_container[edge_storage_]);
             } else {
                 return (*edge_storage_);
             }
