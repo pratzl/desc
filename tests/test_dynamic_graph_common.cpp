@@ -464,7 +464,7 @@ TEMPLATE_TEST_CASE("load_vertices with projection", "[common][load]",
     REQUIRE(g.size() == 2);
     REQUIRE(g[0].value() == 100);
 }
-
+ 
 TEMPLATE_TEST_CASE("incremental edge loading", "[common][load]",
                    (vofl_graph_traits<void, void, void, uint64_t, false>),
                    (vol_graph_traits<void, void, void, uint64_t, false>),
@@ -786,6 +786,246 @@ TEMPLATE_TEST_CASE("empty vertex has no edges", "[common][edges]",
         ++edge_count;
     }
     REQUIRE(edge_count == 0);
+}
+
+TEMPLATE_TEST_CASE("parallel edges support", "[common][edges]",
+                   (vofl_graph_traits<int, void, void, uint64_t, false>),
+                   (vol_graph_traits<int, void, void, uint64_t, false>),
+                   (vov_graph_traits<int, void, void, uint64_t, false>),
+                   (vod_graph_traits<int, void, void, uint64_t, false>),
+                   (dofl_graph_traits<int, void, void, uint64_t, false>),
+                   (dol_graph_traits<int, void, void, uint64_t, false>),
+                   (dov_graph_traits<int, void, void, uint64_t, false>),
+                   (dod_graph_traits<int, void, void, uint64_t, false>)) {
+    using Graph = dynamic_graph<int, void, void, uint64_t, false, TestType>;
+    
+    std::vector<copyable_edge_t<uint64_t, int>> edges = {
+        {0, 1, 10}, {0, 1, 20}, {0, 1, 30}
+    };
+    Graph g;
+    g.load_edges(edges, std::identity{});
+    
+    auto& v0 = g[0];
+    size_t count = 0;
+    for (auto& e : v0.edges()) {
+        REQUIRE(e.target_id() == 1);
+        ++count;
+    }
+    REQUIRE(count == 3); // All parallel edges exist
+}
+
+TEMPLATE_TEST_CASE("edge degree queries", "[common][edges]",
+                   (vofl_graph_traits<void, void, void, uint64_t, false>),
+                   (vol_graph_traits<void, void, void, uint64_t, false>),
+                   (vov_graph_traits<void, void, void, uint64_t, false>),
+                   (vod_graph_traits<void, void, void, uint64_t, false>),
+                   (dofl_graph_traits<void, void, void, uint64_t, false>),
+                   (dol_graph_traits<void, void, void, uint64_t, false>),
+                   (dov_graph_traits<void, void, void, uint64_t, false>),
+                   (dod_graph_traits<void, void, void, uint64_t, false>)) {
+    using Graph = dynamic_graph<void, void, void, uint64_t, false, TestType>;
+    
+    std::vector<copyable_edge_t<uint64_t, void>> edges = {
+        {0, 1}, {0, 2}, {0, 3}, {1, 2}
+    };
+    Graph g;
+    g.load_edges(edges, std::identity{});
+    
+    auto& v0 = g[0];
+    size_t degree = std::ranges::distance(v0.edges());
+    REQUIRE(degree == 3);
+    
+    auto& v1 = g[1];
+    REQUIRE(std::ranges::distance(v1.edges()) == 1);
+}
+
+TEMPLATE_TEST_CASE("edge empty check", "[common][edges]",
+                   (vofl_graph_traits<void, void, void, uint64_t, false>),
+                   (vol_graph_traits<void, void, void, uint64_t, false>),
+                   (vov_graph_traits<void, void, void, uint64_t, false>),
+                   (vod_graph_traits<void, void, void, uint64_t, false>),
+                   (dofl_graph_traits<void, void, void, uint64_t, false>),
+                   (dol_graph_traits<void, void, void, uint64_t, false>),
+                   (dov_graph_traits<void, void, void, uint64_t, false>),
+                   (dod_graph_traits<void, void, void, uint64_t, false>)) {
+    using Graph = dynamic_graph<void, void, void, uint64_t, false, TestType>;
+    
+    std::vector<copyable_edge_t<uint64_t, void>> edges = {{0, 1}};
+    Graph g;
+    g.load_edges(edges, std::identity{});
+    
+    auto& v0 = g[0];
+    REQUIRE(v0.edges().begin() != v0.edges().end());
+    
+    auto& v1 = g[1];
+    REQUIRE(v1.edges().begin() == v1.edges().end());
+}
+
+TEMPLATE_TEST_CASE("bidirectional edge traversal", "[common][edges]",
+                   (vofl_graph_traits<void, void, void, uint64_t, false>),
+                   (vol_graph_traits<void, void, void, uint64_t, false>),
+                   (vov_graph_traits<void, void, void, uint64_t, false>),
+                   (vod_graph_traits<void, void, void, uint64_t, false>),
+                   (dofl_graph_traits<void, void, void, uint64_t, false>),
+                   (dol_graph_traits<void, void, void, uint64_t, false>),
+                   (dov_graph_traits<void, void, void, uint64_t, false>),
+                   (dod_graph_traits<void, void, void, uint64_t, false>)) {
+    using Graph = dynamic_graph<void, void, void, uint64_t, false, TestType>;
+    
+    std::vector<copyable_edge_t<uint64_t, void>> edges = {
+        {0, 1}, {1, 0}
+    };
+    Graph g;
+    g.load_edges(edges, std::identity{});
+    
+    auto& v0 = g[0];
+    bool found_forward = false;
+    for (auto& e : v0.edges()) {
+        if (e.target_id() == 1) found_forward = true;
+    }
+    
+    auto& v1 = g[1];
+    bool found_backward = false;
+    for (auto& e : v1.edges()) {
+        if (e.target_id() == 0) found_backward = true;
+    }
+    
+    REQUIRE(found_forward);
+    REQUIRE(found_backward);
+}
+
+TEMPLATE_TEST_CASE("edge target validation", "[common][edges]",
+                   (vofl_graph_traits<void, void, void, uint64_t, false>),
+                   (vol_graph_traits<void, void, void, uint64_t, false>),
+                   (vov_graph_traits<void, void, void, uint64_t, false>),
+                   (vod_graph_traits<void, void, void, uint64_t, false>),
+                   (dofl_graph_traits<void, void, void, uint64_t, false>),
+                   (dol_graph_traits<void, void, void, uint64_t, false>),
+                   (dov_graph_traits<void, void, void, uint64_t, false>),
+                   (dod_graph_traits<void, void, void, uint64_t, false>)) {
+    using Graph = dynamic_graph<void, void, void, uint64_t, false, TestType>;
+    
+    std::vector<copyable_edge_t<uint64_t, void>> edges = {
+        {0, 1}, {0, 2}, {0, 3}
+    };
+    Graph g;
+    g.load_edges(edges, std::identity{});
+    
+    auto& v0 = g[0];
+    std::vector<uint64_t> targets;
+    for (auto& e : v0.edges()) {
+        targets.push_back(e.target_id());
+    }
+    
+    std::ranges::sort(targets);
+    REQUIRE(targets.size() == 3);
+    REQUIRE(targets[0] == 1);
+    REQUIRE(targets[1] == 2);
+    REQUIRE(targets[2] == 3);
+}
+
+TEMPLATE_TEST_CASE("edge value iteration", "[common][edges]",
+                   (vofl_graph_traits<int, void, void, uint64_t, false>),
+                   (vol_graph_traits<int, void, void, uint64_t, false>),
+                   (vov_graph_traits<int, void, void, uint64_t, false>),
+                   (vod_graph_traits<int, void, void, uint64_t, false>),
+                   (dofl_graph_traits<int, void, void, uint64_t, false>),
+                   (dol_graph_traits<int, void, void, uint64_t, false>),
+                   (dov_graph_traits<int, void, void, uint64_t, false>),
+                   (dod_graph_traits<int, void, void, uint64_t, false>)) {
+    using Graph = dynamic_graph<int, void, void, uint64_t, false, TestType>;
+    
+    std::vector<copyable_edge_t<uint64_t, int>> edges = {
+        {0, 1, 10}, {0, 2, 20}, {0, 3, 30}
+    };
+    Graph g;
+    g.load_edges(edges, std::identity{});
+    
+    auto& v0 = g[0];
+    int sum = 0;
+    for (auto& e : v0.edges()) {
+        sum += e.value();
+    }
+    REQUIRE(sum == 60);
+}
+
+TEMPLATE_TEST_CASE("edge iterator increment", "[common][edges]",
+                   (vofl_graph_traits<void, void, void, uint64_t, false>),
+                   (vol_graph_traits<void, void, void, uint64_t, false>),
+                   (vov_graph_traits<void, void, void, uint64_t, false>),
+                   (vod_graph_traits<void, void, void, uint64_t, false>),
+                   (dofl_graph_traits<void, void, void, uint64_t, false>),
+                   (dol_graph_traits<void, void, void, uint64_t, false>),
+                   (dov_graph_traits<void, void, void, uint64_t, false>),
+                   (dod_graph_traits<void, void, void, uint64_t, false>)) {
+    using Graph = dynamic_graph<void, void, void, uint64_t, false, TestType>;
+    
+    std::vector<copyable_edge_t<uint64_t, void>> edges = {
+        {0, 1}, {0, 2}, {0, 3}
+    };
+    Graph g;
+    g.load_edges(edges, std::identity{});
+    
+    auto& v0 = g[0];
+    auto it = v0.edges().begin();
+    REQUIRE(it != v0.edges().end());
+    
+    ++it;
+    REQUIRE(it != v0.edges().end());
+    
+    ++it;
+    REQUIRE(it != v0.edges().end());
+    
+    ++it;
+    REQUIRE(it == v0.edges().end());
+}
+
+TEMPLATE_TEST_CASE("high degree vertex", "[common][edges]",
+                   (vofl_graph_traits<void, void, void, uint64_t, false>),
+                   (vol_graph_traits<void, void, void, uint64_t, false>),
+                   (vov_graph_traits<void, void, void, uint64_t, false>),
+                   (vod_graph_traits<void, void, void, uint64_t, false>),
+                   (dofl_graph_traits<void, void, void, uint64_t, false>),
+                   (dol_graph_traits<void, void, void, uint64_t, false>),
+                   (dov_graph_traits<void, void, void, uint64_t, false>),
+                   (dod_graph_traits<void, void, void, uint64_t, false>)) {
+    using Graph = dynamic_graph<void, void, void, uint64_t, false, TestType>;
+    
+    std::vector<copyable_edge_t<uint64_t, void>> edges;
+    for (uint64_t i = 1; i <= 50; ++i) {
+        edges.push_back({0, i});
+    }
+    
+    Graph g;
+    g.load_edges(edges, std::identity{});
+    
+    auto& v0 = g[0];
+    size_t degree = std::ranges::distance(v0.edges());
+    REQUIRE(degree == 50);
+}
+
+TEMPLATE_TEST_CASE("edge range filtering", "[common][edges]",
+                   (vofl_graph_traits<int, void, void, uint64_t, false>),
+                   (vol_graph_traits<int, void, void, uint64_t, false>),
+                   (vov_graph_traits<int, void, void, uint64_t, false>),
+                   (vod_graph_traits<int, void, void, uint64_t, false>),
+                   (dofl_graph_traits<int, void, void, uint64_t, false>),
+                   (dol_graph_traits<int, void, void, uint64_t, false>),
+                   (dov_graph_traits<int, void, void, uint64_t, false>),
+                   (dod_graph_traits<int, void, void, uint64_t, false>)) {
+    using Graph = dynamic_graph<int, void, void, uint64_t, false, TestType>;
+    
+    std::vector<copyable_edge_t<uint64_t, int>> edges = {
+        {0, 1, 10}, {0, 2, 25}, {0, 3, 30}, {0, 4, 15}
+    };
+    Graph g;
+    g.load_edges(edges, std::identity{});
+    
+    auto& v0 = g[0];
+    auto count = std::ranges::count_if(v0.edges(), [](const auto& e) {
+        return e.value() >= 20;
+    });
+    REQUIRE(count == 2);
 }
 
 //==================================================================================================
