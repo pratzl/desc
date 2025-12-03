@@ -1,10 +1,6 @@
 #pragma once
 
 #include <concepts>
-#include <vector>
-#include <deque>
-#include <forward_list>
-#include <list>
 #include <algorithm>
 #include <limits>
 #include <stdexcept>
@@ -35,30 +31,39 @@ namespace graph::container {
 
 //--------------------------------------------------------------------------------------------------
 // dynamic_graph traits forward references
+// Note: Include the appropriate traits header for the container combination you need:
+//   #include <graph/container/traits/vofl_graph_traits.hpp>  // vector + forward_list
+//   #include <graph/container/traits/vol_graph_traits.hpp>   // vector + list
+//   #include <graph/container/traits/vov_graph_traits.hpp>   // vector + vector
+//   #include <graph/container/traits/vod_graph_traits.hpp>   // vector + deque
+//   #include <graph/container/traits/dofl_graph_traits.hpp>  // deque + forward_list
+//   #include <graph/container/traits/dol_graph_traits.hpp>   // deque + list
+//   #include <graph/container/traits/dov_graph_traits.hpp>   // deque + vector
+//   #include <graph/container/traits/dod_graph_traits.hpp>   // deque + deque
 //
 
-template <class EV = void, class VV = void, class GV = void, class VId = uint32_t, bool Sourced = false>
+template <class EV, class VV, class GV, class VId, bool Sourced>
 struct vofl_graph_traits;
 
-template <class EV = void, class VV = void, class GV = void, class VId = uint32_t, bool Sourced = false>
+template <class EV, class VV, class GV, class VId, bool Sourced>
 struct vol_graph_traits;
 
-template <class EV = void, class VV = void, class GV = void, class VId = uint32_t, bool Sourced = false>
+template <class EV, class VV, class GV, class VId, bool Sourced>
 struct vov_graph_traits;
 
-template <class EV = void, class VV = void, class GV = void, class VId = uint32_t, bool Sourced = false>
+template <class EV, class VV, class GV, class VId, bool Sourced>
 struct vod_graph_traits;
 
-template <class EV = void, class VV = void, class GV = void, class VId = uint32_t, bool Sourced = false>
+template <class EV, class VV, class GV, class VId, bool Sourced>
 struct dofl_graph_traits;
 
-template <class EV = void, class VV = void, class GV = void, class VId = uint32_t, bool Sourced = false>
+template <class EV, class VV, class GV, class VId, bool Sourced>
 struct dol_graph_traits;
 
-template <class EV = void, class VV = void, class GV = void, class VId = uint32_t, bool Sourced = false>
+template <class EV, class VV, class GV, class VId, bool Sourced>
 struct dov_graph_traits;
 
-template <class EV = void, class VV = void, class GV = void, class VId = uint32_t, bool Sourced = false>
+template <class EV, class VV, class GV, class VId, bool Sourced>
 struct dod_graph_traits;
 
 
@@ -81,169 +86,21 @@ template <class EV     = void,
 class dynamic_graph;
 
 //--------------------------------------------------------------------------------------------------
-// dynamic_graph traits declarations
+
+//--------------------------------------------------------------------------------------------------
+// dynamic_adjacency_graph type alias
 //
-
-// vofl_graph_traits
-//  Vertices: std::vector
-//  Edges:    std::forward_list
-//  Notes: Lightweight singly-linked adjacency for cheap edge insertion.
-//  Template parameters: EV (edge value or void), VV (vertex value or void), GV (graph value or void),
-//  VId (integral vertex id), Sourced (store source id on edge when true).
-template <class EV, class VV, class GV, class VId, bool Sourced>
-struct vofl_graph_traits {
-  using edge_value_type                      = EV;
-  using vertex_value_type                    = VV;
-  using graph_value_type                     = GV;
-  using vertex_id_type                       = VId;
-  static constexpr bool sourced              = Sourced;
-
-  using edge_type   = dynamic_edge<EV, VV, GV, VId, Sourced, vofl_graph_traits>;
-  using vertex_type = dynamic_vertex<EV, VV, GV, VId, Sourced, vofl_graph_traits>;
-  using graph_type  = dynamic_graph<EV, VV, GV, VId, Sourced, vofl_graph_traits>;
-
-  using vertices_type = std::vector<vertex_type>;
-  using edges_type    = std::forward_list<edge_type>;
-};
-
-// vol_graph_traits
-//  Vertices: std::vector
-//  Edges:    std::list (bidirectional). Parameter semantics mirror vofl_graph_traits.
-template <class EV, class VV, class GV, class VId, bool Sourced>
-struct vol_graph_traits {
-  using edge_value_type                      = EV;
-  using vertex_value_type                    = VV;
-  using graph_value_type                     = GV;
-  using vertex_id_type                       = VId;
-  static constexpr bool sourced              = Sourced;
-
-  using edge_type   = dynamic_edge<EV, VV, GV, VId, Sourced, vol_graph_traits>;
-  using vertex_type = dynamic_vertex<EV, VV, GV, VId, Sourced, vol_graph_traits>;
-  using graph_type  = dynamic_graph<EV, VV, GV, VId, Sourced, vol_graph_traits>;
-
-  using vertices_type = std::vector<vertex_type>;
-  using edges_type    = std::list<edge_type>;
-};
-
-// vov_graph_traits
-//  Vertices: std::vector
-//  Edges:    std::vector (contiguous; best for random access & cache locality).
-//  Parameter semantics mirror vofl_graph_traits.
-template <class EV, class VV, class GV, class VId, bool Sourced>
-struct vov_graph_traits {
-  using edge_value_type                      = EV;
-  using vertex_value_type                    = VV;
-  using graph_value_type                     = GV;
-  using vertex_id_type                       = VId;
-  static constexpr bool sourced              = Sourced;
-
-  using edge_type   = dynamic_edge<EV, VV, GV, VId, Sourced, vov_graph_traits>;
-  using vertex_type = dynamic_vertex<EV, VV, GV, VId, Sourced, vov_graph_traits>;
-  using graph_type  = dynamic_graph<EV, VV, GV, VId, Sourced, vov_graph_traits>;
-
-  using vertices_type = std::vector<vertex_type>;
-  using edges_type    = std::vector<edge_type>;
-};
-
-// vod_graph_traits
-//  Vertices: std::vector
-//  Edges:    std::deque (stable iterators with random access).
-//  Parameter semantics mirror vofl_graph_traits.
-template <class EV, class VV, class GV, class VId, bool Sourced>
-struct vod_graph_traits {
-  using edge_value_type                      = EV;
-  using vertex_value_type                    = VV;
-  using graph_value_type                     = GV;
-  using vertex_id_type                       = VId;
-  static constexpr bool sourced              = Sourced;
-
-  using edge_type   = dynamic_edge<EV, VV, GV, VId, Sourced, vod_graph_traits>;
-  using vertex_type = dynamic_vertex<EV, VV, GV, VId, Sourced, vod_graph_traits>;
-  using graph_type  = dynamic_graph<EV, VV, GV, VId, Sourced, vod_graph_traits>;
-
-  using vertices_type = std::vector<vertex_type>;
-  using edges_type    = std::deque<edge_type>;
-};
-
-// dofl_graph_traits
-//  Vertices: std::deque (stable iterators)
-//  Edges:    std::forward_list
-//  Parameter semantics mirror vofl_graph_traits.
-template <class EV, class VV, class GV, class VId, bool Sourced>
-struct dofl_graph_traits {
-  using edge_value_type                      = EV;
-  using vertex_value_type                    = VV;
-  using graph_value_type                     = GV;
-  using vertex_id_type                       = VId;
-  static constexpr bool sourced              = Sourced;
-
-  using edge_type   = dynamic_edge<EV, VV, GV, VId, Sourced, dofl_graph_traits>;
-  using vertex_type = dynamic_vertex<EV, VV, GV, VId, Sourced, dofl_graph_traits>;
-  using graph_type  = dynamic_graph<EV, VV, GV, VId, Sourced, dofl_graph_traits>;
-
-  using vertices_type = std::deque<vertex_type>;
-  using edges_type    = std::forward_list<edge_type>;
-};
-
-// dol_graph_traits
-//  Vertices: std::deque (stable iterators)
-//  Edges:    std::list
-//  Parameter semantics mirror vofl_graph_traits.
-template <class EV, class VV, class GV, class VId, bool Sourced>
-struct dol_graph_traits {
-  using edge_value_type                      = EV;
-  using vertex_value_type                    = VV;
-  using graph_value_type                     = GV;
-  using vertex_id_type                       = VId;
-  static constexpr bool sourced              = Sourced;
-
-  using edge_type   = dynamic_edge<EV, VV, GV, VId, Sourced, dol_graph_traits>;
-  using vertex_type = dynamic_vertex<EV, VV, GV, VId, Sourced, dol_graph_traits>;
-  using graph_type  = dynamic_graph<EV, VV, GV, VId, Sourced, dol_graph_traits>;
-
-  using vertices_type = std::deque<vertex_type>;
-  using edges_type    = std::list<edge_type>;
-};
-
-// dov_graph_traits
-//  Vertices: std::deque (stable iterators)
-//  Edges:    std::vector (random access)
-//  Parameter semantics mirror vofl_graph_traits.
-template <class EV, class VV, class GV, class VId, bool Sourced>
-struct dov_graph_traits {
-  using edge_value_type                      = EV;
-  using vertex_value_type                    = VV;
-  using graph_value_type                     = GV;
-  using vertex_id_type                       = VId;
-  static constexpr bool sourced              = Sourced;
-
-  using edge_type   = dynamic_edge<EV, VV, GV, VId, Sourced, dov_graph_traits>;
-  using vertex_type = dynamic_vertex<EV, VV, GV, VId, Sourced, dov_graph_traits>;
-  using graph_type  = dynamic_graph<EV, VV, GV, VId, Sourced, dov_graph_traits>;
-
-  using vertices_type = std::deque<vertex_type>;
-  using edges_type    = std::vector<edge_type>;
-};
-
-// dod_graph_traits
-//  Vertices: std::deque (stable iterators)
-//  Edges:    std::deque (stable iterators with random access)
-//  Parameter semantics mirror vofl_graph_traits.
-template <class EV, class VV, class GV, class VId, bool Sourced>
-struct dod_graph_traits {
-  using edge_value_type                      = EV;
-  using vertex_value_type                    = VV;
-  using graph_value_type                     = GV;
-  using vertex_id_type                       = VId;
-  static constexpr bool sourced              = Sourced;
-
-  using edge_type   = dynamic_edge<EV, VV, GV, VId, Sourced, dod_graph_traits>;
-  using vertex_type = dynamic_vertex<EV, VV, GV, VId, Sourced, dod_graph_traits>;
-  using graph_type  = dynamic_graph<EV, VV, GV, VId, Sourced, dod_graph_traits>;
-
-  using vertices_type = std::deque<vertex_type>;
-  using edges_type    = std::deque<edge_type>;
-};
+// Note: Trait definitions have been moved to separate headers for faster compilation.
+// Include the appropriate traits header for your container combination:
+//   #include <graph/container/traits/vofl_graph_traits.hpp>  // vector + forward_list
+//   #include <graph/container/traits/vol_graph_traits.hpp>   // vector + list
+//   #include <graph/container/traits/vov_graph_traits.hpp>   // vector + vector
+//   #include <graph/container/traits/vod_graph_traits.hpp>   // vector + deque
+//   #include <graph/container/traits/dofl_graph_traits.hpp>  // deque + forward_list
+//   #include <graph/container/traits/dol_graph_traits.hpp>   // deque + list
+//   #include <graph/container/traits/dov_graph_traits.hpp>   // deque + vector
+//   #include <graph/container/traits/dod_graph_traits.hpp>   // deque + deque
+//
 
 /**
  * @ingroup graph_containers
@@ -255,7 +112,7 @@ struct dod_graph_traits {
  * 
  * @tparam Traits The traits struct/class. (See examples above.)
 */
-template <class Traits>
+template <typename Traits>
 using dynamic_adjacency_graph = dynamic_graph<typename Traits::edge_value_type,
                                               typename Traits::vertex_value_type,
                                               typename Traits::graph_value_type,

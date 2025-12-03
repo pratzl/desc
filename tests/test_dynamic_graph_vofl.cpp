@@ -9,6 +9,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_template_test_macros.hpp>
+#include <graph/container/traits/vofl_graph_traits.hpp>
 #include <graph/container/dynamic_graph.hpp>
 #include <graph/graph_info.hpp>
 #include <string>
