@@ -346,6 +346,177 @@ TEMPLATE_TEST_CASE("load_vertices basic", "[common][load]",
     REQUIRE(g[2].value() == 300);
 }
 
+TEMPLATE_TEST_CASE("load_edges with empty range", "[common][load]",
+                   (vofl_graph_traits<void, void, void, uint64_t, false>),
+                   (vol_graph_traits<void, void, void, uint64_t, false>),
+                   (vov_graph_traits<void, void, void, uint64_t, false>),
+                   (vod_graph_traits<void, void, void, uint64_t, false>),
+                   (dofl_graph_traits<void, void, void, uint64_t, false>),
+                   (dol_graph_traits<void, void, void, uint64_t, false>),
+                   (dov_graph_traits<void, void, void, uint64_t, false>),
+                   (dod_graph_traits<void, void, void, uint64_t, false>)) {
+    using Graph = dynamic_graph<void, void, void, uint64_t, false, TestType>;
+    using edge_data = copyable_edge_t<uint64_t, void>;
+    
+    std::vector<edge_data> edges;
+    Graph g;
+    g.load_edges(edges, std::identity{});
+    
+    // Empty edge load may create vertex 0
+    REQUIRE(g.size() <= 1);
+}
+
+TEMPLATE_TEST_CASE("load_edges auto-extends vertex count", "[common][load]",
+                   (vofl_graph_traits<void, void, void, uint64_t, false>),
+                   (vol_graph_traits<void, void, void, uint64_t, false>),
+                   (vov_graph_traits<void, void, void, uint64_t, false>),
+                   (vod_graph_traits<void, void, void, uint64_t, false>),
+                   (dofl_graph_traits<void, void, void, uint64_t, false>),
+                   (dol_graph_traits<void, void, void, uint64_t, false>),
+                   (dov_graph_traits<void, void, void, uint64_t, false>),
+                   (dod_graph_traits<void, void, void, uint64_t, false>)) {
+    using Graph = dynamic_graph<void, void, void, uint64_t, false, TestType>;
+    using edge_data = copyable_edge_t<uint64_t, void>;
+    
+    std::vector<edge_data> edges = {{0, 10}, {5, 20}};
+    Graph g;
+    g.load_edges(edges, std::identity{});
+    
+    // Should auto-extend to include vertex 20
+    REQUIRE(g.size() >= 21);
+}
+
+TEMPLATE_TEST_CASE("load_vertices then load_edges", "[common][load]",
+                   (vofl_graph_traits<int, int, void, uint64_t, false>),
+                   (vol_graph_traits<int, int, void, uint64_t, false>),
+                   (vov_graph_traits<int, int, void, uint64_t, false>),
+                   (vod_graph_traits<int, int, void, uint64_t, false>),
+                   (dofl_graph_traits<int, int, void, uint64_t, false>),
+                   (dol_graph_traits<int, int, void, uint64_t, false>),
+                   (dov_graph_traits<int, int, void, uint64_t, false>),
+                   (dod_graph_traits<int, int, void, uint64_t, false>)) {
+    using Graph = dynamic_graph<int, int, void, uint64_t, false, TestType>;
+    using vertex_data = copyable_vertex_t<uint64_t, int>;
+    using edge_data = copyable_edge_t<uint64_t, int>;
+    
+    Graph g;
+    
+    std::vector<vertex_data> vertices = {{0, 10}, {1, 20}, {2, 30}};
+    g.load_vertices(vertices, std::identity{});
+    
+    std::vector<edge_data> edges = {{0, 1, 100}, {1, 2, 200}};
+    g.load_edges(edges, std::identity{});
+    
+    REQUIRE(g.size() == 3);
+    REQUIRE(g[0].value() == 10);
+    
+    auto& v0 = g[0];
+    for (auto& e : v0.edges()) {
+        if (e.target_id() == 1) {
+            REQUIRE(e.value() == 100);
+        }
+    }
+}
+
+TEMPLATE_TEST_CASE("load_edges with projection", "[common][load]",
+                   (vofl_graph_traits<int, void, void, uint64_t, false>),
+                   (vol_graph_traits<int, void, void, uint64_t, false>),
+                   (vov_graph_traits<int, void, void, uint64_t, false>),
+                   (vod_graph_traits<int, void, void, uint64_t, false>),
+                   (dofl_graph_traits<int, void, void, uint64_t, false>),
+                   (dol_graph_traits<int, void, void, uint64_t, false>),
+                   (dov_graph_traits<int, void, void, uint64_t, false>),
+                   (dod_graph_traits<int, void, void, uint64_t, false>)) {
+    using Graph = dynamic_graph<int, void, void, uint64_t, false, TestType>;
+    using edge_data = copyable_edge_t<uint64_t, int>;
+    
+    struct CustomEdge { uint64_t src, tgt; int val; };
+    std::vector<CustomEdge> custom_edges = {{0, 1, 10}, {1, 2, 20}};
+    
+    Graph g;
+    g.load_edges(custom_edges, [](const CustomEdge& e) -> edge_data {
+        return {e.src, e.tgt, e.val};
+    });
+    
+    REQUIRE(g.size() == 3);
+}
+
+TEMPLATE_TEST_CASE("load_vertices with projection", "[common][load]",
+                   (vofl_graph_traits<void, int, void, uint64_t, false>),
+                   (vol_graph_traits<void, int, void, uint64_t, false>),
+                   (vov_graph_traits<void, int, void, uint64_t, false>),
+                   (vod_graph_traits<void, int, void, uint64_t, false>),
+                   (dofl_graph_traits<void, int, void, uint64_t, false>),
+                   (dol_graph_traits<void, int, void, uint64_t, false>),
+                   (dov_graph_traits<void, int, void, uint64_t, false>),
+                   (dod_graph_traits<void, int, void, uint64_t, false>)) {
+    using Graph = dynamic_graph<void, int, void, uint64_t, false, TestType>;
+    using vertex_data = copyable_vertex_t<uint64_t, int>;
+    
+    struct CustomVertex { uint64_t id; int value; };
+    std::vector<CustomVertex> custom_vertices = {{0, 100}, {1, 200}};
+    
+    Graph g;
+    g.load_vertices(custom_vertices, [](const CustomVertex& v) -> vertex_data {
+        return {v.id, v.value};
+    });
+    
+    REQUIRE(g.size() == 2);
+    REQUIRE(g[0].value() == 100);
+}
+
+TEMPLATE_TEST_CASE("incremental edge loading", "[common][load]",
+                   (vofl_graph_traits<void, void, void, uint64_t, false>),
+                   (vol_graph_traits<void, void, void, uint64_t, false>),
+                   (vov_graph_traits<void, void, void, uint64_t, false>),
+                   (vod_graph_traits<void, void, void, uint64_t, false>),
+                   (dofl_graph_traits<void, void, void, uint64_t, false>),
+                   (dol_graph_traits<void, void, void, uint64_t, false>),
+                   (dov_graph_traits<void, void, void, uint64_t, false>),
+                   (dod_graph_traits<void, void, void, uint64_t, false>)) {
+    using Graph = dynamic_graph<void, void, void, uint64_t, false, TestType>;
+    using edge_data = copyable_edge_t<uint64_t, void>;
+    
+    Graph g;
+    
+    std::vector<edge_data> batch1 = {{0, 1}, {1, 2}};
+    g.load_edges(batch1, std::identity{});
+    REQUIRE(g.size() == 3);
+    
+    std::vector<edge_data> batch2 = {{2, 3}, {3, 0}};
+    g.load_edges(batch2, std::identity{});
+    REQUIRE(g.size() == 4);
+}
+
+TEMPLATE_TEST_CASE("load with self-loops", "[common][load]",
+                   (vofl_graph_traits<void, void, void, uint64_t, false>),
+                   (vol_graph_traits<void, void, void, uint64_t, false>),
+                   (vov_graph_traits<void, void, void, uint64_t, false>),
+                   (vod_graph_traits<void, void, void, uint64_t, false>),
+                   (dofl_graph_traits<void, void, void, uint64_t, false>),
+                   (dol_graph_traits<void, void, void, uint64_t, false>),
+                   (dov_graph_traits<void, void, void, uint64_t, false>),
+                   (dod_graph_traits<void, void, void, uint64_t, false>)) {
+    using Graph = dynamic_graph<void, void, void, uint64_t, false, TestType>;
+    using edge_data = copyable_edge_t<uint64_t, void>;
+    
+    std::vector<edge_data> edges = {{0, 0}, {1, 1}, {0, 1}};
+    Graph g;
+    g.load_edges(edges, std::identity{});
+    
+    REQUIRE(g.size() == 2);
+    
+    // Verify self-loop on vertex 0
+    auto& v0 = g[0];
+    bool has_self_loop = false;
+    for (auto& e : v0.edges()) {
+        if (e.target_id() == 0) {
+            has_self_loop = true;
+        }
+    }
+    REQUIRE(has_self_loop);
+}
+
 //==================================================================================================
 // TEMPLATE_TEST_CASE: Vertex Access
 //==================================================================================================
