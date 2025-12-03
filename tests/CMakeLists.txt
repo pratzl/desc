@@ -47,6 +47,7 @@ add_executable(graph3_tests
     test_dynamic_graph_vofl.cpp
     test_dynamic_graph_vol.cpp
     test_dynamic_graph_vov.cpp
+    test_dynamic_graph_vod.cpp
     test_dynamic_graph_cpo_vofl.cpp
     test_dynamic_graph_cpo_vol.cpp
     test_dynamic_graph_cpo_vov.cpp
