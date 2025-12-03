@@ -1343,6 +1343,157 @@ TEMPLATE_TEST_CASE("large graph construction", "[common][scale]",
     REQUIRE(g.size() == 1000);
 }
 
+TEMPLATE_TEST_CASE("graph size tracking", "[common][properties]",
+                   (vofl_graph_traits<void, void, void, uint64_t, false>),
+                   (vol_graph_traits<void, void, void, uint64_t, false>),
+                   (vov_graph_traits<void, void, void, uint64_t, false>),
+                   (vod_graph_traits<void, void, void, uint64_t, false>),
+                   (dofl_graph_traits<void, void, void, uint64_t, false>),
+                   (dol_graph_traits<void, void, void, uint64_t, false>),
+                   (dov_graph_traits<void, void, void, uint64_t, false>),
+                   (dod_graph_traits<void, void, void, uint64_t, false>)) {
+    using Graph = dynamic_graph<void, void, void, uint64_t, false, TestType>;
+    
+    Graph g;
+    REQUIRE(g.size() == 0);
+    
+    std::vector<copyable_edge_t<uint64_t, void>> edges = {{0, 1}, {1, 2}};
+    g.load_edges(edges, std::identity{});
+    REQUIRE(g.size() == 3);
+    
+    std::vector<copyable_edge_t<uint64_t, void>> more_edges = {{3, 4}};
+    g.load_edges(more_edges, std::identity{});
+    REQUIRE(g.size() == 5);
+}
+
+TEMPLATE_TEST_CASE("begin/end iteration", "[common][properties]",
+                   (vofl_graph_traits<void, void, void, uint64_t, false>),
+                   (vol_graph_traits<void, void, void, uint64_t, false>),
+                   (vov_graph_traits<void, void, void, uint64_t, false>),
+                   (vod_graph_traits<void, void, void, uint64_t, false>),
+                   (dofl_graph_traits<void, void, void, uint64_t, false>),
+                   (dol_graph_traits<void, void, void, uint64_t, false>),
+                   (dov_graph_traits<void, void, void, uint64_t, false>),
+                   (dod_graph_traits<void, void, void, uint64_t, false>)) {
+    using Graph = dynamic_graph<void, void, void, uint64_t, false, TestType>;
+    
+    std::vector<copyable_edge_t<uint64_t, void>> edges = {{0, 1}, {1, 2}};
+    Graph g;
+    g.load_edges(edges, std::identity{});
+    
+    size_t count = 0;
+    for (auto it = g.begin(); it != g.end(); ++it) {
+        ++count;
+    }
+    REQUIRE(count == g.size());
+}
+
+TEMPLATE_TEST_CASE("cbegin/cend const iteration", "[common][properties]",
+                   (vofl_graph_traits<void, void, void, uint64_t, false>),
+                   (vol_graph_traits<void, void, void, uint64_t, false>),
+                   (vov_graph_traits<void, void, void, uint64_t, false>),
+                   (vod_graph_traits<void, void, void, uint64_t, false>),
+                   (dofl_graph_traits<void, void, void, uint64_t, false>),
+                   (dol_graph_traits<void, void, void, uint64_t, false>),
+                   (dov_graph_traits<void, void, void, uint64_t, false>),
+                   (dod_graph_traits<void, void, void, uint64_t, false>)) {
+    using Graph = dynamic_graph<void, void, void, uint64_t, false, TestType>;
+    
+    std::vector<copyable_edge_t<uint64_t, void>> edges = {{0, 1}, {1, 2}};
+    Graph g;
+    g.load_edges(edges, std::identity{});
+    
+    size_t count = 0;
+    for (auto it = g.cbegin(); it != g.cend(); ++it) {
+        ++count;
+    }
+    REQUIRE(count == g.size());
+}
+
+TEMPLATE_TEST_CASE("empty graph properties", "[common][properties]",
+                   (vofl_graph_traits<void, void, void, uint64_t, false>),
+                   (vol_graph_traits<void, void, void, uint64_t, false>),
+                   (vov_graph_traits<void, void, void, uint64_t, false>),
+                   (vod_graph_traits<void, void, void, uint64_t, false>),
+                   (dofl_graph_traits<void, void, void, uint64_t, false>),
+                   (dol_graph_traits<void, void, void, uint64_t, false>),
+                   (dov_graph_traits<void, void, void, uint64_t, false>),
+                   (dod_graph_traits<void, void, void, uint64_t, false>)) {
+    using Graph = dynamic_graph<void, void, void, uint64_t, false, TestType>;
+    
+    Graph g;
+    REQUIRE(g.size() == 0);
+    REQUIRE(g.begin() == g.end());
+    REQUIRE(g.cbegin() == g.cend());
+}
+
+TEMPLATE_TEST_CASE("vertex count after incremental loads", "[common][properties]",
+                   (vofl_graph_traits<void, void, void, uint64_t, false>),
+                   (vol_graph_traits<void, void, void, uint64_t, false>),
+                   (vov_graph_traits<void, void, void, uint64_t, false>),
+                   (vod_graph_traits<void, void, void, uint64_t, false>),
+                   (dofl_graph_traits<void, void, void, uint64_t, false>),
+                   (dol_graph_traits<void, void, void, uint64_t, false>),
+                   (dov_graph_traits<void, void, void, uint64_t, false>),
+                   (dod_graph_traits<void, void, void, uint64_t, false>)) {
+    using Graph = dynamic_graph<void, void, void, uint64_t, false, TestType>;
+    
+    Graph g;
+    
+    std::vector<copyable_edge_t<uint64_t, void>> batch1 = {{0, 1}};
+    g.load_edges(batch1, std::identity{});
+    size_t size1 = g.size();
+    
+    std::vector<copyable_edge_t<uint64_t, void>> batch2 = {{2, 3}};
+    g.load_edges(batch2, std::identity{});
+    size_t size2 = g.size();
+    
+    REQUIRE(size2 > size1);
+    REQUIRE(size2 == 4);
+}
+
+TEMPLATE_TEST_CASE("graph iterator distance", "[common][properties]",
+                   (vofl_graph_traits<void, void, void, uint64_t, false>),
+                   (vol_graph_traits<void, void, void, uint64_t, false>),
+                   (vov_graph_traits<void, void, void, uint64_t, false>),
+                   (vod_graph_traits<void, void, void, uint64_t, false>),
+                   (dofl_graph_traits<void, void, void, uint64_t, false>),
+                   (dol_graph_traits<void, void, void, uint64_t, false>),
+                   (dov_graph_traits<void, void, void, uint64_t, false>),
+                   (dod_graph_traits<void, void, void, uint64_t, false>)) {
+    using Graph = dynamic_graph<void, void, void, uint64_t, false, TestType>;
+    
+    std::vector<copyable_edge_t<uint64_t, void>> edges = {{0, 1}, {1, 2}, {2, 3}};
+    Graph g;
+    g.load_edges(edges, std::identity{});
+    
+    auto dist = std::distance(g.begin(), g.end());
+    REQUIRE(static_cast<size_t>(dist) == g.size());
+}
+
+TEMPLATE_TEST_CASE("copy preserves structure", "[common][properties]",
+                   (vofl_graph_traits<int, int, void, uint64_t, false>),
+                   (vol_graph_traits<int, int, void, uint64_t, false>),
+                   (vov_graph_traits<int, int, void, uint64_t, false>),
+                   (vod_graph_traits<int, int, void, uint64_t, false>),
+                   (dofl_graph_traits<int, int, void, uint64_t, false>),
+                   (dol_graph_traits<int, int, void, uint64_t, false>),
+                   (dov_graph_traits<int, int, void, uint64_t, false>),
+                   (dod_graph_traits<int, int, void, uint64_t, false>)) {
+    using Graph = dynamic_graph<int, int, void, uint64_t, false, TestType>;
+    
+    Graph g1;
+    std::vector<copyable_vertex_t<uint64_t, int>> vertices = {{0, 10}, {1, 20}};
+    g1.load_vertices(vertices, std::identity{});
+    std::vector<copyable_edge_t<uint64_t, int>> edges = {{0, 1, 100}};
+    g1.load_edges(edges, std::identity{});
+    
+    Graph g2(g1);
+    REQUIRE(g2.size() == g1.size());
+    REQUIRE(g2[0].value() == g1[0].value());
+    REQUIRE(g2[1].value() == g1[1].value());
+}
+
 TEMPLATE_TEST_CASE("ranges integration", "[common][ranges]",
                    (vofl_graph_traits<int, void, void, uint64_t, false>),
                    (vol_graph_traits<int, void, void, uint64_t, false>),
