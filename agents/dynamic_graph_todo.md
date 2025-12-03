@@ -30,20 +30,48 @@ Test all combinations of existing container types with various value types.
   1. `vector` vertices + `forward_list` edges (vofl_graph_traits - most lightweight)
   2. `vector` vertices + `list` edges (vol_graph_traits - bidirectional edges)
   3. `vector` vertices + `vector` edges (vov_graph_traits - best cache locality)
-  4. `deque` vertices + `forward_list` edges (dofl_graph_traits - stable iterators)
-  5. `deque` vertices + `list` edges (dol_graph_traits - bidirectional with stability)
-  6. `deque` vertices + `vector` edges (dov_graph_traits - random access edges)
+  4. `vector` vertices + `deque` edges (vod_graph_traits - stable edge iterators)
+  5. `deque` vertices + `forward_list` edges (dofl_graph_traits - stable vertex iterators)
+  6. `deque` vertices + `list` edges (dol_graph_traits - bidirectional with stability)
+  7. `deque` vertices + `vector` edges (dov_graph_traits - random access edges)
+  8. `deque` vertices + `deque` edges (dod_graph_traits - all stable iterators)
 
-**Test Files Organization:**
+**Test Files Organization (Optimized with TEMPLATE_TEST_CASE):**
 ```
 tests/
-  test_dynamic_graph_vofl.cpp      # vector + forward_list tests
-  test_dynamic_graph_vol.cpp       # vector + list tests  
-  test_dynamic_graph_vov.cpp       # vector + vector tests
-  test_dynamic_graph_dofl.cpp      # deque + forward_list tests
-  test_dynamic_graph_dol.cpp       # deque + list tests
-  test_dynamic_graph_dov.cpp       # deque + vector tests
+  # Phase 1: Sequential container unified tests (vector/deque vertices)
+  test_dynamic_graph_common.cpp         # ~2000 lines, runs 8x via TEMPLATE_TEST_CASE
+                                        # Uses uint64_t vertex IDs, tests auto-extension
+                                        # Covers: vofl, vol, vov, vod, dofl, dol, dov, dod
+  
+  # Phase 1: Container-specific behavior tests
+  test_dynamic_graph_vector_traits.cpp  # ~800 lines (vofl, vol, vov, vod specifics)
+  test_dynamic_graph_deque_traits.cpp   # ~1000 lines (dofl, dol, dov, dod specifics + CPO)
+  test_dynamic_graph_edge_containers.cpp # ~600 lines (edge container variations)
+                                        # Tests forward_list, list, vector, deque edge behaviors
+  
+  # Phase 3: Associative container unified tests (map/unordered_map vertices)
+  test_dynamic_graph_associative_common.cpp  # ~1600 lines, runs 3-6x
+                                             # Uses std::string vertex IDs, key-based lookup
+  
+  # Phase 3: Map-specific behavior tests
+  test_dynamic_graph_map_traits.cpp          # ~700 lines (ordered, comparators)
+  test_dynamic_graph_unordered_map_traits.cpp # ~700 lines (hash, buckets)
+  
+  # Legacy complete test files (Phase 1.1-1.3 already completed)
+  test_dynamic_graph_vofl.cpp           # ~2673 lines ✅ COMPLETE
+  test_dynamic_graph_vol.cpp            # ~2677 lines ✅ COMPLETE
+  test_dynamic_graph_vov.cpp            # ~2677 lines ✅ COMPLETE
 ```
+
+**Deque Edge Container Coverage:**
+Deque edges provide stable iterators and random access, combining benefits of vector and list:
+- `vod_graph_traits` (vector + deque): Contiguous vertices, stable edge iterators
+- `dod_graph_traits` (deque + deque): All stable iterators, good for dynamic graphs
+- Tests will verify: stable iterators during modifications, random access, bidirectional iteration
+- CPO tests will validate deque-specific optimizations (e.g., efficient insert/erase)
+
+**Note:** Phase 1.4+ uses optimized TEMPLATE_TEST_CASE for sequential containers. Phase 3 will need a separate associative common file due to fundamental differences in vertex ID types and construction semantics.
 
 **Test Coverage per File (~200-300 tests each):**
 
@@ -183,26 +211,59 @@ tests/
 - [x] Start with `test_dynamic_graph_vofl.cpp` (most common use case) - **COMPLETE**
 - [x] Continue with `test_dynamic_graph_vol.cpp` (bidirectional edges) - **COMPLETE**
 - [x] Next: `test_dynamic_graph_vov.cpp` (best cache locality) - **COMPLETE**
-- [ ] Phase 1.4a: `test_dynamic_graph_dofl.cpp` (deque + forward_list)
-- [ ] Phase 1.4b: `test_dynamic_graph_dol.cpp` (deque + list)
-- [ ] Phase 1.4c: `test_dynamic_graph_dov.cpp` (deque + vector)
+- [ ] Phase 1.4: Create optimized test structure using TEMPLATE_TEST_CASE
+  - [ ] `test_dynamic_graph_common.cpp` - unified tests for 8 sequential traits (~2000 lines)
+        Traits: vofl, vol, vov, vod, dofl, dol, dov, dod
+  - [ ] `test_dynamic_graph_vector_traits.cpp` - vector vertex specifics (~800 lines)
+        Covers: vofl, vol, vov, vod (contiguous vertex storage)
+  - [ ] `test_dynamic_graph_deque_traits.cpp` - deque vertex specifics + CPO (~1000 lines)
+        Covers: dofl, dol, dov, dod (non-contiguous vertex storage)
+  - [ ] `test_dynamic_graph_edge_containers.cpp` - all edge container variations (~600 lines)
+        Covers: forward_list, list, vector, deque edge behaviors
+- [ ] Phase 3: Associative container tests (separate from Phase 1)
+  - [ ] `test_dynamic_graph_associative_common.cpp` - unified tests for map traits (~1600 lines)
+  - [ ] `test_dynamic_graph_map_traits.cpp` - map-specific behavior (~700 lines)
+  - [ ] `test_dynamic_graph_unordered_map_traits.cpp` - unordered_map-specific (~700 lines)
 - [x] Use Catch2 test framework with SECTION organization
+- [x] Use Catch2 TEMPLATE_TEST_CASE for cross-container unified tests
 - [x] Employ test generators for value type combinations where appropriate
 - [x] Include both positive tests (correct usage) and negative tests (error detection)
 
-**Status:** Phase 1.1, 1.2, and 1.3 completed
+**Status:** Phase 1.1, 1.2, 1.3 completed; Phase 2 substantially complete for existing instances
 - ✅ test_dynamic_graph_vofl.cpp created with 123 tests (2673 lines)
 - ✅ test_dynamic_graph_vol.cpp expanded to 115 tests (2677 lines)
 - ✅ test_dynamic_graph_vov.cpp created with 115 tests (2677 lines)
-- ⏳ Remaining: test_dynamic_graph_dofl.cpp, test_dynamic_graph_dol.cpp, test_dynamic_graph_dov.cpp
+- ✅ test_dynamic_graph_cpo_vofl.cpp created with 196 tests (3414 lines)
+- ✅ test_dynamic_graph_cpo_vol.cpp created with 196 tests (3413 lines)
+- ✅ test_dynamic_graph_cpo_vov.cpp created with 196 tests (3486 lines)
+- ⏳ Phase 1.4: Optimized test structure for sequential containers (deque traits)
+- ⏳ Phase 2: Continue CPO tests for each new graph instance
+- ⏳ Phase 3: Separate optimized structure for associative containers
 
-**Expected Line Count:** ~8000-10000 lines total for Phase 1 (currently at 8027 lines)
+**Expected Line Count (Optimized Strategy):**
+- Legacy complete files (Phase 1.1-1.3): 8,027 lines ✅
+- CPO tests for Phase 1.1-1.3: 10,313 lines ✅
+- New optimized files Phase 1.4 (sequential with deque edges): ~4,400 lines
+  * test_dynamic_graph_common.cpp: ~2,000 lines (8 traits)
+  * test_dynamic_graph_vector_traits.cpp: ~800 lines (4 traits: vofl, vol, vov, vod)
+  * test_dynamic_graph_deque_traits.cpp: ~1,000 lines (4 traits: dofl, dol, dov, dod)
+  * test_dynamic_graph_edge_containers.cpp: ~600 lines (4 edge types)
+- CPO tests for Phase 1.4 (sequential): ~13,600 lines
+  * test_dynamic_graph_cpo_vod.cpp: ~3,400 lines (vector + deque edges)
+  * test_dynamic_graph_cpo_dofl.cpp: ~3,400 lines
+  * test_dynamic_graph_cpo_dol.cpp: ~3,400 lines
+  * test_dynamic_graph_cpo_dov.cpp: ~3,400 lines
+  * test_dynamic_graph_cpo_dod.cpp: ~3,400 lines (deque + deque - all stable iterators)
+- New optimized files Phase 3 (associative): ~3,000 lines
+- CPO tests for Phase 3 (associative): ~9,000 lines
+- **Total Phase 1 + Phase 2 + Phase 3: ~48,300 lines** (comprehensive coverage)
+- **Note:** Phase 2 (CPO tests) run in parallel with Phase 1, not sequentially
 
 ---
 
-## Phase 2: Add Minimal CPO Support
+## Phase 2: Add CPO Support (Integrated with Phase 1)
 
-After Phase 1 tests pass, add CPO function support using default implementations.
+For each graph instance tested in Phase 1, create comprehensive CPO tests. This phase runs in parallel with Phase 1, not sequentially - each new graph type gets both basic tests and CPO tests.
 
 **CPOs to Implement (in priority order):**
 
@@ -270,16 +331,27 @@ After Phase 1 tests pass, add CPO function support using default implementations
     - Implementation: partition_.size() - 1
     - Test: single and multiple
 
-**Test File:**
-```
-tests/test_dynamic_graph_cpo.cpp  (~1000-1500 lines)
-```
+**Test Files Completed:**
+- `tests/test_dynamic_graph_cpo_vofl.cpp` (3,414 lines, 196 test cases) ✅
+- `tests/test_dynamic_graph_cpo_vol.cpp` (3,413 lines, 196 test cases) ✅
+- `tests/test_dynamic_graph_cpo_vov.cpp` (3,486 lines, 196 test cases) ✅
+
+**Total CPO Tests:** 10,313 lines, 588 test cases, 5,580 assertions
+
+**Test Files Pending (Phase 1.4 with deque edge coverage):**
+- `tests/test_dynamic_graph_cpo_vod.cpp` (~3,400 lines) - vector + deque edges
+- `tests/test_dynamic_graph_cpo_dofl.cpp` (~3,400 lines) - deque + forward_list edges
+- `tests/test_dynamic_graph_cpo_dol.cpp` (~3,400 lines) - deque + list edges
+- `tests/test_dynamic_graph_cpo_dov.cpp` (~3,400 lines) - deque + vector edges
+- `tests/test_dynamic_graph_cpo_dod.cpp` (~3,400 lines) - deque + deque edges (all stable)
+- Plus future associative container CPO tests
 
 **CPO Implementation Strategy:**
-- Uncomment and complete existing friend functions in dynamic_graph.hpp
-- Use default implementations via CPO machinery from graph_cpo.hpp
-- Leverage existing descriptor infrastructure where applicable
-- Test each CPO with all container combinations from Phase 1
+- ✅ Uncommented and completed friend functions in dynamic_graph.hpp
+- ✅ Used default implementations via CPO machinery from graph_cpo.hpp
+- ✅ Leveraged existing descriptor infrastructure
+- ✅ Testing each CPO with multiple configurations (EV, VV, GV, Sourced, Partitions)
+- ⏳ Continue pattern for each new graph instance type
 
 ---
 
@@ -304,46 +376,88 @@ struct mol_graph_traits {  // map + list
 };
 
 template <class EV, class VV, class GV, class VId, bool Sourced>
+struct mov_graph_traits {  // map + vector
+  using vertices_type = std::map<VId, vertex_type>;
+  using edges_type = std::vector<edge_type>;
+};
+
+template <class EV, class VV, class GV, class VId, bool Sourced>
 struct umofl_graph_traits {  // unordered_map + forward_list
   using vertices_type = std::unordered_map<VId, vertex_type>;
   using edges_type = std::forward_list<edge_type>;
 };
+
+template <class EV, class VV, class GV, class VId, bool Sourced>
+struct umol_graph_traits {  // unordered_map + list
+  using vertices_type = std::unordered_map<VId, vertex_type>;
+  using edges_type = std::list<edge_type>;
+};
+
+template <class EV, class VV, class GV, class VId, bool Sourced>
+struct umov_graph_traits {  // unordered_map + vector
+  using vertices_type = std::unordered_map<VId, vertex_type>;
+  using edges_type = std::vector<edge_type>;
+};
 ```
 
-**Additional Vertex ID Types for Map:**
+**Required Vertex ID Types for Associative Containers:**
+- `std::string` (named vertices - primary test type)
 - `std::pair<int, int>` (coordinate pairs)
 - `std::tuple<int, int, int>` (3D coordinates)
-- `std::string` (named vertices)
-- Custom struct `USAAddress` with operator<, hash support:
-  ```cpp
-  struct USAAddress {
-    std::string street;
-    std::string city;
-    std::string state;
-    std::string zip;
-    auto operator<=>(const USAAddress&) const = default;
-  };
-  ```
+- Custom struct `USAAddress` with operator<, hash support
+
+**Critical Differences from Sequential Containers:**
+1. **No auto-extension** - only creates vertices explicitly referenced in edges
+2. **Key-based lookup** - `g["alice"]` not `g[0]`
+3. **Bidirectional iterators only** - no random access, no iterator arithmetic
+4. **Different CPO implementations** - vertex_id() returns key, find_vertex() uses find()
+5. **Different construction semantics** - sparse vertex IDs by design
 
 **Implementation Changes Needed:**
-1. Update `vertex_id()` CPO for bidirectional iterators (map)
-2. Update `find_vertex()` to use map's find() member
+1. Update `vertex_id()` CPO for bidirectional iterators (map) - returns key not index
+2. Update `find_vertex()` to use map's find() member instead of begin() + offset
 3. Adjust construction logic for non-contiguous vertex IDs
 4. Handle vertex insertion vs. assignment semantics
+5. No auto-extension - vertices must be explicitly created
 
 **Test Files:**
 ```
-tests/test_dynamic_graph_map.cpp           (~1500 lines)
-tests/test_dynamic_graph_unordered_map.cpp (~1500 lines)
+tests/test_dynamic_graph_associative_common.cpp  # ~1600 lines (unified for 3-6 traits)
+tests/test_dynamic_graph_map_traits.cpp          # ~700 lines (map-specific)
+tests/test_dynamic_graph_unordered_map_traits.cpp # ~700 lines (unordered_map-specific)
 ```
 
-**Test Coverage:**
-- All tests from Phase 1, adapted for map semantics
-- Non-contiguous vertex ID sequences
+**Test Coverage (Associative Common File):**
+- Construction with string vertex IDs
+- Key-based vertex lookup (not index-based)
+- No auto-extension behavior
+- Sparse vertex ID sequences
+- Bidirectional iteration only (no random access)
+- All edge access patterns (same as sequential)
+- Value access (same as sequential where applicable)
+- CPO implementations specific to associative containers
+
+**Test Coverage (Map-Specific):**
+- Ordered iteration (sorted by key)
+- Custom comparators
+- Key ordering requirements
+- Iterator invalidation rules specific to std::map
+- Lower/upper bound operations
+
+**Test Coverage (Unordered_Map-Specific):**
 - Custom hash functions (for unordered_map)
-- Key comparison semantics (for map)
-- Iterator invalidation rules
-- Compound key types
+- Hash collision handling
+- Bucket management
+- Load factor behavior
+- Hash consistency across copies
+- Iterator invalidation rules specific to std::unordered_map
+
+**Why Separate Common File is Required:**
+- Sequential containers use `uint64_t` with auto-extension: `g[5]` creates vertices 0-5
+- Associative containers use `std::string` without auto-extension: `g["alice"]` only creates "alice"
+- Test assertions are fundamentally different: `REQUIRE(g[0].id() == 0)` vs `REQUIRE(g["alice"].id() == "alice")`
+- CPO behavior differs: `vertex_id()` returns index vs key, `find_vertex()` uses arithmetic vs find()
+- Cannot share TEMPLATE_TEST_CASE between integral and non-integral vertex ID types
 
 ---
 
@@ -900,20 +1014,22 @@ For Phase 5 (non-integral):
 
 ```
 tests/
-  # Phase 1: Existing functionality
-  test_dynamic_graph_vofl.cpp      # ~2673 lines
-  test_dynamic_graph_vol.cpp       # ~2677 lines
-  test_dynamic_graph_vov.cpp       # ~2677 lines
-  test_dynamic_graph_dofl.cpp      # ~2677 lines
-  test_dynamic_graph_dol.cpp       # ~2677 lines
-  test_dynamic_graph_dov.cpp       # ~2677 lines
+  # Phase 1: Sequential containers (Optimized with TEMPLATE_TEST_CASE)
+  test_dynamic_graph_vofl.cpp           # ~2673 lines ✅ COMPLETE
+  test_dynamic_graph_vol.cpp            # ~2677 lines ✅ COMPLETE
+  test_dynamic_graph_vov.cpp            # ~2677 lines ✅ COMPLETE
+  test_dynamic_graph_common.cpp         # ~1800 lines (6 sequential traits, uint64_t IDs)
+  test_dynamic_graph_vector_traits.cpp  # ~600 lines (vector-specific)
+  test_dynamic_graph_deque_traits.cpp   # ~800 lines (deque-specific + CPO)
+  test_dynamic_graph_edge_containers.cpp # ~400 lines (edge container deltas)
   
   # Phase 2: CPO support
   test_dynamic_graph_cpo.cpp       # ~2000 lines
   
-  # Phase 3: Associative vertex containers
-  test_dynamic_graph_map.cpp       # ~1800 lines
-  test_dynamic_graph_unordered_map.cpp  # ~1800 lines
+  # Phase 3: Associative vertex containers (Separate TEMPLATE_TEST_CASE)
+  test_dynamic_graph_associative_common.cpp  # ~1600 lines (3-6 assoc traits, string IDs)
+  test_dynamic_graph_map_traits.cpp          # ~700 lines (map-specific: ordering, comparators)
+  test_dynamic_graph_unordered_map_traits.cpp # ~700 lines (unordered_map-specific: hashing)
   
   # Phase 4: Set/map edge containers
   test_dynamic_graph_set.cpp       # ~1200 lines
@@ -932,8 +1048,25 @@ tests/
   test_dynamic_graph_edge_cases.cpp    # ~1000 lines
 ```
 
-**Total Estimated Lines:** ~24,800 lines of test code
-**Total Estimated Tests:** ~3,800-4,500 test cases
+**Total Estimated Lines (Optimized):** ~21,800 lines of test code
+**Total Estimated Tests:** ~4,000-4,700 test cases
+**Test Executions:** ~14,000+ (TEMPLATE_TEST_CASE multiplying tests across 6 sequential + 3-6 associative traits)
+**Code Reduction:** ~7,400 lines saved (25% overall reduction)
+
+**Optimization Strategy:**
+- **Two separate "common" files**: One for sequential containers (uint64_t IDs), one for associative (string IDs)
+- Use Catch2 TEMPLATE_TEST_CASE to run identical tests across container types within each category
+- Separate container-specific behavior tests (iterator invalidation, memory layout, CPO differences)
+- Cannot unify sequential and associative due to fundamental differences in vertex ID types and semantics
+- Maintain full coverage with significantly less code duplication
+- Clear separation between common behavior and container-specific quirks
+
+**Why Two Common Files Are Required:**
+- **Sequential (vector/deque)**: Auto-extends to accommodate any integral vertex ID, random/bidirectional access
+- **Associative (map/unordered_map)**: Only creates explicitly referenced vertices, bidirectional access only, key-based lookup
+- Different vertex ID types: `uint64_t` vs `std::string` (cannot template over both)
+- Different CPO implementations: `vertex_id()` returns index vs key
+- Different test assertions: `g[5]` vs `g["alice"]`
 
 **Note:** Graph algorithms (BFS, DFS, shortest path, MST, flow algorithms, etc.) will be implemented and tested in a separate phase after the CPO layer is complete and stable, ensuring they work generically across all graph types.
 
@@ -993,10 +1126,24 @@ tests/
    - Add move-only and copy-only types for advanced scenarios
 
 3. **Test Generation:**
-   - Consider using Catch2 generators for cartesian products of parameters
-   - Template test fixtures to reduce code duplication
-   - Macros for repetitive assertion patterns
+   - ✅ **Use Catch2 TEMPLATE_TEST_CASE** for cross-container unified tests (Phase 1.4+)
+   - Use Catch2 GENERATE for cartesian products of parameters
+   - TEMPLATE_TEST_CASE_SIG for complex type parameter combinations
+   - Separate container-specific tests from common behavior tests
+   - Macros for repetitive assertion patterns (minimize use)
    - Property-based testing for algorithm validation
+   
+   **TEMPLATE_TEST_CASE Example:**
+   ```cpp
+   TEMPLATE_TEST_CASE("construction works", "[construction]",
+       vofl_graph_traits, vol_graph_traits, vov_graph_traits,
+       dofl_graph_traits, dol_graph_traits, dov_graph_traits) {
+       using Graph = dynamic_graph<int, int, void, uint64_t, false, TestType>;
+       Graph g;
+       REQUIRE(g.size() == 0);
+       // Test body runs 6 times (once per traits type)
+   }
+   ```
 
 4. **Performance Benchmarks:**
    - Include micro-benchmarks in Phase 6 and 7.2
