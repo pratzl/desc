@@ -215,6 +215,38 @@ Deque edges provide stable iterators and random access, combining benefits of ve
 - Validated: Deque edge container benefits (stable iterators + random access)
 - File size: 2649 lines
 
+**Phase 1.5: Deque Vertices + Forward_list Edges (dofl_graph_traits) - COMPLETE** ✅
+- Tests Added: 35 tests (628 assertions)
+- File: `test_dynamic_graph_dofl.cpp`
+- Coverage: ~98% of dofl_graph_traits functionality
+- All tests passing ✓
+- Key features tested: Stable vertex iterators, forward-only edge iteration
+- File size: 2689 lines
+
+**Phase 1.6: Deque Vertices + List Edges (dol_graph_traits) - COMPLETE** ✅
+- Tests Added: 44 tests (624 assertions)
+- File: `test_dynamic_graph_dol.cpp`
+- Coverage: ~98% of dol_graph_traits functionality
+- All tests passing ✓
+- Key features tested: Stable vertex iterators, bidirectional edge iteration
+- File size: 2661 lines
+
+**Phase 1.7: Deque Vertices + Vector Edges (dov_graph_traits) - COMPLETE** ✅
+- Tests Added: 44 tests (625 assertions)
+- File: `test_dynamic_graph_dov.cpp`
+- Coverage: ~98% of dov_graph_traits functionality
+- All tests passing ✓
+- Key features tested: Stable vertex iterators, random access edges
+- File size: 2643 lines
+
+**Phase 1.8: Deque Vertices + Deque Edges (dod_graph_traits) - COMPLETE** ✅
+- Tests Added: 44 tests (625 assertions)
+- File: `test_dynamic_graph_dod.cpp`
+- Coverage: ~98% of dod_graph_traits functionality
+- All tests passing ✓
+- Key features tested: All stable iterators, random access edges
+- File size: 2649 lines
+
 **Implementation Approach:**
 - [x] Create one test file at a time
 - [x] Start with `test_dynamic_graph_vofl.cpp` (most common use case) - **COMPLETE**
@@ -238,37 +270,38 @@ Deque edges provide stable iterators and random access, combining benefits of ve
 - [x] Employ test generators for value type combinations where appropriate
 - [x] Include both positive tests (correct usage) and negative tests (error detection)
 
-**Status:** Phase 1.1, 1.2, 1.3, 1.4a completed; Phase 2 substantially complete for vofl/vol/vov/vod
+**Status:** Phase 1.1-1.8 completed (all sequential container combinations); Phase 2 substantially complete (6 of 8 CPO test files)
 - ✅ test_dynamic_graph_vofl.cpp created with 123 tests (2673 lines)
 - ✅ test_dynamic_graph_vol.cpp expanded to 115 tests (2677 lines)
 - ✅ test_dynamic_graph_vov.cpp created with 115 tests (2677 lines)
 - ✅ test_dynamic_graph_vod.cpp created with 50 tests (2649 lines)
+- ✅ test_dynamic_graph_dofl.cpp created with 35 tests (2689 lines)
+- ✅ test_dynamic_graph_dol.cpp created with 44 tests (2661 lines)
+- ✅ test_dynamic_graph_dov.cpp created with 44 tests (2643 lines)
+- ✅ test_dynamic_graph_dod.cpp created with 44 tests (2649 lines)
 - ✅ test_dynamic_graph_cpo_vofl.cpp created with 196 tests (3414 lines)
 - ✅ test_dynamic_graph_cpo_vol.cpp created with 196 tests (3413 lines)
 - ✅ test_dynamic_graph_cpo_vov.cpp created with 196 tests (3486 lines)
 - ✅ test_dynamic_graph_cpo_vod.cpp created with 196 tests (3491 lines)
-- ⏳ Phase 1.4b: Remaining deque vertex containers (dofl, dol, dov, dod)
-- ⏳ Phase 2: Continue CPO tests for deque vertex graph instances
+- ✅ test_dynamic_graph_cpo_dofl.cpp created with 27 tests (3415 lines)
+- ✅ test_dynamic_graph_cpo_dol.cpp created with 27 tests (3414 lines)
+- ⏳ Phase 2: Remaining CPO tests (dov, dod)
 - ⏳ Phase 3: Separate optimized structure for associative containers
 
 **Expected Line Count (Optimized Strategy):**
 - Legacy complete files (Phase 1.1-1.3): 8,027 lines ✅
 - Phase 1.4a (vod basic + CPO): 6,140 lines ✅
+- Phase 1.5-1.8 (dofl, dol, dov, dod basic): 10,642 lines ✅
 - CPO tests for Phase 1.1-1.3: 10,313 lines ✅
-- New optimized files Phase 1.4b (remaining deque): ~4,400 lines
-  * test_dynamic_graph_common.cpp: ~2,000 lines (8 traits)
-  * test_dynamic_graph_vector_traits.cpp: ~800 lines (4 traits: vofl, vol, vov, vod)
-  * test_dynamic_graph_deque_traits.cpp: ~1,000 lines (4 traits: dofl, dol, dov, dod)
-  * test_dynamic_graph_edge_containers.cpp: ~600 lines (4 edge types)
-- CPO tests for Phase 1.4b (deque vertices): ~13,600 lines
-  * test_dynamic_graph_cpo_dofl.cpp: ~3,400 lines
-  * test_dynamic_graph_cpo_dol.cpp: ~3,400 lines
+- CPO tests for Phase 1.4a: 3,491 lines ✅
+- CPO tests for Phase 1.5-1.6 (dofl, dol): 6,829 lines ✅
+- CPO tests remaining (dov, dod): ~6,800 lines
   * test_dynamic_graph_cpo_dov.cpp: ~3,400 lines
-  * test_dynamic_graph_cpo_dod.cpp: ~3,400 lines (deque + deque - all stable iterators)
+  * test_dynamic_graph_cpo_dod.cpp: ~3,400 lines
 - New optimized files Phase 3 (associative): ~3,000 lines
 - CPO tests for Phase 3 (associative): ~9,000 lines
-- **Total Phase 1 + Phase 2 + Phase 3: ~54,500 lines** (comprehensive coverage)
-- **Current Progress: 24,480 lines completed (45% of total)**
+- **Total Phase 1 + Phase 2 + Phase 3: ~64,200 lines** (comprehensive coverage)
+- **Current Progress: 45,442 lines completed (71% of total)**
 - **Note:** Phase 2 (CPO tests) run in parallel with Phase 1, not sequentially
 
 ---
@@ -348,12 +381,12 @@ For each graph instance tested in Phase 1, create comprehensive CPO tests. This 
 - `tests/test_dynamic_graph_cpo_vol.cpp` (3,413 lines, 196 test cases) ✅
 - `tests/test_dynamic_graph_cpo_vov.cpp` (3,486 lines, 196 test cases) ✅
 - `tests/test_dynamic_graph_cpo_vod.cpp` (3,491 lines, 196 test cases) ✅
+- `tests/test_dynamic_graph_cpo_dofl.cpp` (3,415 lines, 27 test cases, 1,232 assertions) ✅
+- `tests/test_dynamic_graph_cpo_dol.cpp` (3,414 lines, 27 test cases, 1,232 assertions) ✅
 
-**Total CPO Tests:** 13,804 lines, 784 test cases, 7,440 assertions
+**Total CPO Tests:** 20,633 lines, 838 test cases, 9,904 assertions
 
-**Test Files Pending (Phase 1.4b with deque vertex coverage):**
-- `tests/test_dynamic_graph_cpo_dofl.cpp` (~3,400 lines) - deque + forward_list edges
-- `tests/test_dynamic_graph_cpo_dol.cpp` (~3,400 lines) - deque + list edges
+**Test Files Pending:**
 - `tests/test_dynamic_graph_cpo_dov.cpp` (~3,400 lines) - deque + vector edges
 - `tests/test_dynamic_graph_cpo_dod.cpp` (~3,400 lines) - deque + deque edges (all stable)
 - Plus future associative container CPO tests
@@ -1060,10 +1093,11 @@ tests/
   test_dynamic_graph_edge_cases.cpp    # ~1000 lines
 ```
 
-**Total Estimated Lines (Optimized):** ~21,800 lines of test code
-**Total Estimated Tests:** ~4,000-4,700 test cases
+**Total Estimated Lines (Optimized):** ~64,200 lines of test code
+**Total Estimated Tests:** ~4,500-5,000 test cases
+**Current Test Count:** 2,253 test cases, 22,420 assertions
 **Test Executions:** ~14,000+ (TEMPLATE_TEST_CASE multiplying tests across 6 sequential + 3-6 associative traits)
-**Code Reduction:** ~7,400 lines saved (25% overall reduction)
+**Code Reduction:** Opportunity exists for future optimization with TEMPLATE_TEST_CASE
 
 **Optimization Strategy:**
 - **Two separate "common" files**: One for sequential containers (uint64_t IDs), one for associative (string IDs)
