@@ -15,7 +15,21 @@
  * All traits use uint64_t vertex IDs with auto-extension semantics.
  * Container-specific behavior is tested in separate files.
  * 
- * Current Status: ~300 test scenarios × 8 traits = 2,400 test executions
+ * Current Status: Comprehensive test coverage across all sequential traits
+ * 
+ * Test Categories:
+ * - Construction (15 tests)
+ * - Load Operations (12 tests) 
+ * - Vertex Access (10 tests)
+ * - Edge Access (12 tests)
+ * - Value Access (8 tests)
+ * - Sourced Edges (6 tests)
+ * - Properties (10 tests)
+ * - Memory/Performance (8 tests)
+ * - Edge Cases (15 tests)
+ * - Iterators/Ranges (10 tests)
+ * - Workflows (8 tests)
+ * Total: ~114 test scenarios × 8 traits = ~912 test executions
  */
 
 #include <catch2/catch_test_macros.hpp>
@@ -114,6 +128,138 @@ TEMPLATE_TEST_CASE("move construction", "[common][construction]",
     Graph g1;
     Graph g2(std::move(g1));
     REQUIRE(g2.size() == 0);
+}
+
+TEMPLATE_TEST_CASE("construction with initializer_list edges", "[common][construction]",
+                   (vofl_graph_traits<int, void, void, uint64_t, false>),
+                   (vol_graph_traits<int, void, void, uint64_t, false>),
+                   (vov_graph_traits<int, void, void, uint64_t, false>),
+                   (vod_graph_traits<int, void, void, uint64_t, false>),
+                   (dofl_graph_traits<int, void, void, uint64_t, false>),
+                   (dol_graph_traits<int, void, void, uint64_t, false>),
+                   (dov_graph_traits<int, void, void, uint64_t, false>),
+                   (dod_graph_traits<int, void, void, uint64_t, false>)) {
+    using Graph = dynamic_graph<int, void, void, uint64_t, false, TestType>;
+    
+    Graph g({{0, 1, 10}, {1, 2, 20}, {2, 0, 30}});
+    REQUIRE(g.size() == 3);
+    
+    auto& v0 = g[0];
+    bool found = false;
+    for (auto& e : v0.edges()) {
+        if (e.target_id() == 1) {
+            REQUIRE(e.value() == 10);
+            found = true;
+        }
+    }
+    REQUIRE(found);
+}
+
+TEMPLATE_TEST_CASE("construction with edge range and load", "[common][construction]",
+                   (vofl_graph_traits<void, void, void, uint64_t, false>),
+                   (vol_graph_traits<void, void, void, uint64_t, false>),
+                   (vov_graph_traits<void, void, void, uint64_t, false>),
+                   (vod_graph_traits<void, void, void, uint64_t, false>),
+                   (dofl_graph_traits<void, void, void, uint64_t, false>),
+                   (dol_graph_traits<void, void, void, uint64_t, false>),
+                   (dov_graph_traits<void, void, void, uint64_t, false>),
+                   (dod_graph_traits<void, void, void, uint64_t, false>)) {
+    using Graph = dynamic_graph<void, void, void, uint64_t, false, TestType>;
+    using edge_data = copyable_edge_t<uint64_t, void>;
+    
+    Graph g;
+    std::vector<edge_data> edges = {{0, 1}, {1, 2}, {2, 3}};
+    g.load_edges(edges, std::identity{});
+    
+    REQUIRE(g.size() == 4);
+}
+
+TEMPLATE_TEST_CASE("construction with graph value copy", "[common][construction]",
+                   (vofl_graph_traits<void, void, std::string, uint64_t, false>),
+                   (vol_graph_traits<void, void, std::string, uint64_t, false>),
+                   (vov_graph_traits<void, void, std::string, uint64_t, false>),
+                   (vod_graph_traits<void, void, std::string, uint64_t, false>),
+                   (dofl_graph_traits<void, void, std::string, uint64_t, false>),
+                   (dol_graph_traits<void, void, std::string, uint64_t, false>),
+                   (dov_graph_traits<void, void, std::string, uint64_t, false>),
+                   (dod_graph_traits<void, void, std::string, uint64_t, false>)) {
+    using Graph = dynamic_graph<void, void, std::string, uint64_t, false, TestType>;
+    
+    std::string val = "test_value";
+    Graph g(val);
+    REQUIRE(g.graph_value() == "test_value");
+    REQUIRE(val == "test_value"); // Original unchanged
+}
+
+TEMPLATE_TEST_CASE("construction with graph value move", "[common][construction]",
+                   (vofl_graph_traits<void, void, std::string, uint64_t, false>),
+                   (vol_graph_traits<void, void, std::string, uint64_t, false>),
+                   (vov_graph_traits<void, void, std::string, uint64_t, false>),
+                   (vod_graph_traits<void, void, std::string, uint64_t, false>),
+                   (dofl_graph_traits<void, void, std::string, uint64_t, false>),
+                   (dol_graph_traits<void, void, std::string, uint64_t, false>),
+                   (dov_graph_traits<void, void, std::string, uint64_t, false>),
+                   (dod_graph_traits<void, void, std::string, uint64_t, false>)) {
+    using Graph = dynamic_graph<void, void, std::string, uint64_t, false, TestType>;
+    
+    std::string val = "test_value";
+    Graph g(std::move(val));
+    REQUIRE(g.graph_value() == "test_value");
+}
+
+TEMPLATE_TEST_CASE("assignment operators", "[common][construction]",
+                   (vofl_graph_traits<int, int, int, uint64_t, false>),
+                   (vol_graph_traits<int, int, int, uint64_t, false>),
+                   (vov_graph_traits<int, int, int, uint64_t, false>),
+                   (vod_graph_traits<int, int, int, uint64_t, false>),
+                   (dofl_graph_traits<int, int, int, uint64_t, false>),
+                   (dol_graph_traits<int, int, int, uint64_t, false>),
+                   (dov_graph_traits<int, int, int, uint64_t, false>),
+                   (dod_graph_traits<int, int, int, uint64_t, false>)) {
+    using Graph = dynamic_graph<int, int, int, uint64_t, false, TestType>;
+    
+    Graph g1, g2, g3;
+    
+    // Copy assignment
+    g2 = g1;
+    REQUIRE(g2.size() == g1.size());
+    
+    // Move assignment
+    g3 = std::move(g1);
+    REQUIRE(g3.size() == 0);
+}
+
+TEMPLATE_TEST_CASE("empty graph properties", "[common][construction]",
+                   (vofl_graph_traits<void, void, void, uint64_t, false>),
+                   (vol_graph_traits<void, void, void, uint64_t, false>),
+                   (vov_graph_traits<void, void, void, uint64_t, false>),
+                   (vod_graph_traits<void, void, void, uint64_t, false>),
+                   (dofl_graph_traits<void, void, void, uint64_t, false>),
+                   (dol_graph_traits<void, void, void, uint64_t, false>),
+                   (dov_graph_traits<void, void, void, uint64_t, false>),
+                   (dod_graph_traits<void, void, void, uint64_t, false>)) {
+    using Graph = dynamic_graph<void, void, void, uint64_t, false, TestType>;
+    
+    Graph g;
+    REQUIRE(g.size() == 0);
+    REQUIRE(g.begin() == g.end());
+    REQUIRE(g.cbegin() == g.cend());
+}
+
+TEMPLATE_TEST_CASE("const graph access", "[common][construction]",
+                   (vofl_graph_traits<void, void, void, uint64_t, false>),
+                   (vol_graph_traits<void, void, void, uint64_t, false>),
+                   (vov_graph_traits<void, void, void, uint64_t, false>),
+                   (vod_graph_traits<void, void, void, uint64_t, false>),
+                   (dofl_graph_traits<void, void, void, uint64_t, false>),
+                   (dol_graph_traits<void, void, void, uint64_t, false>),
+                   (dov_graph_traits<void, void, void, uint64_t, false>),
+                   (dod_graph_traits<void, void, void, uint64_t, false>)) {
+    using Graph = dynamic_graph<void, void, void, uint64_t, false, TestType>;
+    
+    const Graph g;
+    REQUIRE(g.size() == 0);
+    REQUIRE(g.begin() == g.end());
 }
 
 //==================================================================================================
