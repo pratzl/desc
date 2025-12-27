@@ -4,10 +4,9 @@
  * 
  * Phase 1.5: Core Container Combinations
  * Tests dol_graph_traits (deque vertices + list edges)
- * Bidirectional edge iteration with std::list
  * 
- * This file provides comprehensive coverage matching test_dynamic_graph_vofl.cpp
- * with adaptations for bidirectional iterator features of std::list.
+ * Note: While std::list provides bidirectional iterators, the graph library
+ * uses forward-only descriptor iterators for both vertices and edges.
  */
 
 #include <catch2/catch_test_macros.hpp>
@@ -614,7 +613,9 @@ TEST_CASE("dol various template instantiations compile", "[dol][compilation]") {
     REQUIRE(true); // Just ensuring compilation
 }
 
-// Additional static checks - verify bidirectional range for edges
+// Additional static checks - verify underlying edge container is bidirectional range
+// Note: The graph library uses forward-only descriptor iterators, but the
+// underlying edges container (std::list) is still a bidirectional_range.
 static_assert(std::ranges::range<dol_void_void_void>);
 static_assert(std::ranges::range<dol_int_int_int>);
 static_assert(std::ranges::range<dol_string_string_string>);

@@ -8,7 +8,7 @@
  * 
  * Key differences from sequential containers (vector/deque):
  * 1. Key-based vertex identification - not index-based
- * 2. Bidirectional iterators only - no random access
+ * 2. Descriptor iterators are forward-only (despite underlying container capabilities)
  * 3. Sparse vertex IDs by design - only referenced vertices are created
  * 4. Ordered iteration - vertices iterate in key order
  * 
@@ -104,12 +104,12 @@ TEST_CASE("mofl traits verification", "[dynamic_graph][mofl][traits]") {
 //==================================================================================================
 
 TEST_CASE("mofl iterator categories", "[dynamic_graph][mofl][iterators]") {
-    SECTION("vertex iterators are bidirectional (map iterator)") {
+    SECTION("underlying map iterators are bidirectional") {
+        // Note: The raw map iterator is bidirectional, but the graph library
+        // wraps vertices with descriptor iterators which are forward-only.
         using G = mofl_void_void_void;
         using iter_t = typename G::vertices_type::iterator;
-        // std::map iterators are bidirectional
         static_assert(std::bidirectional_iterator<iter_t>);
-        // but NOT random access
         static_assert(!std::random_access_iterator<iter_t>);
         REQUIRE(true);
     }
@@ -1123,7 +1123,7 @@ TEST_CASE("mofl load_vertices and load_edges combined", "[dynamic_graph][mofl][l
 // - Map provides key-based storage (sparse vertex IDs)
 // - Ordered iteration - vertices iterate in key order  
 // - String vertex IDs supported
-// - Bidirectional vertex iterators (from map)
+// - Forward vertex iteration (descriptor iterators, despite map's bidirectional iterators)
 // - Forward-only edge iterators (from forward_list)
 // - Proper copy/move semantics
 // - Graph value storage

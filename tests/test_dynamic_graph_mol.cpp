@@ -2,19 +2,18 @@
  * @file test_dynamic_graph_mol.cpp
  * @brief Tests for dynamic_graph with map vertices + list edges
  * 
- * Phase 3.1: Map Vertex Containers
+ * Phase 3.1b: Map Vertex Containers
  * Tests mol_graph_traits (map vertices + list edges)
  * This is the second associative container combination for dynamic graphs.
  * 
  * Key differences from sequential containers (vector/deque):
  * 1. Key-based vertex identification - not index-based
- * 2. Bidirectional iterators only - no random access
+ * 2. Descriptor iterators are forward-only (despite underlying container capabilities)
  * 3. Sparse vertex IDs by design - only referenced vertices are created
  * 4. Ordered iteration - vertices iterate in key order
  * 
  * Key differences from mofl (map + forward_list):
- * 1. std::list provides bidirectional edge iteration (unlike forward_list)
- * 2. Edge order is preserved: first added appears first
+ * 1. std::list preserves edge order: first added appears first (unlike forward_list)
  * 
  * Note: The vertices(g) CPO is tested separately in graph container interface tests.
  * This file focuses on mol_graph_traits specific functionality.
@@ -107,23 +106,23 @@ TEST_CASE("mol traits verification", "[dynamic_graph][mol][traits]") {
 //==================================================================================================
 
 TEST_CASE("mol iterator categories", "[dynamic_graph][mol][iterators]") {
-    SECTION("vertex iterators are bidirectional (map iterator)") {
+    SECTION("underlying map iterators are bidirectional") {
+        // Note: The raw map iterator is bidirectional, but the graph library
+        // wraps vertices with descriptor iterators which are forward-only.
         using G = mol_void_void_void;
         using iter_t = typename G::vertices_type::iterator;
-        // std::map iterators are bidirectional
         static_assert(std::bidirectional_iterator<iter_t>);
-        // but NOT random access
         static_assert(!std::random_access_iterator<iter_t>);
         REQUIRE(true);
     }
 
-    SECTION("edge iterators are bidirectional (list iterator)") {
+    SECTION("underlying list iterators are bidirectional") {
+        // Note: The raw list iterator is bidirectional, but the graph library
+        // wraps edges with descriptor iterators which are forward-only.
         using traits = mol_graph_traits<void, void, void, uint32_t, false>;
         using edges_t = typename traits::edges_type;
         using edge_iter_t = typename edges_t::iterator;
-        // std::list iterators are bidirectional
         static_assert(std::bidirectional_iterator<edge_iter_t>);
-        // but NOT random access
         static_assert(!std::random_access_iterator<edge_iter_t>);
         REQUIRE(true);
     }
@@ -135,7 +134,9 @@ TEST_CASE("mol iterator categories", "[dynamic_graph][mol][iterators]") {
         REQUIRE(true);
     }
 
-    SECTION("edges are a bidirectional range") {
+    SECTION("underlying edges container is bidirectional range") {
+        // Note: The raw edges container is a bidirectional range, but the graph
+        // library uses edge descriptor iterators which are forward-only.
         static_assert(std::ranges::bidirectional_range<mol_void_void_void::vertex_type::edges_type>);
         static_assert(std::ranges::bidirectional_range<mol_int_int_int::vertex_type::edges_type>);
         REQUIRE(true);
@@ -1373,8 +1374,8 @@ TEST_CASE("mol complete workflow scenarios", "[dynamic_graph][mol][workflow]") {
 // - Map provides key-based storage (sparse vertex IDs)
 // - Ordered iteration - vertices iterate in key order  
 // - String vertex IDs supported
-// - Bidirectional vertex iterators (from map)
-// - Bidirectional edge iterators (from list) - unlike mofl which is forward-only
+// - Forward vertex iteration (descriptor iterators, despite map's bidirectional iterators)
+// - Forward edge iteration (descriptor iterators, despite list's bidirectional iterators)
 // - Proper copy/move semantics
 // - Graph value storage
 // - load_vertices() with associative containers
