@@ -79,11 +79,16 @@ public:
     
     /**
      * @brief Get the target vertex ID from the edge data
-     * @param edges The edge container to access edge data
+     * @param vertex_data The vertex/edge data structure passed from the CPO
      * @return The target vertex identifier extracted from the edge
      * 
      * For random access iterators, uses the stored index to access the container.
      * For forward/bidirectional iterators, dereferences the stored iterator.
+     * 
+     * The vertex_data parameter varies by graph structure:
+     * - vov-style: vertex object with .edges() method
+     * - map-based: std::pair<VId, vertex_type> where .second is the vertex
+     * - raw adjacency: the edge container directly
      * 
      * Edge data extraction:
      * - Simple integral types: returns the value directly as target ID
@@ -98,19 +103,29 @@ public:
      * 3. Wrap return expressions in parentheses: return (edge_val.first);
      * See descriptor.md "Lambda Reference Binding Issues" section for details.
      */
-    template<typename EdgeContainer>
-    [[nodiscard]] constexpr auto target_id(const EdgeContainer& edges) const noexcept {
+    template<typename VertexData>
+    [[nodiscard]] constexpr auto target_id(const VertexData& vertex_data) const noexcept {
         using edge_value_type = typename std::iterator_traits<EdgeIter>::value_type;
         
-        // If parameter has .edges() method, extract the edge container first (for vov)
-        // If parameter is pair-like, extract .second (for maps)
+        // Extract the actual edge container from vertex_data:
+        // 1. If vertex_data has .edges() method, use that (for vov-style vertex)
+        // 2. If vertex_data is pair-like (from map iterator dereference):
+        //    a. If .second has .edges(), use .second.edges() (for map + vector/list edges)
+        //    b. Otherwise use .second directly (for simpler edge storage)
+        // 3. Otherwise use vertex_data as-is (raw edge container)
         const auto& edge_container = [&]() -> decltype(auto) {
-            if constexpr (requires { edges.edges(); }) {
-                return edges.edges();
-            } else if constexpr (requires { edges.first; edges.second; }) {
-                return edges.second;
+            if constexpr (requires { vertex_data.edges(); }) {
+                return vertex_data.edges();
+            } else if constexpr (requires { vertex_data.first; vertex_data.second; }) {
+                // For map-based vertices, .second is the vertex
+                // Check if the vertex has .edges() method
+                if constexpr (requires { vertex_data.second.edges(); }) {
+                    return vertex_data.second.edges();
+                } else {
+                    return vertex_data.second;
+                }
             } else {
-                return edges;
+                return vertex_data;
             }
         }();
         
@@ -148,33 +163,41 @@ public:
     
     /**
      * @brief Get the underlying container value (the actual edge data)
-     * @param edges The edge container to access edge data
+     * @param vertex_data The vertex/edge data structure passed from the CPO
      * @return Reference to the edge data from the container
      * 
-     * For random access iterators, accesses edges[index].
+     * For random access iterators, accesses container[index].
      * For forward/bidirectional iterators, dereferences the stored iterator.
      */
-    template<typename EdgeContainer>
-    [[nodiscard]] constexpr decltype(auto) underlying_value(EdgeContainer& edges) const noexcept {
-        // If parameter has .edges() method, extract the edge container first (for vov)
-        // If parameter is pair-like, extract .second (for maps)
-        if constexpr (requires { edges.edges(); }) {
-            auto& edge_container = edges.edges();
+    template<typename VertexData>
+    [[nodiscard]] constexpr decltype(auto) underlying_value(VertexData& vertex_data) const noexcept {
+        // Extract the actual edge container from vertex_data (see target_id for details)
+        if constexpr (requires { vertex_data.edges(); }) {
+            auto& edge_container = vertex_data.edges();
             if constexpr (std::random_access_iterator<EdgeIter>) {
                 return (edge_container[edge_storage_]);
             } else {
                 return (*edge_storage_);
             }
-        } else if constexpr (requires { edges.first; edges.second; }) {
-            auto& edge_container = edges.second;
-            if constexpr (std::random_access_iterator<EdgeIter>) {
-                return (edge_container[edge_storage_]);
+        } else if constexpr (requires { vertex_data.first; vertex_data.second; }) {
+            if constexpr (requires { vertex_data.second.edges(); }) {
+                auto& edge_container = vertex_data.second.edges();
+                if constexpr (std::random_access_iterator<EdgeIter>) {
+                    return (edge_container[edge_storage_]);
+                } else {
+                    return (*edge_storage_);
+                }
             } else {
-                return (*edge_storage_);
+                auto& edge_container = vertex_data.second;
+                if constexpr (std::random_access_iterator<EdgeIter>) {
+                    return (edge_container[edge_storage_]);
+                } else {
+                    return (*edge_storage_);
+                }
             }
         } else {
             if constexpr (std::random_access_iterator<EdgeIter>) {
-                return (edges[edge_storage_]);
+                return (vertex_data[edge_storage_]);
             } else {
                 return (*edge_storage_);
             }
@@ -183,30 +206,38 @@ public:
     
     /**
      * @brief Get the underlying container value (const version)
-     * @param edges The edge container to access edge data
+     * @param vertex_data The vertex/edge data structure passed from the CPO
      * @return Const reference to the edge data from the container
      */
-    template<typename EdgeContainer>
-    [[nodiscard]] constexpr decltype(auto) underlying_value(const EdgeContainer& edges) const noexcept {
-        // If parameter has .edges() method, extract the edge container first (for vov)
-        // If parameter is pair-like, extract .second (for maps)
-        if constexpr (requires { edges.edges(); }) {
-            const auto& edge_container = edges.edges();
+    template<typename VertexData>
+    [[nodiscard]] constexpr decltype(auto) underlying_value(const VertexData& vertex_data) const noexcept {
+        // Extract the actual edge container from vertex_data (see target_id for details)
+        if constexpr (requires { vertex_data.edges(); }) {
+            const auto& edge_container = vertex_data.edges();
             if constexpr (std::random_access_iterator<EdgeIter>) {
                 return (edge_container[edge_storage_]);
             } else {
                 return (*edge_storage_);
             }
-        } else if constexpr (requires { edges.first; edges.second; }) {
-            const auto& edge_container = edges.second;
-            if constexpr (std::random_access_iterator<EdgeIter>) {
-                return (edge_container[edge_storage_]);
+        } else if constexpr (requires { vertex_data.first; vertex_data.second; }) {
+            if constexpr (requires { vertex_data.second.edges(); }) {
+                const auto& edge_container = vertex_data.second.edges();
+                if constexpr (std::random_access_iterator<EdgeIter>) {
+                    return (edge_container[edge_storage_]);
+                } else {
+                    return (*edge_storage_);
+                }
             } else {
-                return (*edge_storage_);
+                const auto& edge_container = vertex_data.second;
+                if constexpr (std::random_access_iterator<EdgeIter>) {
+                    return (edge_container[edge_storage_]);
+                } else {
+                    return (*edge_storage_);
+                }
             }
         } else {
             if constexpr (std::random_access_iterator<EdgeIter>) {
-                return (edges[edge_storage_]);
+                return (vertex_data[edge_storage_]);
             } else {
                 return (*edge_storage_);
             }
@@ -215,7 +246,7 @@ public:
     
     /**
      * @brief Get the inner/property value (excluding the target ID)
-     * @param edges The edge container to access edge data
+     * @param vertex_data The vertex/edge data structure passed from the CPO
      * @return Reference to the edge properties (excluding target vertex ID)
      * 
      * Behavior based on edge data type:
@@ -226,14 +257,13 @@ public:
      * 
      * For tuples with 3+ elements, this creates a tuple of references to elements [1, N).
      */
-    template<typename EdgeContainer>
-    [[nodiscard]] constexpr decltype(auto) inner_value(EdgeContainer& edges) const noexcept {
+    template<typename VertexData>
+    [[nodiscard]] constexpr decltype(auto) inner_value(VertexData& vertex_data) const noexcept {
         using edge_value_type = typename std::iterator_traits<EdgeIter>::value_type;
         
-        // If parameter has .edges() method, extract the edge container first (for vov)
-        // If parameter is pair-like, extract .second (for maps)
-        if constexpr (requires { edges.edges(); }) {
-            auto& edge_container = edges.edges();
+        // Extract the actual edge container from vertex_data (see target_id for details)
+        if constexpr (requires { vertex_data.edges(); }) {
+            auto& edge_container = vertex_data.edges();
             // Simple type: just the target ID, return it (no separate property)
             if constexpr (std::integral<edge_value_type>) {
                 if constexpr (std::random_access_iterator<EdgeIter>) {
@@ -292,9 +322,9 @@ public:
                     return (*edge_storage_);
                 }
             }
-        } else if constexpr (requires { edges.first; edges.second; }) {
-            // Map pair case - extract .second (edge container) 
-            auto& edge_container = edges.second;
+        } else if constexpr (requires { vertex_data.first; vertex_data.second; }) {
+            // Map pair case - .second is the vertex, get its edges
+            auto& edge_container = vertex_data.second;
             // Simple type: just the target ID, return it (no separate property)
             if constexpr (std::integral<edge_value_type>) {
                 if constexpr (std::random_access_iterator<EdgeIter>) {
@@ -356,7 +386,7 @@ public:
             // Simple type: just the target ID
             if constexpr (std::integral<edge_value_type>) {
                 if constexpr (std::random_access_iterator<EdgeIter>) {
-                    return (edges[edge_storage_]);
+                    return (vertex_data[edge_storage_]);
                 } else {
                     return (*edge_storage_);
                 }
@@ -364,7 +394,7 @@ public:
             // Pair-like: return .second (the property part)
             else if constexpr (requires { std::declval<edge_value_type>().first; std::declval<edge_value_type>().second; }) {
                 if constexpr (std::random_access_iterator<EdgeIter>) {
-                    return (edges[edge_storage_].second);
+                    return (vertex_data[edge_storage_].second);
                 } else {
                     return ((*edge_storage_).second);
                 }
@@ -374,7 +404,7 @@ public:
                 constexpr size_t tuple_size = std::tuple_size<edge_value_type>::value;
                 
                 if constexpr (std::random_access_iterator<EdgeIter>) {
-                    auto& edge_val = edges[edge_storage_];
+                    auto& edge_val = vertex_data[edge_storage_];
                     if constexpr (tuple_size == 1) {
                         return (std::get<0>(edge_val));
                     }
@@ -404,25 +434,26 @@ public:
             // Custom struct/type: return the whole value
             else {
                 if constexpr (std::random_access_iterator<EdgeIter>) {
-                    return (edges[edge_storage_]);
+                    return (vertex_data[edge_storage_]);
                 } else {
                     return (*edge_storage_);
                 }
             }
         }
-    }    /**
+    }
+    
+    /**
      * @brief Get the inner/property value (const version)
-     * @param edges The edge container to access edge data
+     * @param vertex_data The vertex/edge data structure passed from the CPO
      * @return Const reference to the edge properties
      */
-    template<typename EdgeContainer>
-    [[nodiscard]] constexpr decltype(auto) inner_value(const EdgeContainer& edges) const noexcept {
+    template<typename VertexData>
+    [[nodiscard]] constexpr decltype(auto) inner_value(const VertexData& vertex_data) const noexcept {
         using edge_value_type = typename std::iterator_traits<EdgeIter>::value_type;
         
-        // If parameter has .edges() method, extract the edge container first (for vov)
-        // If parameter is pair-like, extract .second (for maps)
-        if constexpr (requires { edges.edges(); }) {
-            const auto& edge_container = edges.edges();
+        // Extract the actual edge container from vertex_data (see target_id for details)
+        if constexpr (requires { vertex_data.edges(); }) {
+            const auto& edge_container = vertex_data.edges();
             // Simple type: just the target ID, return it (no separate property)
             if constexpr (std::integral<edge_value_type>) {
                 if constexpr (std::random_access_iterator<EdgeIter>) {
@@ -479,9 +510,9 @@ public:
                     return (*edge_storage_);
                 }
             }
-        } else if constexpr (requires { edges.first; edges.second; }) {
-            // Map pair case - extract .second (edge container)
-            const auto& edge_container = edges.second;
+        } else if constexpr (requires { vertex_data.first; vertex_data.second; }) {
+            // Map pair case - .second is the vertex, get its edges
+            const auto& edge_container = vertex_data.second;
             // Simple type: just the target ID, return it (no separate property)
             if constexpr (std::integral<edge_value_type>) {
                 if constexpr (std::random_access_iterator<EdgeIter>) {
@@ -543,7 +574,7 @@ public:
             // Simple type: just the target ID
             if constexpr (std::integral<edge_value_type>) {
                 if constexpr (std::random_access_iterator<EdgeIter>) {
-                    return (edges[edge_storage_]);
+                    return (vertex_data[edge_storage_]);
                 } else {
                     return (*edge_storage_);
                 }
@@ -551,7 +582,7 @@ public:
             // Pair-like: return .second (the property part)
             else if constexpr (requires { std::declval<edge_value_type>().first; std::declval<edge_value_type>().second; }) {
                 if constexpr (std::random_access_iterator<EdgeIter>) {
-                    return (edges[edge_storage_].second);
+                    return (vertex_data[edge_storage_].second);
                 } else {
                     return ((*edge_storage_).second);
                 }
@@ -561,7 +592,7 @@ public:
                 constexpr size_t tuple_size = std::tuple_size<edge_value_type>::value;
                 
                 if constexpr (std::random_access_iterator<EdgeIter>) {
-                    const auto& edge_val = edges[edge_storage_];
+                    const auto& edge_val = vertex_data[edge_storage_];
                     if constexpr (tuple_size == 1) {
                         return (std::get<0>(edge_val));
                     }
@@ -591,7 +622,7 @@ public:
             // Custom struct/type: return the whole value
             else {
                 if constexpr (std::random_access_iterator<EdgeIter>) {
-                    return (edges[edge_storage_]);
+                    return (vertex_data[edge_storage_]);
                 } else {
                     return (*edge_storage_);
                 }
