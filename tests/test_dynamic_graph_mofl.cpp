@@ -845,6 +845,276 @@ TEST_CASE("mofl vertex_at", "[dynamic_graph][mofl][accessor][vertex_at]") {
 }
 
 //==================================================================================================
+// 16. load_vertices Tests
+//==================================================================================================
+
+TEST_CASE("mofl load_vertices", "[dynamic_graph][mofl][load_vertices]") {
+    SECTION("uint32_t IDs - basic load") {
+        using G = mofl_void_int_void;  // vertex value = int
+        using vertex_data = copyable_vertex_t<uint32_t, int>;
+        
+        G g({{0, 1}, {1, 2}});  // Create graph with edges
+        REQUIRE(g.size() == 3);
+        
+        // Load vertex values
+        std::vector<vertex_data> vv = {{0, 100}, {1, 200}, {2, 300}};
+        g.load_vertices(vv, std::identity{});
+        
+        REQUIRE(g.vertex_at(0).value() == 100);
+        REQUIRE(g.vertex_at(1).value() == 200);
+        REQUIRE(g.vertex_at(2).value() == 300);
+    }
+    
+    SECTION("uint32_t IDs - load creates new vertices") {
+        using G = mofl_void_int_void;
+        using vertex_data = copyable_vertex_t<uint32_t, int>;
+        
+        G g;  // Empty graph
+        REQUIRE(g.size() == 0);
+        
+        // Load should auto-insert vertices for associative containers
+        std::vector<vertex_data> vv = {{10, 100}, {20, 200}, {30, 300}};
+        g.load_vertices(vv, std::identity{});
+        
+        REQUIRE(g.size() == 3);
+        REQUIRE(g.vertex_at(10).value() == 100);
+        REQUIRE(g.vertex_at(20).value() == 200);
+        REQUIRE(g.vertex_at(30).value() == 300);
+    }
+    
+    SECTION("string IDs - basic load") {
+        using G = mofl_str_void_int_void;  // string keys, vertex value = int
+        using vertex_data = copyable_vertex_t<std::string, int>;
+        
+        G g({{"alice", "bob"}});
+        REQUIRE(g.size() == 2);
+        
+        std::vector<vertex_data> vv = {{"alice", 100}, {"bob", 200}};
+        g.load_vertices(vv, std::identity{});
+        
+        REQUIRE(g.vertex_at("alice").value() == 100);
+        REQUIRE(g.vertex_at("bob").value() == 200);
+    }
+    
+    SECTION("string IDs - load creates new vertices") {
+        using G = mofl_str_void_int_void;
+        using vertex_data = copyable_vertex_t<std::string, int>;
+        
+        G g;  // Empty graph
+        REQUIRE(g.size() == 0);
+        
+        std::vector<vertex_data> vv = {{"alice", 100}, {"bob", 200}, {"charlie", 300}};
+        g.load_vertices(vv, std::identity{});
+        
+        REQUIRE(g.size() == 3);
+        REQUIRE(g.vertex_at("alice").value() == 100);
+        REQUIRE(g.vertex_at("bob").value() == 200);
+        REQUIRE(g.vertex_at("charlie").value() == 300);
+    }
+    
+    SECTION("overwrite existing vertex values") {
+        using G = mofl_void_int_void;
+        using vertex_data = copyable_vertex_t<uint32_t, int>;
+        
+        G g({{0, 1}});
+        
+        // First load
+        std::vector<vertex_data> vv1 = {{0, 100}, {1, 200}};
+        g.load_vertices(vv1, std::identity{});
+        REQUIRE(g.vertex_at(0).value() == 100);
+        REQUIRE(g.vertex_at(1).value() == 200);
+        
+        // Second load overwrites
+        std::vector<vertex_data> vv2 = {{0, 999}, {1, 888}};
+        g.load_vertices(vv2, std::identity{});
+        REQUIRE(g.vertex_at(0).value() == 999);
+        REQUIRE(g.vertex_at(1).value() == 888);
+    }
+    
+    SECTION("with projection function") {
+        using G = mofl_void_int_void;
+        using vertex_data = copyable_vertex_t<uint32_t, int>;
+        
+        struct Person {
+            uint32_t id;
+            std::string name;
+            int age;
+        };
+        
+        G g;
+        std::vector<Person> people = {{1, "Alice", 30}, {2, "Bob", 25}, {3, "Charlie", 35}};
+        
+        g.load_vertices(people, [](const Person& p) -> vertex_data {
+            return {p.id, p.age};
+        });
+        
+        REQUIRE(g.size() == 3);
+        REQUIRE(g.vertex_at(1).value() == 30);
+        REQUIRE(g.vertex_at(2).value() == 25);
+        REQUIRE(g.vertex_at(3).value() == 35);
+    }
+}
+
+//==================================================================================================
+// 17. load_edges Tests (explicit calls, not via initializer_list)
+//==================================================================================================
+
+TEST_CASE("mofl load_edges explicit", "[dynamic_graph][mofl][load_edges]") {
+    SECTION("uint32_t IDs - basic load") {
+        using G = mofl_int_void_void;  // edge value = int
+        using edge_data = copyable_edge_t<uint32_t, int>;
+        
+        G g;
+        REQUIRE(g.size() == 0);
+        
+        std::vector<edge_data> ee = {{0, 1, 10}, {1, 2, 20}, {2, 3, 30}};
+        g.load_edges(ee, std::identity{});
+        
+        REQUIRE(g.size() == 4);  // Vertices 0, 1, 2, 3 auto-created
+    }
+    
+    SECTION("uint32_t IDs - sparse vertex creation") {
+        using G = mofl_void_void_void;
+        using edge_data = copyable_edge_t<uint32_t, void>;
+        
+        G g;
+        
+        // Edges with sparse IDs
+        std::vector<edge_data> ee = {{100, 200}, {300, 400}};
+        g.load_edges(ee, std::identity{});
+        
+        REQUIRE(g.size() == 4);  // Only 4 vertices, not 401
+        REQUIRE(g.contains_vertex(100));
+        REQUIRE(g.contains_vertex(200));
+        REQUIRE(g.contains_vertex(300));
+        REQUIRE(g.contains_vertex(400));
+        REQUIRE_FALSE(g.contains_vertex(0));
+        REQUIRE_FALSE(g.contains_vertex(150));
+    }
+    
+    SECTION("string IDs - basic load") {
+        using G = mofl_str_int_void_void;  // string keys, edge value = int
+        using edge_data = copyable_edge_t<std::string, int>;
+        
+        G g;
+        
+        std::vector<edge_data> ee = {{"alice", "bob", 10}, {"bob", "charlie", 20}};
+        g.load_edges(ee, std::identity{});
+        
+        REQUIRE(g.size() == 3);
+        REQUIRE(g.contains_vertex("alice"));
+        REQUIRE(g.contains_vertex("bob"));
+        REQUIRE(g.contains_vertex("charlie"));
+    }
+    
+    SECTION("append edges to existing graph") {
+        using G = mofl_int_void_void;
+        using edge_data = copyable_edge_t<uint32_t, int>;
+        
+        G g({{0, 1, 10}});
+        REQUIRE(g.size() == 2);
+        
+        // Add more edges
+        std::vector<edge_data> ee = {{1, 2, 20}, {2, 3, 30}};
+        g.load_edges(ee, std::identity{});
+        
+        REQUIRE(g.size() == 4);  // New vertices created
+    }
+    
+    SECTION("with projection function") {
+        using G = mofl_int_void_void;
+        using edge_data = copyable_edge_t<uint32_t, int>;
+        
+        struct Connection {
+            uint32_t from;
+            uint32_t to;
+            std::string label;
+            int weight;
+        };
+        
+        G g;
+        std::vector<Connection> connections = {
+            {1, 2, "friend", 5},
+            {2, 3, "colleague", 3},
+            {3, 1, "family", 10}
+        };
+        
+        g.load_edges(connections, [](const Connection& c) -> edge_data {
+            return {c.from, c.to, c.weight};
+        });
+        
+        REQUIRE(g.size() == 3);
+    }
+}
+
+//==================================================================================================
+// 18. Combined load_vertices and load_edges Tests
+//==================================================================================================
+
+TEST_CASE("mofl load_vertices and load_edges combined", "[dynamic_graph][mofl][load]") {
+    SECTION("load edges then vertices") {
+        using G = mofl_int_int_void;  // edge value = int, vertex value = int
+        using vertex_data = copyable_vertex_t<uint32_t, int>;
+        using edge_data = copyable_edge_t<uint32_t, int>;
+        
+        G g;
+        
+        // First load edges (creates vertices with default values)
+        std::vector<edge_data> ee = {{0, 1, 10}, {1, 2, 20}};
+        g.load_edges(ee, std::identity{});
+        REQUIRE(g.size() == 3);
+        
+        // Then load vertex values
+        std::vector<vertex_data> vv = {{0, 100}, {1, 200}, {2, 300}};
+        g.load_vertices(vv, std::identity{});
+        
+        REQUIRE(g.vertex_at(0).value() == 100);
+        REQUIRE(g.vertex_at(1).value() == 200);
+        REQUIRE(g.vertex_at(2).value() == 300);
+    }
+    
+    SECTION("load vertices then edges") {
+        using G = mofl_int_int_void;
+        using vertex_data = copyable_vertex_t<uint32_t, int>;
+        using edge_data = copyable_edge_t<uint32_t, int>;
+        
+        G g;
+        
+        // First load vertices
+        std::vector<vertex_data> vv = {{0, 100}, {1, 200}, {2, 300}};
+        g.load_vertices(vv, std::identity{});
+        REQUIRE(g.size() == 3);
+        
+        // Then load edges
+        std::vector<edge_data> ee = {{0, 1, 10}, {1, 2, 20}};
+        g.load_edges(ee, std::identity{});
+        
+        REQUIRE(g.size() == 3);  // No new vertices added
+        REQUIRE(g.vertex_at(0).value() == 100);  // Values preserved
+    }
+    
+    SECTION("string IDs - combined loading") {
+        using G = mofl_str_int_int_int;  // all values are int
+        using vertex_data = copyable_vertex_t<std::string, int>;
+        using edge_data = copyable_edge_t<std::string, int>;
+        
+        G g(42);  // graph value = 42
+        
+        std::vector<edge_data> ee = {{"alice", "bob", 5}, {"bob", "charlie", 3}};
+        g.load_edges(ee, std::identity{});
+        
+        std::vector<vertex_data> vv = {{"alice", 30}, {"bob", 25}, {"charlie", 35}};
+        g.load_vertices(vv, std::identity{});
+        
+        REQUIRE(g.graph_value() == 42);
+        REQUIRE(g.size() == 3);
+        REQUIRE(g.vertex_at("alice").value() == 30);
+        REQUIRE(g.vertex_at("bob").value() == 25);
+        REQUIRE(g.vertex_at("charlie").value() == 35);
+    }
+}
+
+//==================================================================================================
 // Summary: Phase 3.1 mofl_graph_traits Tests
 //
 // This file tests mofl_graph_traits (map vertices + forward_list edges).
@@ -857,6 +1127,8 @@ TEST_CASE("mofl vertex_at", "[dynamic_graph][mofl][accessor][vertex_at]") {
 // - Forward-only edge iterators (from forward_list)
 // - Proper copy/move semantics
 // - Graph value storage
+// - load_vertices() with associative containers
+// - load_edges() with associative containers
 //
 // Note: The vertices(g) CPO is tested separately.
 //==================================================================================================

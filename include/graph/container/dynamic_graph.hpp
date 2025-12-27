@@ -1023,18 +1023,28 @@ public: // Load operations
   */
   template <class VRng, class VProj = identity>
   void load_vertices(const VRng& vrng, VProj vproj = {}, size_type vertex_count = 0) {
-    if constexpr (sized_range<VRng> && resizable<vertices_type>) {
-  vertex_count = std::max(vertex_count, static_cast<size_type>(vertices_.size()));
-  resize_vertices(std::max(vertex_count, static_cast<size_type>(std::ranges::size(vrng))));
-    }
-    for (auto&& v : vrng) {
-      auto&& [id, value] = vproj(v); //copyable_vertex_t<VId, VV>
-      size_t k           = static_cast<size_t>(id);
-      if constexpr (random_access_range<vertices_type>) {
-        if (k >= vertices_.size()) [[unlikely]]
-          throw std::out_of_range("vertex id in load_vertices exceeds current vertex container size");
+    if constexpr (is_associative_container<vertices_type>) {
+      // For associative containers, operator[] auto-inserts vertices
+      // No resize needed, use vertex ID directly as key
+      for (auto&& v : vrng) {
+        auto&& [id, value] = vproj(v); //copyable_vertex_t<VId, VV>
+        vertices_[id].value() = value;
       }
-      vertices_[k].value() = value;
+    } else {
+      // For sequential containers, pre-size and use index-based access
+      if constexpr (sized_range<VRng> && resizable<vertices_type>) {
+        vertex_count = std::max(vertex_count, static_cast<size_type>(vertices_.size()));
+        resize_vertices(std::max(vertex_count, static_cast<size_type>(std::ranges::size(vrng))));
+      }
+      for (auto&& v : vrng) {
+        auto&& [id, value] = vproj(v); //copyable_vertex_t<VId, VV>
+        size_t k           = static_cast<size_t>(id);
+        if constexpr (random_access_range<vertices_type>) {
+          if (k >= vertices_.size()) [[unlikely]]
+            throw std::out_of_range("vertex id in load_vertices exceeds current vertex container size");
+        }
+        vertices_[k].value() = value;
+      }
     }
   }
 
@@ -1065,19 +1075,29 @@ public: // Load operations
   */
   template <class VRng, class VProj = identity>
   void load_vertices(VRng&& vrng, VProj vproj = {}, size_type vertex_count = 0) {
-    // Harmonize sizing logic with const& overload (ensure we never shrink and honor explicit vertex_count)
-    if constexpr (sized_range<VRng> && resizable<vertices_type>) {
-      vertex_count = std::max(vertex_count, static_cast<size_type>(vertices_.size()));
-      resize_vertices(std::max(vertex_count, static_cast<size_type>(std::ranges::size(vrng))));
-    }
-    for (auto&& v : vrng) {
-      auto&& [id, value] = vproj(v); //copyable_vertex_t<VId, VV>
-      size_t k           = static_cast<size_t>(id);
-      if constexpr (random_access_range<vertices_type>) {
-        if (k >= vertices_.size()) [[unlikely]]
-          throw std::out_of_range("vertex id in load_vertices exceeds current vertex container size");
+    if constexpr (is_associative_container<vertices_type>) {
+      // For associative containers, operator[] auto-inserts vertices
+      // No resize needed, use vertex ID directly as key
+      for (auto&& v : vrng) {
+        auto&& [id, value] = vproj(v); //copyable_vertex_t<VId, VV>
+        vertices_[id].value() = move(value);
       }
-      vertices_[k].value() = move(value);
+    } else {
+      // For sequential containers, pre-size and use index-based access
+      // Harmonize sizing logic with const& overload (ensure we never shrink and honor explicit vertex_count)
+      if constexpr (sized_range<VRng> && resizable<vertices_type>) {
+        vertex_count = std::max(vertex_count, static_cast<size_type>(vertices_.size()));
+        resize_vertices(std::max(vertex_count, static_cast<size_type>(std::ranges::size(vrng))));
+      }
+      for (auto&& v : vrng) {
+        auto&& [id, value] = vproj(v); //copyable_vertex_t<VId, VV>
+        size_t k           = static_cast<size_t>(id);
+        if constexpr (random_access_range<vertices_type>) {
+          if (k >= vertices_.size()) [[unlikely]]
+            throw std::out_of_range("vertex id in load_vertices exceeds current vertex container size");
+        }
+        vertices_[k].value() = move(value);
+      }
     }
   }
 
