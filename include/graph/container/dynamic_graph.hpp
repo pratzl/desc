@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <cassert>
 #include "graph/graph.hpp"
+#include "graph/vertex_descriptor_view.hpp"
 #include "container_utility.hpp"
 
 // load_vertices(vrng, vvalue_fnc) -> [uid,vval]
@@ -638,6 +639,22 @@ private:
 private: // CPO properties
   // Note: edge_value friend function is defined in dynamic_graph_base
 
+  // Helper to extract the vertex type from a descriptor's value_type
+  // For vector: value_type is vertex_type directly
+  // For map: value_type is pair<const VId, vertex_type>, so we need second_type
+  template<typename VT>
+  struct extract_vertex_from_value {
+    using type = VT;  // Default: the value type itself
+  };
+  
+  template<typename K, typename V>
+  struct extract_vertex_from_value<std::pair<K, V>> {
+    using type = V;  // For pairs, use the second element
+  };
+
+  template<typename U>
+  using vertex_from_descriptor_t = typename extract_vertex_from_value<typename U::value_type>::type;
+
   /**
    * @brief Get the edges for a vertex as an edge_descriptor_view (ADL customization)
    * @param g The graph
@@ -646,18 +663,37 @@ private: // CPO properties
    * @note Complexity: O(1) - direct member access
    * @note This is the ADL customization point for the edges(g, u) CPO
    */
+  /**
+   * @brief Get range of outgoing edges from a vertex (non-const graph)
+   * 
+   * For random-access vertex containers (vector), the edge iterator type is determined
+   * by the graph's const-ness. For bidirectional containers (map), the iterator type
+   * is determined by what the vertex descriptor's stored iterator provides.
+   */
   template<typename U>
-    requires vertex_descriptor_type<U> &&
-             std::same_as<typename U::value_type, vertex_type>
+    requires vertex_descriptor_type<U> && 
+             std::same_as<vertex_from_descriptor_t<U>, vertex_type>
   [[nodiscard]] friend constexpr auto edges(graph_type& g, const U& u) noexcept {
-    using edge_iter_t = typename edges_type::iterator;
+    // Get the edges container - its type depends on the vertex descriptor's iterator
+    // For map-based containers, a const_iterator gives const access regardless of graph const-ness
+    auto& edges_container = u.inner_value(g).edges_;
+    using actual_container_t = std::remove_reference_t<decltype(edges_container)>;
+    using edge_iter_t = std::conditional_t<
+        std::is_const_v<actual_container_t>,
+        typename edges_type::const_iterator,
+        typename edges_type::iterator>;
     using vertex_iter_t = typename U::iterator_type;
-    return edge_descriptor_view<edge_iter_t, vertex_iter_t>(u.inner_value(g).edges_, u);
+    return edge_descriptor_view<edge_iter_t, vertex_iter_t>(edges_container, u);
   }
 
+  /**
+   * @brief Get range of outgoing edges from a vertex (const graph)
+   * 
+   * Always uses const_iterator since the graph is const.
+   */
   template<typename U>
-    requires vertex_descriptor_type<U> &&
-             std::same_as<typename U::value_type, vertex_type>
+    requires vertex_descriptor_type<U> && 
+             std::same_as<vertex_from_descriptor_t<U>, vertex_type>
   [[nodiscard]] friend constexpr auto edges(const graph_type& g, const U& u) noexcept {
     using edge_iter_t = typename edges_type::const_iterator;
     using vertex_iter_t = typename U::iterator_type;
@@ -1479,6 +1515,64 @@ private: // CPO properties
 
   friend constexpr auto num_edges(const dynamic_graph_base& g) { return g.edge_count_; }
   friend constexpr bool has_edge(const dynamic_graph_base& g) { return g.edge_count_ > 0; }
+
+  /**
+   * @brief Find a vertex by id, returning a vertex descriptor view iterator for use with CPOs.
+   *
+   * This is the ADL customization point for the find_vertex CPO. It returns an iterator to a vertex
+   * descriptor that can be compared with vertices(g).end() to check if the vertex was found.
+   *
+   * For sequential containers (vector/deque), returns iterator if valid, end() otherwise.
+   * For associative containers (map/unordered_map), uses find().
+   *
+   * @param g The graph to search.
+   * @param id The vertex id to find.
+   * @return Vertex descriptor view iterator.
+   * @note Complexity: O(1) for sequential containers, O(log n) for map, O(1) average for unordered_map.
+   * @note This function never modifies the container (unlike operator[] on maps).
+   */
+  friend constexpr auto find_vertex(dynamic_graph_base& g, const vertex_id_type& id) noexcept {
+    using container_iter = typename vertices_type::iterator;
+    using view_type = vertex_descriptor_view<container_iter>;
+    using view_iterator = typename view_type::iterator;
+    using storage_type = typename view_type::storage_type;
+
+    if constexpr (is_associative_container<vertices_type>) {
+      // For associative containers, storage is the iterator
+      return view_iterator{g.vertices_.find(id)};
+    } else {
+      // Sequential container: storage is index (size_t)
+      // Check bounds and return end() equivalent (vertices_.size()) or the index
+      if constexpr (std::is_signed_v<vertex_id_type>) {
+        if (id < 0) return view_iterator{static_cast<storage_type>(g.vertices_.size())};
+      }
+      if (static_cast<size_type>(id) >= g.vertices_.size()) {
+        return view_iterator{static_cast<storage_type>(g.vertices_.size())};
+      }
+      return view_iterator{static_cast<storage_type>(id)};
+    }
+  }
+
+  friend constexpr auto find_vertex(const dynamic_graph_base& g, const vertex_id_type& id) noexcept {
+    using container_iter = typename vertices_type::const_iterator;
+    using view_type = vertex_descriptor_view<container_iter>;
+    using view_iterator = typename view_type::iterator;
+    using storage_type = typename view_type::storage_type;
+
+    if constexpr (is_associative_container<vertices_type>) {
+      // For associative containers, storage is the iterator
+      return view_iterator{g.vertices_.find(id)};
+    } else {
+      // Sequential container: storage is index (size_t)
+      if constexpr (std::is_signed_v<vertex_id_type>) {
+        if (id < 0) return view_iterator{static_cast<storage_type>(g.vertices_.size())};
+      }
+      if (static_cast<size_type>(id) >= g.vertices_.size()) {
+        return view_iterator{static_cast<storage_type>(g.vertices_.size())};
+      }
+      return view_iterator{static_cast<storage_type>(id)};
+    }
+  }
   
   /**
    * @brief Get the user-defined value associated with a vertex
