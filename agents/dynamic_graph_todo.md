@@ -287,7 +287,10 @@ Deque edges provide stable iterators and random access, combining benefits of ve
 - ✅ test_dynamic_graph_cpo_dol.cpp created with 27 tests (3414 lines)
 - ✅ test_dynamic_graph_cpo_dov.cpp created with 29 tests (3486 lines)
 - ✅ test_dynamic_graph_cpo_dod.cpp created with 29 tests (3491 lines)
-- ⏳ Phase 3: Associative containers (map/unordered_map vertices)
+- ✅ test_dynamic_graph_mofl.cpp created with 44 tests (2673 lines)
+- ✅ test_dynamic_graph_mol.cpp created with 27 tests, 227 assertions (1270 lines)
+- ✅ test_dynamic_graph_cpo_mofl.cpp created with 50 tests, 535 assertions (1822 lines)
+- ⏳ Phase 3: Associative containers (remaining: mol CPO, mov, umofl, umol, umov)
 
 **Expected Line Count (Optimized Strategy):**
 - Legacy complete files (Phase 1.1-1.3): 8,027 lines ✅
@@ -297,11 +300,12 @@ Deque edges provide stable iterators and random access, combining benefits of ve
 - CPO tests for Phase 1.4a: 3,491 lines ✅
 - CPO tests for Phase 1.5-1.8 (dofl, dol, dov, dod): 13,706 lines ✅
 - **Phase 1 & 2 Total: 52,319 lines COMPLETE** ✅
-- New optimized files Phase 3 (associative): ~3,000 lines
-- CPO tests for Phase 3 (associative): ~9,000 lines
-- **Total Phase 1 + Phase 2 + Phase 3: ~64,300 lines** (comprehensive coverage)
-- **Current Progress: 52,319 lines completed (81% of total)**
-- **Note:** All sequential container tests complete; Phase 3 (associative) remains
+- **Phase 3.1 mofl (map + forward_list): 4,495 lines COMPLETE** ✅
+- New optimized files Phase 3 (remaining associative): ~2,500 lines
+- CPO tests for Phase 3 (remaining associative): ~7,500 lines
+- **Total Phase 1 + Phase 2 + Phase 3: ~66,800 lines** (comprehensive coverage)
+- **Current Progress: 56,814 lines completed (85% of total)**
+- **Note:** All sequential container tests complete; Phase 3.1 mofl COMPLETE; remaining associative (mol, mov, umofl, umol, umov) pending
 
 ---
 
@@ -384,10 +388,12 @@ For each graph instance tested in Phase 1, create comprehensive CPO tests. This 
 - `tests/test_dynamic_graph_cpo_dol.cpp` (3,414 lines, 27 test cases, 1,232 assertions) ✅
 - `tests/test_dynamic_graph_cpo_dov.cpp` (3,486 lines, 29 test cases, 1,248 assertions) ✅
 - `tests/test_dynamic_graph_cpo_dod.cpp` (3,491 lines, 29 test cases, 1,248 assertions) ✅
+- `tests/test_dynamic_graph_cpo_mofl.cpp` (1,822 lines, 50 test cases, 535 assertions) ✅
 
-**Total CPO Tests:** 27,610 lines, 896 test cases, 12,400 assertions
+**Total CPO Tests:** 29,432 lines, 946 test cases, 12,935 assertions
 
 **Phase 2 Status: COMPLETE** ✅ All sequential container CPO tests implemented
+**Phase 3.1 mofl CPO Status: COMPLETE** ✅ Map + forward_list CPO tests implemented
 
 **Test Files Pending:**
 - Future associative container CPO tests (Phase 3)
@@ -407,16 +413,45 @@ Add support for map-based vertex containers.
 
 ### Phase 3.1: Map Vertex Containers
 
+**Phase 3.1a: mofl_graph_traits (map + forward_list) - COMPLETE** ✅
+- Basic Tests: `test_dynamic_graph_mofl.cpp` (2,673 lines, 44 test cases)
+- CPO Tests: `test_dynamic_graph_cpo_mofl.cpp` (1,822 lines, 50 test cases, 535 assertions)
+- All 27 CPOs tested with comprehensive coverage
+- Key features verified:
+  - Sparse vertices (only referenced vertices exist)
+  - Map iteration in key order (sorted)
+  - String vertex IDs extensively tested
+  - forward_list edge order: last added appears first
+  - Bidirectional vertex iteration (no random access)
+  - Fixed `edges(g, u)` ADL function for map containers where vertex descriptor stores const_iterator
+
+**Phase 3.1b: mol_graph_traits (map + list) - BASIC TESTS COMPLETE** ✅
+- Basic Tests: `test_dynamic_graph_mol.cpp` (1,270 lines, 27 test cases, 227 assertions)
+- CPO Tests: Pending (will mirror mofl CPO tests)
+- Key features verified:
+  - Sparse vertices (only referenced vertices exist)
+  - Map iteration in key order (sorted)
+  - String vertex IDs extensively tested
+  - std::list bidirectional edge iteration
+  - Edge order: first added appears first (unlike forward_list)
+  - Bidirectional vertex and edge iterators
+
+**Phase 3.1c-f: Remaining Map Traits - PENDING** ⏳
+- `mov_graph_traits` (map + vector) - Not started  
+- `umofl_graph_traits` (unordered_map + forward_list) - Not started
+- `umol_graph_traits` (unordered_map + list) - Not started
+- `umov_graph_traits` (unordered_map + vector) - Not started
+
 **New Traits Structures:**
 ```cpp
 template <class EV, class VV, class GV, class VId, bool Sourced>
-struct mofl_graph_traits {  // map + forward_list
+struct mofl_graph_traits {  // map + forward_list ✅ COMPLETE
   using vertices_type = std::map<VId, vertex_type>;
   using edges_type = std::forward_list<edge_type>;
 };
 
 template <class EV, class VV, class GV, class VId, bool Sourced>
-struct mol_graph_traits {  // map + list
+struct mol_graph_traits {  // map + list ✅ BASIC TESTS COMPLETE
   using vertices_type = std::map<VId, vertex_type>;
   using edges_type = std::list<edge_type>;
 };
@@ -1094,10 +1129,12 @@ tests/
   test_dynamic_graph_edge_cases.cpp    # ~1000 lines
 ```
 
-**Total Estimated Lines (Optimized):** ~64,300 lines of test code
+**Total Estimated Lines (Optimized):** ~68,000 lines of test code
 **Total Estimated Tests:** ~4,500-5,000 test cases
-**Current Test Count:** 2,311 test cases, 24,916 assertions ✅
+**Current Test Count:** 2,400 test cases, 25,926 assertions ✅
 **Sequential Container Coverage:** 100% complete (all 8 combinations tested)
+**Phase 3.1 mofl Coverage:** 100% complete (map + forward_list tested)
+**Phase 3.1 mol Basic Coverage:** 100% complete (map + list basic tests)
 **Test Executions:** ~14,000+ (TEMPLATE_TEST_CASE multiplying tests across 6 sequential + 3-6 associative traits)
 **Code Reduction:** Opportunity exists for future optimization with TEMPLATE_TEST_CASE
 
