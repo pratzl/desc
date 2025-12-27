@@ -2648,3 +2648,177 @@ TEST_CASE("vod complete workflow scenarios", "[dynamic_graph][vod][workflow]") {
 // - Phase 1.3: vod_graph_traits (vector + vector)
 // - Phase 1.4: deque-based traits
 //==================================================================================================
+
+//==================================================================================================
+// Vertex Accessor Methods Tests
+//==================================================================================================
+
+TEST_CASE("vod contains_vertex", "[dynamic_graph][vod][accessor][contains_vertex]") {
+    SECTION("basic lookup") {
+        using G = vod_void_void_void;
+        G g({{0, 1}, {1, 2}, {2, 3}});
+        
+        // Vertices that exist (0, 1, 2, 3)
+        REQUIRE(g.contains_vertex(0));
+        REQUIRE(g.contains_vertex(1));
+        REQUIRE(g.contains_vertex(2));
+        REQUIRE(g.contains_vertex(3));
+        
+        // Vertices that don't exist (beyond size)
+        REQUIRE_FALSE(g.contains_vertex(4));
+        REQUIRE_FALSE(g.contains_vertex(100));
+    }
+    
+    SECTION("sparse graph - all indices up to max exist") {
+        using G = vod_void_void_void;
+        // Edge from 0 to 10 - creates vertices 0-10
+        G g({{0, 10}});
+        REQUIRE(g.size() == 11);
+        
+        // All vertices from 0 to 10 exist
+        for (uint32_t i = 0; i <= 10; ++i) {
+            REQUIRE(g.contains_vertex(i));
+        }
+        REQUIRE_FALSE(g.contains_vertex(11));
+    }
+    
+    SECTION("empty graph") {
+        using G = vod_void_void_void;
+        G g;
+        
+        REQUIRE_FALSE(g.contains_vertex(0));
+        REQUIRE_FALSE(g.contains_vertex(1));
+    }
+    
+    SECTION("const graph") {
+        using G = vod_void_void_void;
+        const G g({{0, 1}, {2, 3}});
+        
+        REQUIRE(g.contains_vertex(0));
+        REQUIRE(g.contains_vertex(3));
+        REQUIRE_FALSE(g.contains_vertex(10));
+    }
+}
+
+TEST_CASE("vod try_find_vertex", "[dynamic_graph][vod][accessor][try_find_vertex]") {
+    SECTION("found") {
+        using G = vod_void_void_void;
+        G g({{0, 1}, {1, 2}});
+        
+        auto it0 = g.try_find_vertex(0);
+        REQUIRE(it0 != g.end());
+        REQUIRE(it0 == g.begin());
+        
+        auto it1 = g.try_find_vertex(1);
+        REQUIRE(it1 != g.end());
+        REQUIRE(it1 == g.begin() + 1);
+        
+        auto it2 = g.try_find_vertex(2);
+        REQUIRE(it2 != g.end());
+        REQUIRE(it2 == g.begin() + 2);
+    }
+    
+    SECTION("not found - beyond size") {
+        using G = vod_void_void_void;
+        G g({{0, 1}, {1, 2}});
+        
+        auto it5 = g.try_find_vertex(5);
+        REQUIRE(it5 == g.end());
+        
+        auto it100 = g.try_find_vertex(100);
+        REQUIRE(it100 == g.end());
+    }
+    
+    SECTION("empty graph") {
+        using G = vod_void_void_void;
+        G g;
+        
+        auto it = g.try_find_vertex(0);
+        REQUIRE(it == g.end());
+    }
+    
+    SECTION("const graph") {
+        using G = vod_void_void_void;
+        const G g({{0, 1}, {2, 3}});
+        
+        auto it = g.try_find_vertex(0);
+        REQUIRE(it != g.end());
+        REQUIRE(it == g.begin());
+        
+        auto it_missing = g.try_find_vertex(99);
+        REQUIRE(it_missing == g.end());
+    }
+    
+    SECTION("iterator arithmetic") {
+        using G = vod_void_void_void;
+        G g({{0, 1}, {1, 2}, {2, 3}, {3, 4}});
+        
+        // For vector-based graphs, iterator should be at expected position
+        for (uint32_t i = 0; i < g.size(); ++i) {
+            auto it = g.try_find_vertex(i);
+            REQUIRE(it != g.end());
+            REQUIRE(static_cast<size_t>(it - g.begin()) == i);
+        }
+    }
+}
+
+TEST_CASE("vod vertex_at", "[dynamic_graph][vod][accessor][vertex_at]") {
+    SECTION("found") {
+        using G = vod_void_void_void;
+        G g({{0, 1}, {1, 2}});
+        
+        // Should not throw for valid indices
+        REQUIRE_NOTHROW(g.vertex_at(0));
+        REQUIRE_NOTHROW(g.vertex_at(1));
+        REQUIRE_NOTHROW(g.vertex_at(2));
+    }
+    
+    SECTION("throws on out of range") {
+        using G = vod_void_void_void;
+        G g({{0, 1}});  // vertices 0 and 1
+        
+        REQUIRE_THROWS_AS(g.vertex_at(5), std::out_of_range);
+        REQUIRE_THROWS_AS(g.vertex_at(100), std::out_of_range);
+    }
+    
+    SECTION("empty graph throws") {
+        using G = vod_void_void_void;
+        G g;
+        
+        REQUIRE_THROWS_AS(g.vertex_at(0), std::out_of_range);
+    }
+    
+    SECTION("modify vertex through vertex_at") {
+        using G = vod_void_int_void;  // has vertex value
+        G g({{0, 1}});
+        
+        g.vertex_at(0).value() = 42;
+        g.vertex_at(1).value() = 100;
+        
+        REQUIRE(g.vertex_at(0).value() == 42);
+        REQUIRE(g.vertex_at(1).value() == 100);
+    }
+    
+    SECTION("const graph") {
+        using G = vod_void_void_void;
+        const G g({{0, 1}, {2, 3}});
+        
+        REQUIRE_NOTHROW(g.vertex_at(0));
+        REQUIRE_NOTHROW(g.vertex_at(3));
+        REQUIRE_THROWS_AS(g.vertex_at(99), std::out_of_range);
+    }
+    
+    SECTION("access all vertices") {
+        using G = vod_void_void_void;
+        G g({{0, 1}, {1, 2}, {2, 3}, {3, 4}});
+        
+        // All vertices 0-4 should be accessible
+        for (uint32_t i = 0; i <= 4; ++i) {
+            REQUIRE_NOTHROW(g.vertex_at(i));
+        }
+    }
+}
+
+//==================================================================================================
+// End of vod tests
+//==================================================================================================

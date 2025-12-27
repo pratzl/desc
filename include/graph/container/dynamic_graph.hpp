@@ -40,6 +40,7 @@ namespace graph::container {
 //   #include <graph/container/traits/dol_graph_traits.hpp>   // deque + list
 //   #include <graph/container/traits/dov_graph_traits.hpp>   // deque + vector
 //   #include <graph/container/traits/dod_graph_traits.hpp>   // deque + deque
+//   #include <graph/container/traits/mofl_graph_traits.hpp>  // map + forward_list
 //
 
 template <class EV, class VV, class GV, class VId, bool Sourced>
@@ -65,6 +66,9 @@ struct dov_graph_traits;
 
 template <class EV, class VV, class GV, class VId, bool Sourced>
 struct dod_graph_traits;
+
+template <class EV, class VV, class GV, class VId, bool Sourced>
+struct mofl_graph_traits;
 
 
 //--------------------------------------------------------------------------------------------------
@@ -100,6 +104,7 @@ class dynamic_graph;
 //   #include <graph/container/traits/dol_graph_traits.hpp>   // deque + list
 //   #include <graph/container/traits/dov_graph_traits.hpp>   // deque + vector
 //   #include <graph/container/traits/dod_graph_traits.hpp>   // deque + deque
+//   #include <graph/container/traits/mofl_graph_traits.hpp>  // map + forward_list
 //
 
 /**
@@ -979,12 +984,19 @@ public: // Construction/Destruction/Assignment
   dynamic_graph_base(const std::initializer_list<copyable_edge_t<VId, EV>>& il,
                      edge_allocator_type                                    alloc = edge_allocator_type())
         : vertices_(alloc), partition_(alloc) {
-    size_t last_id = 0;
-    for (auto&& e : il)
-      last_id = max(last_id, static_cast<size_t>(max(e.source_id, e.target_id)));
-    resize_vertices(last_id + 1);
-  // canonical order: supply vertex_count to avoid inference pass
-  load_edges(il, {}, vertices_.size(), il.size());
+    if constexpr (is_associative_container<vertices_type>) {
+      // For associative containers, load_edges will auto-insert vertices via operator[]
+      // No need to pre-size or compute max vertex ID
+      load_edges(il, {}, 0, il.size());
+    } else {
+      // For sequential containers, compute the required size and pre-allocate
+      size_t last_id = 0;
+      for (auto&& e : il)
+        last_id = max(last_id, static_cast<size_t>(max(e.source_id, e.target_id)));
+      resize_vertices(last_id + 1);
+      // canonical order: supply vertex_count to avoid inference pass
+      load_edges(il, {}, vertices_.size(), il.size());
+    }
     terminate_partitions();
   }
 
@@ -1134,100 +1146,133 @@ public: // Load operations
   void load_edges(ERng&& erng, EProj eproj = {}, size_type vertex_count = 0, size_type edge_count_hint = 0) {
     using std::move; // ADL safety
 
-    // Optimized strategy: for forward ranges without explicit vertex_count we do a single pass collecting
-    // projected edges, then size vertices once, then insert. This avoids projecting twice.
-    bool const need_infer = (vertex_count == 0);
-    if constexpr (resizable<vertices_type>) {
-      if (vertices_.size() < vertex_count) {
-        vertices_.resize(vertex_count, vertex_type(vertices_.get_allocator()));
-      }
-    }
-
-    if constexpr (forward_range<ERng>) {
-      if (need_infer) {
-        // Single pass: collect edges & determine max id
-        size_type max_id = vertices_.empty() ? 0 : static_cast<size_type>(vertices_.size() - 1);
-  using projected_edge_ref_t = decltype(eproj(*std::begin(erng)));
-  using projected_edge_type  = std::decay_t<projected_edge_ref_t>;
-  static_assert(!std::is_reference_v<projected_edge_type>, "projected_edge_type must not be a reference");
-  std::vector<projected_edge_type> projected;
-        if (edge_count_hint) projected.reserve(edge_count_hint);
-        for (auto&& edge_data_scan : erng) {
-          projected_edge_type e_scan = eproj(edge_data_scan); // materialize value (avoid storing references)
-          max_id      = std::max(max_id, static_cast<size_t>(e_scan.source_id));
-          max_id      = std::max(max_id, static_cast<size_t>(e_scan.target_id));
-          projected.push_back(e_scan); // copy (value semantics)
-        }
-        if constexpr (resizable<vertices_type>) {
-          if (vertices_.size() <= max_id)
-            vertices_.resize(max_id + 1, vertex_type(vertices_.get_allocator()));
-        }
-        // If adjacency edge container is vector we can reserve per-vertex capacity now.
-        using edges_container_example = decltype(vertices_[0].edges());
-        if constexpr (requires(edges_container_example c) { c.reserve(0); }) {
-          // Compute out-degree counts per vertex id
-          std::vector<size_type> degrees(vertices_.size(), size_type{0});
-          for (auto const& e : projected) {
-            degrees[static_cast<size_t>(e.source_id)]++;
-          }
-          for (size_t vid = 0; vid < degrees.size(); ++vid) {
-            auto& ec = vertices_[vid].edges();
-            if constexpr (requires { ec.reserve(degrees[vid]); }) {
-              if (degrees[vid]) ec.reserve(degrees[vid]);
-            }
-          }
-        }
-        // Insert from cached list
-        for (auto& e : projected) {
-          if (static_cast<size_t>(e.source_id) >= vertices_.size())
-            throw std::runtime_error("source id exceeds the number of vertices in load_edges");
-          if (static_cast<size_t>(e.target_id) >= vertices_.size())
-            throw std::runtime_error("target id exceeds the number of vertices in load_edges");
-          auto&& edge_adder = push_or_insert(vertices_[e.source_id].edges());
-          if constexpr (Sourced) {
-            if constexpr (is_void_v<EV>) {
-              edge_adder(edge_type(e.source_id, e.target_id));
-            } else {
-              edge_adder(edge_type(e.source_id, e.target_id, std::move(e.value)));
-            }
+    // For associative containers (map/unordered_map), we use a different strategy:
+    // - operator[] auto-inserts vertices, so no need to resize or check bounds
+    // - We don't need to infer max_id for sizing
+    if constexpr (is_associative_container<vertices_type>) {
+      // Associative container path: simply iterate and insert
+      for (auto&& edge_data : erng) {
+        using proj_edge_ref_t = decltype(eproj(edge_data));
+        using proj_edge_t     = std::decay_t<proj_edge_ref_t>;
+        static_assert(!std::is_reference_v<proj_edge_t>, "proj_edge_t must not be a reference");
+        proj_edge_t e         = eproj(edge_data); // materialize value
+        
+        // operator[] on map will auto-insert default vertex if not present
+        // We need to ensure both source and target vertices exist
+        (void)vertices_[e.target_id]; // ensure target vertex exists
+        auto&& edge_adder = push_or_insert(vertices_[e.source_id].edges());
+        if constexpr (Sourced) {
+          if constexpr (is_void_v<EV>) {
+            edge_adder(edge_type(e.source_id, e.target_id));
           } else {
-            if constexpr (is_void_v<EV>) {
-              edge_adder(edge_type(e.target_id));
-            } else {
-              edge_adder(edge_type(e.target_id, std::move(e.value)));
+            edge_adder(edge_type(e.source_id, e.target_id, std::move(e.value)));
+          }
+        } else {
+          if constexpr (is_void_v<EV>) {
+            edge_adder(edge_type(e.target_id));
+          } else {
+            edge_adder(edge_type(e.target_id, std::move(e.value)));
+          }
+        }
+        edge_count_ += 1;
+      }
+    } else {
+      // Sequential container path (vector/deque): original logic
+      // Optimized strategy: for forward ranges without explicit vertex_count we do a single pass collecting
+      // projected edges, then size vertices once, then insert. This avoids projecting twice.
+      bool const need_infer = (vertex_count == 0);
+      if constexpr (resizable<vertices_type>) {
+        if (vertices_.size() < vertex_count) {
+          vertices_.resize(vertex_count, vertex_type(vertices_.get_allocator()));
+        }
+      }
+
+      if constexpr (forward_range<ERng>) {
+        if (need_infer) {
+          // Single pass: collect edges & determine max id
+          size_type max_id = vertices_.empty() ? 0 : static_cast<size_type>(vertices_.size() - 1);
+          using projected_edge_ref_t = decltype(eproj(*std::begin(erng)));
+          using projected_edge_type  = std::decay_t<projected_edge_ref_t>;
+          static_assert(!std::is_reference_v<projected_edge_type>, "projected_edge_type must not be a reference");
+          std::vector<projected_edge_type> projected;
+          if (edge_count_hint) projected.reserve(edge_count_hint);
+          for (auto&& edge_data_scan : erng) {
+            projected_edge_type e_scan = eproj(edge_data_scan); // materialize value (avoid storing references)
+            max_id      = std::max(max_id, static_cast<size_t>(e_scan.source_id));
+            max_id      = std::max(max_id, static_cast<size_t>(e_scan.target_id));
+            projected.push_back(e_scan); // copy (value semantics)
+          }
+          if constexpr (resizable<vertices_type>) {
+            if (vertices_.size() <= max_id)
+              vertices_.resize(max_id + 1, vertex_type(vertices_.get_allocator()));
+          }
+          // If adjacency edge container is vector we can reserve per-vertex capacity now.
+          using edges_container_example = decltype(vertices_[0].edges());
+          if constexpr (requires(edges_container_example c) { c.reserve(0); }) {
+            // Compute out-degree counts per vertex id
+            std::vector<size_type> degrees(vertices_.size(), size_type{0});
+            for (auto const& e : projected) {
+              degrees[static_cast<size_t>(e.source_id)]++;
+            }
+            for (size_t vid = 0; vid < degrees.size(); ++vid) {
+              auto& ec = vertices_[vid].edges();
+              if constexpr (requires { ec.reserve(degrees[vid]); }) {
+                if (degrees[vid]) ec.reserve(degrees[vid]);
+              }
             }
           }
-          edge_count_ += 1;
+          // Insert from cached list
+          for (auto& e : projected) {
+            if (static_cast<size_t>(e.source_id) >= vertices_.size())
+              throw std::runtime_error("source id exceeds the number of vertices in load_edges");
+            if (static_cast<size_t>(e.target_id) >= vertices_.size())
+              throw std::runtime_error("target id exceeds the number of vertices in load_edges");
+            auto&& edge_adder = push_or_insert(vertices_[e.source_id].edges());
+            if constexpr (Sourced) {
+              if constexpr (is_void_v<EV>) {
+                edge_adder(edge_type(e.source_id, e.target_id));
+              } else {
+                edge_adder(edge_type(e.source_id, e.target_id, std::move(e.value)));
+              }
+            } else {
+              if constexpr (is_void_v<EV>) {
+                edge_adder(edge_type(e.target_id));
+              } else {
+                edge_adder(edge_type(e.target_id, std::move(e.value)));
+              }
+            }
+            edge_count_ += 1;
+          }
+          return; // done
         }
-        return; // done
       }
-    }
 
-    // Fallback path: (1) vertex_count explicitly supplied or (2) non-forward single-pass range.
-    for (auto&& edge_data : erng) {
-      using proj_edge_ref_t = decltype(eproj(edge_data));
-      using proj_edge_t     = std::decay_t<proj_edge_ref_t>;
-      static_assert(!std::is_reference_v<proj_edge_t>, "proj_edge_t must not be a reference");
-      proj_edge_t e         = eproj(edge_data); // materialize value
-      if (static_cast<size_t>(e.source_id) >= vertices_.size())
-        throw std::runtime_error("source id exceeds the number of vertices in load_edges");
-      if (static_cast<size_t>(e.target_id) >= vertices_.size())
-        throw std::runtime_error("target id exceeds the number of vertices in load_edges");
-      auto&& edge_adder = push_or_insert(vertices_[e.source_id].edges());
-      if constexpr (Sourced) {
-        if constexpr (is_void_v<EV>) {
-          edge_adder(edge_type(std::move(e.source_id), std::move(e.target_id)));
+      // Fallback path: (1) vertex_count explicitly supplied or (2) non-forward single-pass range.
+      for (auto&& edge_data : erng) {
+        using proj_edge_ref_t = decltype(eproj(edge_data));
+        using proj_edge_t     = std::decay_t<proj_edge_ref_t>;
+        static_assert(!std::is_reference_v<proj_edge_t>, "proj_edge_t must not be a reference");
+        proj_edge_t e         = eproj(edge_data); // materialize value
+        if (static_cast<size_t>(e.source_id) >= vertices_.size())
+          throw std::runtime_error("source id exceeds the number of vertices in load_edges");
+        if (static_cast<size_t>(e.target_id) >= vertices_.size())
+          throw std::runtime_error("target id exceeds the number of vertices in load_edges");
+        auto&& edge_adder = push_or_insert(vertices_[e.source_id].edges());
+        if constexpr (Sourced) {
+          if constexpr (is_void_v<EV>) {
+            edge_adder(edge_type(std::move(e.source_id), std::move(e.target_id)));
+          } else {
+            edge_adder(edge_type(std::move(e.source_id), std::move(e.target_id), std::move(e.value)));
+          }
         } else {
-          edge_adder(edge_type(std::move(e.source_id), std::move(e.target_id), std::move(e.value)));
+          if constexpr (is_void_v<EV>) {
+            edge_adder(edge_type(std::move(e.target_id)));
+          } else {
+            edge_adder(edge_type(std::move(e.target_id), std::move(e.value)));
+          }
         }
-      } else {
-        if constexpr (is_void_v<EV>) {
-          edge_adder(edge_type(std::move(e.target_id)));
-        } else {
-          edge_adder(edge_type(std::move(e.target_id), std::move(e.value)));
-        }
+        edge_count_ += 1;
       }
-      edge_count_ += 1;
     }
   }
 
@@ -1236,21 +1281,29 @@ public: // Load operations
 
 private:
   constexpr void terminate_partitions() {
-    if (partition_.empty()) {
-      partition_.push_back(0);
+    // Partitions are only meaningful for sequential containers with numeric IDs
+    // For associative containers (map/unordered_map), partition functionality is not supported
+    if constexpr (is_associative_container<vertices_type>) {
+      // No partition support for associative containers - just initialize with a sentinel
+      // Note: partition_ may not be properly typed for string keys, so we skip validation
+      return;
     } else {
-      bool valid = (partition_[0] == 0);
-      for (size_t i = 1; valid && i < partition_.size(); ++i) {
-        if (!(partition_[i - 1] < partition_[i])) valid = false; // enforce strictly increasing
+      if (partition_.empty()) {
+        partition_.push_back(0);
+      } else {
+        bool valid = (partition_[0] == 0);
+        for (size_t i = 1; valid && i < partition_.size(); ++i) {
+          if (!(partition_[i - 1] < partition_[i])) valid = false; // enforce strictly increasing
+        }
+        if (!valid) {
+          throw std::invalid_argument("partition_start_ids must start with 0 and be strictly increasing");
+        }
       }
-      if (!valid) {
-        throw std::invalid_argument("partition_start_ids must start with 0 and be strictly increasing");
+      if (!partition_.empty() && partition_.back() > static_cast<partition_id_type>(vertices_.size())) {
+        throw std::invalid_argument("partition_start_ids contain id greater than vertex count");
       }
+      partition_.push_back(static_cast<partition_id_type>(vertices_.size()));
     }
-    if (!partition_.empty() && partition_.back() > static_cast<partition_id_type>(vertices_.size())) {
-      throw std::invalid_argument("partition_start_ids contain id greater than vertex count");
-    }
-    partition_.push_back(static_cast<partition_id_type>(vertices_.size()));
   }
 
 public: // Properties
@@ -1289,6 +1342,107 @@ public: // Operations
     partition_.clear();
     partition_.push_back(0);
     edge_count_ = 0;
+  }
+
+  /**
+   * @brief Check if a vertex with the given id exists in the graph.
+   * 
+   * For sequential containers (vector/deque), checks if id < size().
+   * For associative containers (map/unordered_map), uses contains() or find().
+   * 
+   * @param id The vertex id to check for.
+   * @return true if a vertex with this id exists, false otherwise.
+   * @note Complexity: O(1) for sequential containers, O(log n) for map, O(1) average for unordered_map.
+   * @note This method never modifies the container (unlike operator[] on maps).
+   */
+  [[nodiscard]] constexpr bool contains_vertex(const vertex_id_type& id) const noexcept {
+    if constexpr (is_associative_container<vertices_type>) {
+      if constexpr (requires { vertices_.contains(id); }) {
+        return vertices_.contains(id);  // C++20 contains()
+      } else {
+        return vertices_.find(id) != vertices_.end();
+      }
+    } else {
+      // Sequential container: check bounds
+      if constexpr (std::is_signed_v<vertex_id_type>) {
+        if (id < 0) return false;
+      }
+      return static_cast<size_type>(id) < vertices_.size();
+    }
+  }
+
+  /**
+   * @brief Find a vertex by id, returning an iterator to the underlying container.
+   * 
+   * For sequential containers (vector/deque), returns begin() + id if valid, end() otherwise.
+   * For associative containers (map/unordered_map), uses find().
+   * 
+   * This is a direct container access method, distinct from the find_vertex CPO which
+   * returns vertex descriptors. Use this when you need raw container iterators.
+   * 
+   * @param id The vertex id to find.
+   * @return Iterator to the vertex if found, end() otherwise.
+   * @note Complexity: O(1) for sequential containers, O(log n) for map, O(1) average for unordered_map.
+   * @note This method never modifies the container (unlike operator[] on maps).
+   */
+  [[nodiscard]] constexpr auto try_find_vertex(const vertex_id_type& id) noexcept {
+    if constexpr (is_associative_container<vertices_type>) {
+      return vertices_.find(id);
+    } else {
+      // Sequential container: check bounds and return iterator
+      if constexpr (std::is_signed_v<vertex_id_type>) {
+        if (id < 0) return vertices_.end();
+      }
+      if (static_cast<size_type>(id) >= vertices_.size()) {
+        return vertices_.end();
+      }
+      return vertices_.begin() + static_cast<size_type>(id);
+    }
+  }
+
+  [[nodiscard]] constexpr auto try_find_vertex(const vertex_id_type& id) const noexcept {
+    if constexpr (is_associative_container<vertices_type>) {
+      return vertices_.find(id);
+    } else {
+      // Sequential container: check bounds and return iterator
+      if constexpr (std::is_signed_v<vertex_id_type>) {
+        if (id < 0) return vertices_.end();
+      }
+      if (static_cast<size_type>(id) >= vertices_.size()) {
+        return vertices_.end();
+      }
+      return vertices_.begin() + static_cast<size_type>(id);
+    }
+  }
+
+  /**
+   * @brief Access a vertex by id, throwing if not found.
+   * 
+   * For sequential containers (vector/deque), checks bounds and throws std::out_of_range.
+   * For associative containers (map/unordered_map), uses at() which throws std::out_of_range.
+   * 
+   * @param id The vertex id to access.
+   * @return Reference to the vertex.
+   * @throws std::out_of_range if the vertex does not exist.
+   * @note Complexity: O(1) for sequential containers, O(log n) for map, O(1) average for unordered_map.
+   * @note This method never modifies the container (unlike operator[] on maps).
+   */
+  [[nodiscard]] constexpr vertex_type& vertex_at(const vertex_id_type& id) {
+    if constexpr (is_associative_container<vertices_type>) {
+      return vertices_.at(id);
+    } else {
+      // Sequential container: use at() for bounds checking
+      return vertices_.at(static_cast<size_type>(id));
+    }
+  }
+
+  [[nodiscard]] constexpr const vertex_type& vertex_at(const vertex_id_type& id) const {
+    if constexpr (is_associative_container<vertices_type>) {
+      return vertices_.at(id);
+    } else {
+      // Sequential container: use at() for bounds checking
+      return vertices_.at(static_cast<size_type>(id));
+    }
   }
 
 private: // Member Variables
