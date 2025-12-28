@@ -295,7 +295,10 @@ Deque edges provide stable iterators and random access, combining benefits of ve
 - ✅ test_dynamic_graph_cpo_mol.cpp created with 27 tests (1850 lines)
 - ✅ test_dynamic_graph_cpo_mov.cpp created with 27 tests (1850 lines)
 - ✅ test_dynamic_graph_cpo_mod.cpp created with 27 tests, 603 assertions (1850 lines)
-- ⏳ Phase 3: Associative containers (remaining: uofl, uol, uov, uod - see subdivided tasks in Phase 3.1e-h)
+- ✅ Phase 3.1e uofl (unordered_map + forward_list): COMPLETE - 562 assertions, 51 tests
+- ✅ Phase 3.1f uol (unordered_map + list): COMPLETE - 562 assertions, 51 tests
+- ✅ Phase 3.1g uov (unordered_map + vector): COMPLETE - 562 assertions, 51 tests
+- ✅ Phase 3.1h uod (unordered_map + deque): COMPLETE - 562 assertions, 51 tests
 
 **Expected Line Count (Optimized Strategy):**
 - Legacy complete files (Phase 1.1-1.3): 8,027 lines ✅
@@ -309,10 +312,13 @@ Deque edges provide stable iterators and random access, combining benefits of ve
 - **Phase 3.1b mol (map + list): 3,120 lines COMPLETE** ✅
 - **Phase 3.1c mov (map + vector): 3,250 lines COMPLETE** ✅
 - **Phase 3.1d mod (map + deque): 3,233 lines COMPLETE** ✅
-- Remaining unordered_map traits: ~11,600 lines pending (4 traits × ~2,900 lines each)
-- **Total Phase 1 + Phase 2 + Phase 3: ~78,000 lines** (comprehensive coverage)
-- **Current Progress: 66,417 lines completed (85% of total)**
-- **Note:** All sequential container tests complete; All map-based associative (mofl, mol, mov, mod) COMPLETE; remaining unordered_map (uofl, uol, uov, uod) in progress
+- **Phase 3.1e uofl (unordered_map + forward_list): ~3,000 lines COMPLETE** ✅
+- **Phase 3.1f uol (unordered_map + list): ~3,000 lines COMPLETE** ✅
+- **Phase 3.1g uov (unordered_map + vector): ~3,000 lines COMPLETE** ✅
+- **Phase 3.1h uod (unordered_map + deque): ~3,000 lines COMPLETE** ✅
+- **Total Phase 1 + Phase 2 + Phase 3: ~78,000 lines COMPLETE** ✅
+- **Current Progress: ~78,000 lines completed (100% of Phase 3)**
+- **Note:** All sequential container tests complete; All map-based associative COMPLETE; All unordered_map-based COMPLETE
 
 ---
 
@@ -468,54 +474,64 @@ Add support for map-based vertex containers.
   - Edge order: first added appears first
   - Random access edge iterators
 
-**Phase 3.1e: uofl_graph_traits (unordered_map + forward_list) - IN PROGRESS** ⏳
+**Phase 3.1e: uofl_graph_traits (unordered_map + forward_list) - COMPLETE** ✅
 Mirrors mofl but with hash-based O(1) average lookup, unordered iteration.
 
 | Step | Task | Status |
 |------|------|--------|
 | 3.1e.1 | Create `uofl_graph_traits.hpp` | ✅ DONE |
 | 3.1e.2 | Create `test_dynamic_graph_uofl.cpp` (~1100 lines) | ✅ DONE |
-| 3.1e.3a | Create uofl CPO tests Part 1: Header, type aliases, vertices, num_vertices, find_vertex, vertex_id (~300 lines) | ⏳ PENDING |
-| 3.1e.3b | Create uofl CPO tests Part 2: num_edges, edges(g,u), edges(g,uid), degree (~300 lines) | ⏳ PENDING |
-| 3.1e.3c | Create uofl CPO tests Part 3: target_id, target, find_vertex_edge(g,u,v) (~250 lines) | ⏳ PENDING |
-| 3.1e.3d | Create uofl CPO tests Part 4: contains_edge(g,u,v), vertex_value, edge_value, graph_value (~250 lines) | ⏳ PENDING |
-| 3.1e.3e | Create uofl CPO tests Part 5: has_edge, source_id, source, partition CPOs (~250 lines) | ⏳ PENDING |
-| 3.1e.3f | Create uofl CPO tests Part 6: find_vertex_edge(uid,vid), contains_edge(uid,vid), integration tests (~450 lines) | ⏳ PENDING |
-| 3.1e.4 | Update `tests/CMakeLists.txt` | ⏳ PENDING |
-| 3.1e.5 | Build and verify all tests pass | ⏳ PENDING |
+| 3.1e.3a | Create uofl CPO tests Part 1: Header, type aliases, vertices, num_vertices, find_vertex, vertex_id (~300 lines) | ✅ DONE |
+| 3.1e.3b | Create uofl CPO tests Part 2: num_edges, edges(g,u), edges(g,uid), degree (~300 lines) | ✅ DONE |
+| 3.1e.3c | Create uofl CPO tests Part 3: target_id, target, find_vertex_edge(g,u,v) (~250 lines) | ✅ DONE |
+| 3.1e.3d | Create uofl CPO tests Part 4: contains_edge(g,u,v), vertex_value, edge_value, graph_value (~250 lines) | ✅ DONE |
+| 3.1e.3e | Create uofl CPO tests Part 5: has_edge, source_id, source, partition CPOs (~250 lines) | ✅ DONE |
+| 3.1e.3f | Create uofl CPO tests Part 6: find_vertex_edge(uid,vid), contains_edge(uid,vid), integration tests (~450 lines) | ✅ DONE |
+| 3.1e.4 | Update `tests/CMakeLists.txt` | ✅ DONE |
+| 3.1e.5 | Build and verify all tests pass | ✅ DONE |
 
-**Phase 3.1f: uol_graph_traits (unordered_map + list) - NOT STARTED** ⏳
+**Phase 3.1f: uol_graph_traits (unordered_map + list) - COMPLETE** ✅
 Mirrors mol but with hash-based O(1) average lookup, unordered iteration.
 
 | Step | Task | Status |
 |------|------|--------|
-| 3.1f.1 | Create `uol_graph_traits.hpp` | ⏳ PENDING |
-| 3.1f.2 | Create `test_dynamic_graph_uol.cpp` (~1100 lines) | ⏳ PENDING |
-| 3.1f.3 | Create `test_dynamic_graph_cpo_uol.cpp` (~1800 lines) | ⏳ PENDING |
-| 3.1f.4 | Update `tests/CMakeLists.txt` | ⏳ PENDING |
-| 3.1f.5 | Build and verify all tests pass | ⏳ PENDING |
+| 3.1f.1 | Create `uol_graph_traits.hpp` | ✅ DONE |
+| 3.1f.2 | Create `test_dynamic_graph_uol.cpp` (~1100 lines) | ✅ DONE |
+| 3.1f.3 | Create `test_dynamic_graph_cpo_uol.cpp` (~1800 lines) | ✅ DONE |
+| 3.1f.4 | Update `tests/CMakeLists.txt` | ✅ DONE |
+| 3.1f.5 | Build and verify all tests pass | ✅ DONE |
 
-**Phase 3.1g: uov_graph_traits (unordered_map + vector) - NOT STARTED** ⏳
+**Phase 3.1g: uov_graph_traits (unordered_map + vector) - COMPLETE** ✅
 Mirrors mov but with hash-based O(1) average lookup, unordered iteration.
 
 | Step | Task | Status |
 |------|------|--------|
-| 3.1g.1 | Create `uov_graph_traits.hpp` | ⏳ PENDING |
-| 3.1g.2 | Create `test_dynamic_graph_uov.cpp` (~1100 lines) | ⏳ PENDING |
-| 3.1g.3 | Create `test_dynamic_graph_cpo_uov.cpp` (~1800 lines) | ⏳ PENDING |
-| 3.1g.4 | Update `tests/CMakeLists.txt` | ⏳ PENDING |
-| 3.1g.5 | Build and verify all tests pass | ⏳ PENDING |
+| 3.1g.1 | Create `uov_graph_traits.hpp` | ✅ DONE |
+| 3.1g.2 | Create `test_dynamic_graph_uov.cpp` (~1100 lines) | ✅ DONE |
+| 3.1g.3a | Create uov CPO tests Part 1: Header, type aliases, vertices, num_vertices, find_vertex, vertex_id (~300 lines) | ✅ DONE |
+| 3.1g.3b | Create uov CPO tests Part 2: num_edges, edges(g,u), edges(g,uid), degree (~300 lines) | ✅ DONE |
+| 3.1g.3c | Create uov CPO tests Part 3: target_id, target, find_vertex_edge(g,u,v) (~250 lines) | ✅ DONE |
+| 3.1g.3d | Create uov CPO tests Part 4: contains_edge(g,u,v), vertex_value, edge_value, graph_value (~250 lines) | ✅ DONE |
+| 3.1g.3e | Create uov CPO tests Part 5: has_edge, source_id, source, partition CPOs (~250 lines) | ✅ DONE |
+| 3.1g.3f | Create uov CPO tests Part 6: find_vertex_edge(uid,vid), contains_edge(uid,vid), integration tests (~450 lines) | ✅ DONE |
+| 3.1g.4 | Update `tests/CMakeLists.txt` | ✅ DONE |
+| 3.1g.5 | Build and verify all tests pass | ✅ DONE |
 
-**Phase 3.1h: uod_graph_traits (unordered_map + deque) - NOT STARTED** ⏳
+**Phase 3.1h: uod_graph_traits (unordered_map + deque) - COMPLETE** ✅
 Mirrors mod but with hash-based O(1) average lookup, unordered iteration.
 
 | Step | Task | Status |
 |------|------|--------|
-| 3.1h.1 | Create `uod_graph_traits.hpp` | ⏳ PENDING |
-| 3.1h.2 | Create `test_dynamic_graph_uod.cpp` (~1100 lines) | ⏳ PENDING |
-| 3.1h.3 | Create `test_dynamic_graph_cpo_uod.cpp` (~1800 lines) | ⏳ PENDING |
-| 3.1h.4 | Update `tests/CMakeLists.txt` | ⏳ PENDING |
-| 3.1h.5 | Build and verify all tests pass | ⏳ PENDING |
+| 3.1h.1 | Create `uod_graph_traits.hpp` | ✅ DONE |
+| 3.1h.2 | Create `test_dynamic_graph_uod.cpp` (~1100 lines) | ✅ DONE |
+| 3.1h.3a | Create uod CPO tests Part 1: Header, type aliases, vertices, num_vertices, find_vertex, vertex_id (~300 lines) | ✅ DONE |
+| 3.1h.3b | Create uod CPO tests Part 2: num_edges, edges(g,u), edges(g,uid), degree (~300 lines) | ✅ DONE |
+| 3.1h.3c | Create uod CPO tests Part 3: target_id, target, find_vertex_edge(g,u,v) (~250 lines) | ✅ DONE |
+| 3.1h.3d | Create uod CPO tests Part 4: contains_edge(g,u,v), vertex_value, edge_value, graph_value (~250 lines) | ✅ DONE |
+| 3.1h.3e | Create uod CPO tests Part 5: has_edge, source_id, source, partition CPOs (~250 lines) | ✅ DONE |
+| 3.1h.3f | Create uod CPO tests Part 6: find_vertex_edge(uid,vid), contains_edge(uid,vid), integration tests (~450 lines) | ✅ DONE |
+| 3.1h.4 | Update `tests/CMakeLists.txt` | ✅ DONE |
+| 3.1h.5 | Build and verify all tests pass | ✅ DONE |
 
 **Unordered Map Key Differences from Map:**
 1. **Hash-based storage** - O(1) average lookup vs O(log n) for map
