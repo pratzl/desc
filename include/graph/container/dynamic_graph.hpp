@@ -1,5 +1,6 @@
 #pragma once
 
+#include <compare>
 #include <concepts>
 #include <algorithm>
 #include <limits>
@@ -421,6 +422,18 @@ public:
 
   constexpr dynamic_edge& operator=(const dynamic_edge&) = default;
   constexpr dynamic_edge& operator=(dynamic_edge&&)      = default;
+
+  // Comparison operators for ordered/unordered set containers
+  // Compare by (source_id, target_id) - edge value is intentionally excluded
+  constexpr auto operator<=>(const dynamic_edge& rhs) const noexcept {
+    if (auto cmp = base_source_type::source_id() <=> rhs.base_source_type::source_id(); cmp != 0)
+      return cmp;
+    return base_target_type::target_id() <=> rhs.base_target_type::target_id();
+  }
+  constexpr bool operator==(const dynamic_edge& rhs) const noexcept {
+    return base_source_type::source_id() == rhs.base_source_type::source_id() &&
+           base_target_type::target_id() == rhs.base_target_type::target_id();
+  }
 };
 
 /**
@@ -472,6 +485,18 @@ public:
 
   constexpr dynamic_edge& operator=(const dynamic_edge&) = default;
   constexpr dynamic_edge& operator=(dynamic_edge&&)      = default;
+
+  // Comparison operators for ordered/unordered set containers
+  // Compare by (source_id, target_id)
+  constexpr auto operator<=>(const dynamic_edge& rhs) const noexcept {
+    if (auto cmp = base_source_type::source_id() <=> rhs.base_source_type::source_id(); cmp != 0)
+      return cmp;
+    return base_target_type::target_id() <=> rhs.base_target_type::target_id();
+  }
+  constexpr bool operator==(const dynamic_edge& rhs) const noexcept {
+    return base_source_type::source_id() == rhs.base_source_type::source_id() &&
+           base_target_type::target_id() == rhs.base_target_type::target_id();
+  }
 };
 
 
@@ -526,6 +551,15 @@ public:
 
   constexpr dynamic_edge& operator=(const dynamic_edge&) = default;
   constexpr dynamic_edge& operator=(dynamic_edge&&)      = default;
+
+  // Comparison operators for ordered/unordered set containers
+  // Compare by target_id only (source_id not stored when Sourced=false)
+  constexpr auto operator<=>(const dynamic_edge& rhs) const noexcept {
+    return base_target_type::target_id() <=> rhs.base_target_type::target_id();
+  }
+  constexpr bool operator==(const dynamic_edge& rhs) const noexcept {
+    return base_target_type::target_id() == rhs.base_target_type::target_id();
+  }
 };
 
 /**
@@ -576,6 +610,15 @@ public:
 
   constexpr dynamic_edge& operator=(const dynamic_edge&) = default;
   constexpr dynamic_edge& operator=(dynamic_edge&&)      = default;
+
+  // Comparison operators for ordered/unordered set containers
+  // Compare by target_id only (source_id not stored when Sourced=false)
+  constexpr auto operator<=>(const dynamic_edge& rhs) const noexcept {
+    return base_target_type::target_id() <=> rhs.base_target_type::target_id();
+  }
+  constexpr bool operator==(const dynamic_edge& rhs) const noexcept {
+    return base_target_type::target_id() == rhs.base_target_type::target_id();
+  }
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -2070,3 +2113,41 @@ private: // Member variables
 //    This optimization does not occur for other container types (e.g. list, set).
 
 } // namespace graph::container
+
+//--------------------------------------------------------------------------------------------------
+// std::hash specialization for dynamic_edge (required for unordered_set edge containers)
+//
+namespace std {
+
+/**
+ * @brief Hash specialization for dynamic_edge to enable use with std::unordered_set.
+ * 
+ * Only hashes the structural identifiers (source_id when Sourced=true, and target_id).
+ * Edge values are intentionally excluded from the hash, matching operator== behavior.
+ * 
+ * @tparam EV      The edge value type.
+ * @tparam VV      The vertex value type.
+ * @tparam GV      The graph value type.
+ * @tparam VId     Vertex id type.
+ * @tparam Sourced Whether source id is stored on the edge.
+ * @tparam Traits  Container traits.
+ */
+template <class EV, class VV, class GV, class VId, bool Sourced, class Traits>
+struct hash<graph::container::dynamic_edge<EV, VV, GV, VId, Sourced, Traits>> {
+  using edge_type = graph::container::dynamic_edge<EV, VV, GV, VId, Sourced, Traits>;
+  
+  constexpr size_t operator()(const edge_type& e) const noexcept {
+    if constexpr (Sourced) {
+      // Hash both source_id and target_id for sourced edges
+      size_t h1 = hash<VId>{}(e.source_id());
+      size_t h2 = hash<VId>{}(e.target_id());
+      // Combine hashes using a common technique
+      return h1 ^ (h2 + 0x9e3779b9 + (h1 << 6) + (h1 >> 2));
+    } else {
+      // Hash only target_id for non-sourced edges
+      return hash<VId>{}(e.target_id());
+    }
+  }
+};
+
+} // namespace std

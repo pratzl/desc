@@ -653,57 +653,184 @@ tests/test_dynamic_graph_unordered_map_traits.cpp # ~700 lines (unordered_map-sp
 
 ## Phase 4: Extend Edge Containers (Associative/Set)
 
-Add support for set/map-based edge containers.
+Add support for set/map-based edge containers. This phase requires implementation changes to dynamic_edge to support comparison operators and hashing.
 
-### Phase 4.1: Set-Based Edge Containers
+**Prerequisites:**
+- Phase 1-3 complete ✅
+- Need to add operator<=> and hash support to dynamic_edge
 
-**New Traits Structures:**
-```cpp
-template <class EV, class VV, class GV, class VId, bool Sourced>
-struct vos_graph_traits {  // vector + set
-  using vertices_type = std::vector<vertex_type>;
-  using edges_type = std::set<edge_type>;  // requires edge operator<
-};
+---
 
-template <class EV, class VV, class GV, class VId, bool Sourced>
-struct vous_graph_traits {  // vector + unordered_set
-  using vertices_type = std::vector<vertex_type>;
-  using edges_type = std::unordered_set<edge_type>;  // requires edge hash
-};
-```
+### Phase 4.1: Set-Based Edge Containers (std::set)
 
-**Implementation Changes Needed:**
-1. Add operator< to dynamic_edge for set support
-2. Add hash specialization for dynamic_edge for unordered_set
-3. Update edge insertion logic (insert vs push_back)
-4. Handle duplicate edge detection in sets
+**Overview:** Add vos_graph_traits (vector vertices + set edges) for all vertex container types.
 
-**Test Files:**
-```
-tests/test_dynamic_graph_set.cpp           (~1000 lines)
-tests/test_dynamic_graph_unordered_set.cpp (~1000 lines)
-```
+**Step 4.1.1: Add operator<=> and operator== to dynamic_edge**
 
-### Phase 4.2: Map-Based Edge Containers
+Using `operator<=>` (spaceship operator) provides ordering operators (`<`, `>`, `<=`, `>=`).
+Using explicit `operator==` provides equality operators (`==`, `!=`) and is required for:
+- `std::unordered_set` (Phase 4.2) which needs `operator==` for collision resolution
+- Better performance when equality check is cheaper than full ordering
+- Clarity when `operator<=>` is custom (not defaulted)
 
-**New Traits Structures:**
-```cpp
-template <class EV, class VV, class GV, class VId, bool Sourced>
-struct voem_graph_traits {  // vector + edge map
-  using vertices_type = std::vector<vertex_type>;
-  using edges_type = std::map<VId, edge_type>;  // keyed by target_id
-};
-```
+| Step | Task | Status |
+|------|------|--------|
+| 4.1.1a | Analyze dynamic_edge class hierarchy for comparison operator locations | ⏳ PENDING |
+| 4.1.1b | Add operator<=> to dynamic_edge_target (compare by target_id, return std::strong_ordering) | ⏳ PENDING |
+| 4.1.1c | Add operator== to dynamic_edge_target (compare by target_id) | ⏳ PENDING |
+| 4.1.1d | Add operator<=> to dynamic_edge (include source_id for Sourced=true) | ⏳ PENDING |
+| 4.1.1e | Add operator== to dynamic_edge (include source_id for Sourced=true) | ⏳ PENDING |
+| 4.1.1f | Create test_dynamic_edge_comparison.cpp (~250 lines) | ⏳ PENDING |
+| 4.1.1g | Build and verify all comparison operators work | ⏳ PENDING |
 
-**Implementation Changes Needed:**
-1. Edge access by target ID key
-2. Update find_vertex_edge() CPO
-3. Handle edge insertion semantics (replace vs. error on duplicate)
+**Step 4.1.2: Create vos_graph_traits (vector + set)**
 
-**Test File:**
-```
-tests/test_dynamic_graph_edge_map.cpp  (~1000 lines)
-```
+| Step | Task | Status |
+|------|------|--------|
+| 4.1.2a | Create vos_graph_traits.hpp | ⏳ PENDING |
+| 4.1.2b | Verify dynamic_graph compiles with std::set edges | ⏳ PENDING |
+| 4.1.2c | Create test_dynamic_graph_vos.cpp basic tests (~800 lines) | ⏳ PENDING |
+| 4.1.2d | Create test_dynamic_graph_cpo_vos.cpp CPO tests (~1200 lines) | ⏳ PENDING |
+| 4.1.2e | Update CMakeLists.txt | ⏳ PENDING |
+| 4.1.2f | Build and verify all vos tests pass | ⏳ PENDING |
+
+**Step 4.1.3: Create dos_graph_traits (deque + set)**
+
+| Step | Task | Status |
+|------|------|--------|
+| 4.1.3a | Create dos_graph_traits.hpp | ⏳ PENDING |
+| 4.1.3b | Create test_dynamic_graph_dos.cpp (~800 lines) | ⏳ PENDING |
+| 4.1.3c | Create test_dynamic_graph_cpo_dos.cpp (~1200 lines) | ⏳ PENDING |
+| 4.1.3d | Update CMakeLists.txt and verify tests pass | ⏳ PENDING |
+
+**Step 4.1.4: Create mos_graph_traits (map + set)**
+
+| Step | Task | Status |
+|------|------|--------|
+| 4.1.4a | Create mos_graph_traits.hpp | ⏳ PENDING |
+| 4.1.4b | Create test_dynamic_graph_mos.cpp (~800 lines) | ⏳ PENDING |
+| 4.1.4c | Create test_dynamic_graph_cpo_mos.cpp (~1200 lines) | ⏳ PENDING |
+| 4.1.4d | Update CMakeLists.txt and verify tests pass | ⏳ PENDING |
+
+**Step 4.1.5: Create uos_graph_traits (unordered_map + set)**
+
+| Step | Task | Status |
+|------|------|--------|
+| 4.1.5a | Create uos_graph_traits.hpp | ⏳ PENDING |
+| 4.1.5b | Create test_dynamic_graph_uos.cpp (~800 lines) | ⏳ PENDING |
+| 4.1.5c | Create test_dynamic_graph_cpo_uos.cpp (~1200 lines) | ⏳ PENDING |
+| 4.1.5d | Update CMakeLists.txt and verify tests pass | ⏳ PENDING |
+
+---
+
+### Phase 4.2: Unordered Set Edge Containers (std::unordered_set)
+
+**Overview:** Add traits using std::unordered_set for edges. Requires hash specialization for dynamic_edge.
+
+**Step 4.2.1: Add hash specialization for dynamic_edge**
+
+| Step | Task | Status |
+|------|------|--------|
+| 4.2.1a | Create std::hash specialization for dynamic_edge in graph::container namespace | ⏳ PENDING |
+| 4.2.1b | Hash should combine target_id (and source_id if Sourced=true) | ⏳ PENDING |
+| 4.2.1c | Add test_dynamic_edge_hash.cpp (~150 lines) | ⏳ PENDING |
+| 4.2.1d | Verify hash works with std::unordered_set | ⏳ PENDING |
+
+**Step 4.2.2: Create vous_graph_traits (vector + unordered_set)**
+
+| Step | Task | Status |
+|------|------|--------|
+| 4.2.2a | Create vous_graph_traits.hpp | ⏳ PENDING |
+| 4.2.2b | Verify dynamic_graph compiles with std::unordered_set edges | ⏳ PENDING |
+| 4.2.2c | Create test_dynamic_graph_vous.cpp basic tests (~800 lines) | ⏳ PENDING |
+| 4.2.2d | Create test_dynamic_graph_cpo_vous.cpp CPO tests (~1200 lines) | ⏳ PENDING |
+| 4.2.2e | Update CMakeLists.txt and verify tests pass | ⏳ PENDING |
+
+**Step 4.2.3: Create dous_graph_traits (deque + unordered_set)**
+
+| Step | Task | Status |
+|------|------|--------|
+| 4.2.3a | Create dous_graph_traits.hpp | ⏳ PENDING |
+| 4.2.3b | Create test_dynamic_graph_dous.cpp (~800 lines) | ⏳ PENDING |
+| 4.2.3c | Create test_dynamic_graph_cpo_dous.cpp (~1200 lines) | ⏳ PENDING |
+| 4.2.3d | Update CMakeLists.txt and verify tests pass | ⏳ PENDING |
+
+**Step 4.2.4: Create mous_graph_traits (map + unordered_set)**
+
+| Step | Task | Status |
+|------|------|--------|
+| 4.2.4a | Create mous_graph_traits.hpp | ⏳ PENDING |
+| 4.2.4b | Create test_dynamic_graph_mous.cpp (~800 lines) | ⏳ PENDING |
+| 4.2.4c | Create test_dynamic_graph_cpo_mous.cpp (~1200 lines) | ⏳ PENDING |
+| 4.2.4d | Update CMakeLists.txt and verify tests pass | ⏳ PENDING |
+
+**Step 4.2.5: Create uous_graph_traits (unordered_map + unordered_set)**
+
+| Step | Task | Status |
+|------|------|--------|
+| 4.2.5a | Create uous_graph_traits.hpp | ⏳ PENDING |
+| 4.2.5b | Create test_dynamic_graph_uous.cpp (~800 lines) | ⏳ PENDING |
+| 4.2.5c | Create test_dynamic_graph_cpo_uous.cpp (~1200 lines) | ⏳ PENDING |
+| 4.2.5d | Update CMakeLists.txt and verify tests pass | ⏳ PENDING |
+
+---
+
+### Phase 4.3: Map-Based Edge Containers (std::map keyed by target_id)
+
+**Overview:** Add traits using std::map<VId, edge_type> for edges, enabling O(log n) edge lookup by target.
+
+**Step 4.3.1: Analyze edge container interface changes needed**
+
+| Step | Task | Status |
+|------|------|--------|
+| 4.3.1a | Review dynamic_vertex edge container usage patterns | ⏳ PENDING |
+| 4.3.1b | Identify changes needed for map-based edge access (key vs iterator) | ⏳ PENDING |
+| 4.3.1c | Design edge_descriptor changes for map-based edges (if any) | ⏳ PENDING |
+
+**Step 4.3.2: Create voem_graph_traits (vector + edge map)**
+
+| Step | Task | Status |
+|------|------|--------|
+| 4.3.2a | Create voem_graph_traits.hpp | ⏳ PENDING |
+| 4.3.2b | Update load_edges or edge insertion for map semantics | ⏳ PENDING |
+| 4.3.2c | Create test_dynamic_graph_voem.cpp basic tests (~800 lines) | ⏳ PENDING |
+| 4.3.2d | Create test_dynamic_graph_cpo_voem.cpp CPO tests (~1200 lines) | ⏳ PENDING |
+| 4.3.2e | Update CMakeLists.txt and verify tests pass | ⏳ PENDING |
+
+**Step 4.3.3: Create moem_graph_traits (map vertices + edge map)**
+
+| Step | Task | Status |
+|------|------|--------|
+| 4.3.3a | Create moem_graph_traits.hpp | ⏳ PENDING |
+| 4.3.3b | Create test_dynamic_graph_moem.cpp (~800 lines) | ⏳ PENDING |
+| 4.3.3c | Create test_dynamic_graph_cpo_moem.cpp (~1200 lines) | ⏳ PENDING |
+| 4.3.3d | Update CMakeLists.txt and verify tests pass | ⏳ PENDING |
+
+---
+
+### Phase 4 Summary
+
+**Total New Traits:**
+- Set edges: vos, dos, mos, uos (4 traits)
+- Unordered set edges: vous, dous, mous, uous (4 traits)
+- Map edges: voem, moem (2 traits)
+
+**Implementation Changes:**
+- operator<=> for dynamic_edge (generates <, >, <=, >=)
+- operator== for dynamic_edge (generates ==, !=; required for unordered_set)
+- std::hash specialization for dynamic_edge
+- Possible edge container interface updates for map-based edges
+
+**Estimated Lines:**
+- Edge comparison/hash support: ~500 lines
+- 10 new traits × ~2,000 lines each: ~20,000 lines
+- Total Phase 4: ~20,500 lines
+
+**Key Considerations:**
+1. Set-based edges prevent duplicate edges (same source→target)
+2. Map-based edges key by target_id, allowing O(log n) or O(1) lookup
+3. Edge values can still be stored alongside target_id in map values
+4. find_vertex_edge CPO may have optimized implementations for set/map edges
 
 ---
 

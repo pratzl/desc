@@ -77,6 +77,7 @@ add_executable(graph3_tests
     test_dynamic_graph_cpo_uol.cpp
     test_dynamic_graph_cpo_uov.cpp
     test_dynamic_graph_cpo_uod.cpp
+    test_dynamic_edge_comparison.cpp
 )
 
 target_link_libraries(graph3_tests
