@@ -56,6 +56,8 @@ add_executable(graph3_tests
     test_dynamic_graph_mol.cpp
     test_dynamic_graph_mov.cpp
     test_dynamic_graph_mod.cpp
+    test_dynamic_graph_uofl.cpp
+    test_dynamic_graph_uol.cpp
     test_dynamic_graph_common.cpp
     test_dynamic_graph_cpo_vofl.cpp
     test_dynamic_graph_cpo_vol.cpp
@@ -69,6 +71,8 @@ add_executable(graph3_tests
     test_dynamic_graph_cpo_mol.cpp
     test_dynamic_graph_cpo_mov.cpp
     test_dynamic_graph_cpo_mod.cpp
+    test_dynamic_graph_cpo_uofl.cpp
+    test_dynamic_graph_cpo_uol.cpp
 )
 
 target_link_libraries(graph3_tests

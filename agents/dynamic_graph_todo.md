@@ -289,8 +289,13 @@ Deque edges provide stable iterators and random access, combining benefits of ve
 - ✅ test_dynamic_graph_cpo_dod.cpp created with 29 tests (3491 lines)
 - ✅ test_dynamic_graph_mofl.cpp created with 44 tests (2673 lines)
 - ✅ test_dynamic_graph_mol.cpp created with 27 tests, 227 assertions (1270 lines)
+- ✅ test_dynamic_graph_mov.cpp created with 26 tests (1400 lines)
+- ✅ test_dynamic_graph_mod.cpp created with 26 tests (1383 lines)
 - ✅ test_dynamic_graph_cpo_mofl.cpp created with 50 tests, 535 assertions (1822 lines)
-- ⏳ Phase 3: Associative containers (remaining: mol CPO, mov, umofl, umol, umov)
+- ✅ test_dynamic_graph_cpo_mol.cpp created with 27 tests (1850 lines)
+- ✅ test_dynamic_graph_cpo_mov.cpp created with 27 tests (1850 lines)
+- ✅ test_dynamic_graph_cpo_mod.cpp created with 27 tests, 603 assertions (1850 lines)
+- ⏳ Phase 3: Associative containers (remaining: uofl, uol, uov, uod - see subdivided tasks in Phase 3.1e-h)
 
 **Expected Line Count (Optimized Strategy):**
 - Legacy complete files (Phase 1.1-1.3): 8,027 lines ✅
@@ -300,12 +305,14 @@ Deque edges provide stable iterators and random access, combining benefits of ve
 - CPO tests for Phase 1.4a: 3,491 lines ✅
 - CPO tests for Phase 1.5-1.8 (dofl, dol, dov, dod): 13,706 lines ✅
 - **Phase 1 & 2 Total: 52,319 lines COMPLETE** ✅
-- **Phase 3.1 mofl (map + forward_list): 4,495 lines COMPLETE** ✅
-- New optimized files Phase 3 (remaining associative): ~2,500 lines
-- CPO tests for Phase 3 (remaining associative): ~7,500 lines
-- **Total Phase 1 + Phase 2 + Phase 3: ~66,800 lines** (comprehensive coverage)
-- **Current Progress: 56,814 lines completed (85% of total)**
-- **Note:** All sequential container tests complete; Phase 3.1 mofl COMPLETE; remaining associative (mol, mov, umofl, umol, umov) pending
+- **Phase 3.1a mofl (map + forward_list): 4,495 lines COMPLETE** ✅
+- **Phase 3.1b mol (map + list): 3,120 lines COMPLETE** ✅
+- **Phase 3.1c mov (map + vector): 3,250 lines COMPLETE** ✅
+- **Phase 3.1d mod (map + deque): 3,233 lines COMPLETE** ✅
+- Remaining unordered_map traits: ~11,600 lines pending (4 traits × ~2,900 lines each)
+- **Total Phase 1 + Phase 2 + Phase 3: ~78,000 lines** (comprehensive coverage)
+- **Current Progress: 66,417 lines completed (85% of total)**
+- **Note:** All sequential container tests complete; All map-based associative (mofl, mol, mov, mod) COMPLETE; remaining unordered_map (uofl, uol, uov, uod) in progress
 
 ---
 
@@ -389,14 +396,17 @@ For each graph instance tested in Phase 1, create comprehensive CPO tests. This 
 - `tests/test_dynamic_graph_cpo_dov.cpp` (3,486 lines, 29 test cases, 1,248 assertions) ✅
 - `tests/test_dynamic_graph_cpo_dod.cpp` (3,491 lines, 29 test cases, 1,248 assertions) ✅
 - `tests/test_dynamic_graph_cpo_mofl.cpp` (1,822 lines, 50 test cases, 535 assertions) ✅
+- `tests/test_dynamic_graph_cpo_mol.cpp` (1,850 lines, 27 test cases) ✅
+- `tests/test_dynamic_graph_cpo_mov.cpp` (1,850 lines, 27 test cases) ✅
+- `tests/test_dynamic_graph_cpo_mod.cpp` (1,850 lines, 27 test cases, 603 assertions) ✅
 
-**Total CPO Tests:** 29,432 lines, 946 test cases, 12,935 assertions
+**Total CPO Tests:** 34,982 lines, 1,027 test cases
 
 **Phase 2 Status: COMPLETE** ✅ All sequential container CPO tests implemented
-**Phase 3.1 mofl CPO Status: COMPLETE** ✅ Map + forward_list CPO tests implemented
+**Phase 3.1 Map Containers CPO Status: COMPLETE** ✅ All map-based CPO tests implemented (mofl, mol, mov, mod)
 
 **Test Files Pending:**
-- Future associative container CPO tests (Phase 3)
+- Future unordered_map associative container CPO tests (Phase 3.1e-h: uofl, uol, uov, uod)
 
 **CPO Implementation Strategy:**
 - ✅ Uncommented and completed friend functions in dynamic_graph.hpp
@@ -425,9 +435,9 @@ Add support for map-based vertex containers.
   - Bidirectional vertex iteration (no random access)
   - Fixed `edges(g, u)` ADL function for map containers where vertex descriptor stores const_iterator
 
-**Phase 3.1b: mol_graph_traits (map + list) - BASIC TESTS COMPLETE** ✅
+**Phase 3.1b: mol_graph_traits (map + list) - COMPLETE** ✅
 - Basic Tests: `test_dynamic_graph_mol.cpp` (1,270 lines, 27 test cases, 227 assertions)
-- CPO Tests: Pending (will mirror mofl CPO tests)
+- CPO Tests: `test_dynamic_graph_cpo_mol.cpp` (1,850 lines, 27 test cases)
 - Key features verified:
   - Sparse vertices (only referenced vertices exist)
   - Map iteration in key order (sorted)
@@ -436,11 +446,82 @@ Add support for map-based vertex containers.
   - Edge order: first added appears first (unlike forward_list)
   - Bidirectional vertex and edge iterators
 
-**Phase 3.1c-f: Remaining Map Traits - PENDING** ⏳
-- `mov_graph_traits` (map + vector) - Not started  
-- `umofl_graph_traits` (unordered_map + forward_list) - Not started
-- `umol_graph_traits` (unordered_map + list) - Not started
-- `umov_graph_traits` (unordered_map + vector) - Not started
+**Phase 3.1c: mov_graph_traits (map + vector) - COMPLETE** ✅
+- Basic Tests: `test_dynamic_graph_mov.cpp` (1,400 lines, 26 test cases)
+- CPO Tests: `test_dynamic_graph_cpo_mov.cpp` (1,850 lines, 27 test cases)
+- Key features verified:
+  - Sparse vertices (only referenced vertices exist)
+  - Map iteration in key order (sorted)
+  - String vertex IDs extensively tested
+  - std::vector random access edge iteration
+  - Edge order: first added appears first
+  - Random access edge iterators
+
+**Phase 3.1d: mod_graph_traits (map + deque) - COMPLETE** ✅
+- Basic Tests: `test_dynamic_graph_mod.cpp` (1,383 lines, 26 test cases)
+- CPO Tests: `test_dynamic_graph_cpo_mod.cpp` (1,850 lines, 27 test cases, 603 assertions)
+- Key features verified:
+  - Sparse vertices (only referenced vertices exist)
+  - Map iteration in key order (sorted)
+  - String vertex IDs extensively tested
+  - std::deque random access edge iteration with efficient front/back insertion
+  - Edge order: first added appears first
+  - Random access edge iterators
+
+**Phase 3.1e: uofl_graph_traits (unordered_map + forward_list) - IN PROGRESS** ⏳
+Mirrors mofl but with hash-based O(1) average lookup, unordered iteration.
+
+| Step | Task | Status |
+|------|------|--------|
+| 3.1e.1 | Create `uofl_graph_traits.hpp` | ✅ DONE |
+| 3.1e.2 | Create `test_dynamic_graph_uofl.cpp` (~1100 lines) | ✅ DONE |
+| 3.1e.3a | Create uofl CPO tests Part 1: Header, type aliases, vertices, num_vertices, find_vertex, vertex_id (~300 lines) | ⏳ PENDING |
+| 3.1e.3b | Create uofl CPO tests Part 2: num_edges, edges(g,u), edges(g,uid), degree (~300 lines) | ⏳ PENDING |
+| 3.1e.3c | Create uofl CPO tests Part 3: target_id, target, find_vertex_edge(g,u,v) (~250 lines) | ⏳ PENDING |
+| 3.1e.3d | Create uofl CPO tests Part 4: contains_edge(g,u,v), vertex_value, edge_value, graph_value (~250 lines) | ⏳ PENDING |
+| 3.1e.3e | Create uofl CPO tests Part 5: has_edge, source_id, source, partition CPOs (~250 lines) | ⏳ PENDING |
+| 3.1e.3f | Create uofl CPO tests Part 6: find_vertex_edge(uid,vid), contains_edge(uid,vid), integration tests (~450 lines) | ⏳ PENDING |
+| 3.1e.4 | Update `tests/CMakeLists.txt` | ⏳ PENDING |
+| 3.1e.5 | Build and verify all tests pass | ⏳ PENDING |
+
+**Phase 3.1f: uol_graph_traits (unordered_map + list) - NOT STARTED** ⏳
+Mirrors mol but with hash-based O(1) average lookup, unordered iteration.
+
+| Step | Task | Status |
+|------|------|--------|
+| 3.1f.1 | Create `uol_graph_traits.hpp` | ⏳ PENDING |
+| 3.1f.2 | Create `test_dynamic_graph_uol.cpp` (~1100 lines) | ⏳ PENDING |
+| 3.1f.3 | Create `test_dynamic_graph_cpo_uol.cpp` (~1800 lines) | ⏳ PENDING |
+| 3.1f.4 | Update `tests/CMakeLists.txt` | ⏳ PENDING |
+| 3.1f.5 | Build and verify all tests pass | ⏳ PENDING |
+
+**Phase 3.1g: uov_graph_traits (unordered_map + vector) - NOT STARTED** ⏳
+Mirrors mov but with hash-based O(1) average lookup, unordered iteration.
+
+| Step | Task | Status |
+|------|------|--------|
+| 3.1g.1 | Create `uov_graph_traits.hpp` | ⏳ PENDING |
+| 3.1g.2 | Create `test_dynamic_graph_uov.cpp` (~1100 lines) | ⏳ PENDING |
+| 3.1g.3 | Create `test_dynamic_graph_cpo_uov.cpp` (~1800 lines) | ⏳ PENDING |
+| 3.1g.4 | Update `tests/CMakeLists.txt` | ⏳ PENDING |
+| 3.1g.5 | Build and verify all tests pass | ⏳ PENDING |
+
+**Phase 3.1h: uod_graph_traits (unordered_map + deque) - NOT STARTED** ⏳
+Mirrors mod but with hash-based O(1) average lookup, unordered iteration.
+
+| Step | Task | Status |
+|------|------|--------|
+| 3.1h.1 | Create `uod_graph_traits.hpp` | ⏳ PENDING |
+| 3.1h.2 | Create `test_dynamic_graph_uod.cpp` (~1100 lines) | ⏳ PENDING |
+| 3.1h.3 | Create `test_dynamic_graph_cpo_uod.cpp` (~1800 lines) | ⏳ PENDING |
+| 3.1h.4 | Update `tests/CMakeLists.txt` | ⏳ PENDING |
+| 3.1h.5 | Build and verify all tests pass | ⏳ PENDING |
+
+**Unordered Map Key Differences from Map:**
+1. **Hash-based storage** - O(1) average lookup vs O(log n) for map
+2. **Unordered iteration** - vertices do NOT iterate in key order
+3. **Requires hashable keys** - std::hash specialization needed (std::string has it)
+4. **bucket_count()** - exposes hash table internals for testing
 
 **New Traits Structures:**
 ```cpp
@@ -451,33 +532,45 @@ struct mofl_graph_traits {  // map + forward_list ✅ COMPLETE
 };
 
 template <class EV, class VV, class GV, class VId, bool Sourced>
-struct mol_graph_traits {  // map + list ✅ BASIC TESTS COMPLETE
+struct mol_graph_traits {  // map + list ✅ COMPLETE
   using vertices_type = std::map<VId, vertex_type>;
   using edges_type = std::list<edge_type>;
 };
 
 template <class EV, class VV, class GV, class VId, bool Sourced>
-struct mov_graph_traits {  // map + vector
+struct mov_graph_traits {  // map + vector ✅ COMPLETE
   using vertices_type = std::map<VId, vertex_type>;
   using edges_type = std::vector<edge_type>;
 };
 
 template <class EV, class VV, class GV, class VId, bool Sourced>
-struct umofl_graph_traits {  // unordered_map + forward_list
+struct mod_graph_traits {  // map + deque ✅ COMPLETE
+  using vertices_type = std::map<VId, vertex_type>;
+  using edges_type = std::deque<edge_type>;
+};
+
+template <class EV, class VV, class GV, class VId, bool Sourced>
+struct uofl_graph_traits {  // unordered_map + forward_list ⏳ IN PROGRESS
   using vertices_type = std::unordered_map<VId, vertex_type>;
   using edges_type = std::forward_list<edge_type>;
 };
 
 template <class EV, class VV, class GV, class VId, bool Sourced>
-struct umol_graph_traits {  // unordered_map + list
+struct uol_graph_traits {  // unordered_map + list ⏳ PENDING
   using vertices_type = std::unordered_map<VId, vertex_type>;
   using edges_type = std::list<edge_type>;
 };
 
 template <class EV, class VV, class GV, class VId, bool Sourced>
-struct umov_graph_traits {  // unordered_map + vector
+struct uov_graph_traits {  // unordered_map + vector ⏳ PENDING
   using vertices_type = std::unordered_map<VId, vertex_type>;
   using edges_type = std::vector<edge_type>;
+};
+
+template <class EV, class VV, class GV, class VId, bool Sourced>
+struct uod_graph_traits {  // unordered_map + deque ⏳ PENDING
+  using vertices_type = std::unordered_map<VId, vertex_type>;
+  using edges_type = std::deque<edge_type>;
 };
 ```
 
