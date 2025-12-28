@@ -712,9 +712,13 @@ Using explicit `operator==` provides equality operators (`==`, `!=`) and is requ
 
 | Step | Task | Status |
 |------|------|--------|
-| 4.1.4a | Create mos_graph_traits.hpp | ⏳ PENDING |
-| 4.1.4b | Create test_dynamic_graph_mos.cpp (~800 lines) | ⏳ PENDING |
-| 4.1.4c | Create test_dynamic_graph_cpo_mos.cpp (~1200 lines) | ⏳ PENDING |
+| 4.1.4a | Create mos_graph_traits.hpp | ✅ DONE |
+| 4.1.4b | Create test_dynamic_graph_mos.cpp (~800 lines) | ✅ DONE |
+| 4.1.4c1 | Create test_dynamic_graph_cpo_mos.cpp Part 1: Header, type aliases, vertices, num_vertices, find_vertex CPOs (~350 lines) | ⏳ PENDING |
+| 4.1.4c2 | Add Part 2: vertex_id, num_edges, edges, degree, target_id, target CPOs (~400 lines) | ⏳ PENDING |
+| 4.1.4c3 | Add Part 3: find_vertex_edge, contains_edge, vertex_value, edge_value, graph_value CPOs (~400 lines) | ⏳ PENDING |
+| 4.1.4c4 | Add Part 4: has_edge, source_id, source, partition_id, num_partitions CPOs (~300 lines) | ⏳ PENDING |
+| 4.1.4c5 | Add Part 5: Integration tests and summary (~300 lines) | ⏳ PENDING |
 | 4.1.4d | Update CMakeLists.txt and verify tests pass | ⏳ PENDING |
 
 **Step 4.1.5: Create uos_graph_traits (unordered_map + set)**
