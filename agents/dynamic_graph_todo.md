@@ -703,10 +703,10 @@ Using explicit `operator==` provides equality operators (`==`, `!=`) and is requ
 
 | Step | Task | Status |
 |------|------|--------|
-| 4.1.3a | Create dos_graph_traits.hpp | ⏳ PENDING |
-| 4.1.3b | Create test_dynamic_graph_dos.cpp (~800 lines) | ⏳ PENDING |
-| 4.1.3c | Create test_dynamic_graph_cpo_dos.cpp (~1200 lines) | ⏳ PENDING |
-| 4.1.3d | Update CMakeLists.txt and verify tests pass | ⏳ PENDING |
+| 4.1.3a | Create dos_graph_traits.hpp | ✅ DONE |
+| 4.1.3b | Create test_dynamic_graph_dos.cpp (~800 lines) | ✅ DONE |
+| 4.1.3c | Create test_dynamic_graph_cpo_dos.cpp (~1200 lines) | ✅ DONE |
+| 4.1.3d | Update CMakeLists.txt and verify tests pass | ✅ DONE |
 
 **Step 4.1.4: Create mos_graph_traits (map + set)**
 

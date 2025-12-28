@@ -80,6 +80,8 @@ add_executable(graph3_tests
     test_dynamic_edge_comparison.cpp
     test_dynamic_graph_vos.cpp
     test_dynamic_graph_cpo_vos.cpp
+    test_dynamic_graph_dos.cpp
+    test_dynamic_graph_cpo_dos.cpp
 )
 
 target_link_libraries(graph3_tests
