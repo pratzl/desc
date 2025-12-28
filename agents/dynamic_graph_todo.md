@@ -665,7 +665,7 @@ Add support for set/map-based edge containers. This phase requires implementatio
 
 **Overview:** Add vos_graph_traits (vector vertices + set edges) for all vertex container types.
 
-**Step 4.1.1: Add operator<=> and operator== to dynamic_edge**
+**Step 4.1.1: Add operator<=> and operator== to dynamic_edge - COMPLETE** ✅
 
 Using `operator<=>` (spaceship operator) provides ordering operators (`<`, `>`, `<=`, `>=`).
 Using explicit `operator==` provides equality operators (`==`, `!=`) and is required for:
@@ -675,24 +675,29 @@ Using explicit `operator==` provides equality operators (`==`, `!=`) and is requ
 
 | Step | Task | Status |
 |------|------|--------|
-| 4.1.1a | Analyze dynamic_edge class hierarchy for comparison operator locations | ⏳ PENDING |
-| 4.1.1b | Add operator<=> to dynamic_edge_target (compare by target_id, return std::strong_ordering) | ⏳ PENDING |
-| 4.1.1c | Add operator== to dynamic_edge_target (compare by target_id) | ⏳ PENDING |
-| 4.1.1d | Add operator<=> to dynamic_edge (include source_id for Sourced=true) | ⏳ PENDING |
-| 4.1.1e | Add operator== to dynamic_edge (include source_id for Sourced=true) | ⏳ PENDING |
-| 4.1.1f | Create test_dynamic_edge_comparison.cpp (~250 lines) | ⏳ PENDING |
-| 4.1.1g | Build and verify all comparison operators work | ⏳ PENDING |
+| 4.1.1a | Analyze dynamic_edge class hierarchy for comparison operator locations | ✅ DONE |
+| 4.1.1b | Add operator<=> to all 4 dynamic_edge specializations (Sourced=true: source_id+target_id, Sourced=false: target_id only) | ✅ DONE |
+| 4.1.1c | Add operator== to all 4 dynamic_edge specializations (matches <=> semantics) | ✅ DONE |
+| 4.1.1d | Add std::hash<dynamic_edge> specialization (Sourced=true: hash source_id+target_id, Sourced=false: hash target_id) | ✅ DONE |
+| 4.1.1e | Create test_dynamic_edge_comparison.cpp (380 lines, 15 test cases, 83 assertions) | ✅ DONE |
+| 4.1.1f | Build and verify all comparison operators work (2749 tests pass) | ✅ DONE |
+
+**Implementation Notes:**
+- Added `#include <compare>` to dynamic_graph.hpp
+- Operators added directly to dynamic_edge (not base classes) for all 4 specializations
+- Edge values intentionally excluded from comparison (only structural IDs compared)
+- Tests verify integration with std::set and std::unordered_set containers
 
 **Step 4.1.2: Create vos_graph_traits (vector + set)**
 
 | Step | Task | Status |
 |------|------|--------|
-| 4.1.2a | Create vos_graph_traits.hpp | ⏳ PENDING |
-| 4.1.2b | Verify dynamic_graph compiles with std::set edges | ⏳ PENDING |
-| 4.1.2c | Create test_dynamic_graph_vos.cpp basic tests (~800 lines) | ⏳ PENDING |
-| 4.1.2d | Create test_dynamic_graph_cpo_vos.cpp CPO tests (~1200 lines) | ⏳ PENDING |
-| 4.1.2e | Update CMakeLists.txt | ⏳ PENDING |
-| 4.1.2f | Build and verify all vos tests pass | ⏳ PENDING |
+| 4.1.2a | Create vos_graph_traits.hpp | ✅ DONE |
+| 4.1.2b | Verify dynamic_graph compiles with std::set edges | ✅ DONE |
+| 4.1.2c | Create test_dynamic_graph_vos.cpp basic tests (~600 lines, 20 test cases, 113 assertions) | ✅ DONE |
+| 4.1.2d | Create test_dynamic_graph_cpo_vos.cpp CPO tests (~1200 lines, 26 TEST_CASE) | ✅ DONE |
+| 4.1.2e | Update CMakeLists.txt | ✅ DONE |
+| 4.1.2f | Build and verify all vos tests pass | ✅ DONE |
 
 **Step 4.1.3: Create dos_graph_traits (deque + set)**
 
